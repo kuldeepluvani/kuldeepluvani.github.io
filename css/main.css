@@ -16,7 +16,7 @@ body {
   width: 100%;
   height: 100%;
   z-index: -20;
-  background-color: #16C0DA;
+  background-color: #000000;
   /*background: linear-gradient(#FFFFFF,#E6E6E6);*/
   background-image: url("https://cdn.pixabay.com/photo/2017/03/20/21/00/server-2160321_960_720.jpg");
   background-repeat: no-repeat;
