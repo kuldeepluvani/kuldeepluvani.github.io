@@ -79,7 +79,7 @@ p{
   margin:0;
 
 }
-.fb, .lin, .git, .wp, .mail, .res{
+.fb, .lin, .git, .twit, .mail, .res{
   color:#16C0DA;
 }
 
@@ -132,7 +132,7 @@ p{
 .ico:hover .mail{
   color:white;
 }
-.ico:hover .wp{
+.ico:hover .twit{
   color:white;
 }
 .ico-res:hover .res{
