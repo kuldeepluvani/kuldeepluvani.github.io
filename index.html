@@ -15,7 +15,10 @@
   <link href='https://fonts.googleapis.com/css?family=Karla' rel='stylesheet' type='text/css'>
   <link href='https://fonts.googleapis.com/css?family=Lustria' rel='stylesheet' type='text/css'>
 
+  <!-- change -->
+  <link href="http://www.jqueryscript.net/css/jquerysctipttop.css" rel="stylesheet" type="text/css">
 
+    <!-- end -->
 </head>
 <body>
 
@@ -83,7 +86,24 @@
           <div class="ico-res"><a href="Kuldeep Luvani Resume.pdf"><i class="fa fa-file-text fa-3x res"></i></a></div>
       </div>
     </ul>
-    </div>
+	<!-- change -->
+	<div class="text">
+		<span id="ghost"></span>|
+	</div>
+	<script src="http://code.jquery.com/jquery-1.12.4.min.js"></script>
+	<script src="js/ghost-typer.js"></script>
+	<script>
+		$("#ghost").ghosttyper({
+			messages: ['firstline firstline firstline firstlinefirstlinefirstline firstline ', 'secondline secondlinesecondlinesecondlinesecondline secondline secondline ', 'Thirdlined....','fourthline....'],
+			timeWrite: 150,
+			timeDelete: 100,
+			timePause: 1200
+		});
+	</script>
+	<!-- end -->
+	
+	
+	</div>
   </div>
 </div>
 
