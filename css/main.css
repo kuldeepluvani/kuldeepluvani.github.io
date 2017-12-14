@@ -34,6 +34,7 @@ body {
   font-weight: 600;
   line-height: 20px;
   margin-bottom: 40px;
+  position:relative;
 }
 p{
   display: inline-block !important;
@@ -71,6 +72,7 @@ p{
   font-family: 'Raleway', sans-serif;
   font-family: 'Roboto', sans-serif;
   font-family: 'Montserrat', sans-serif;
+  position:relative;
 }
 .icons{
   display:inline-block;
@@ -155,21 +157,23 @@ p{
   float: left;
 }
 
-@media screen and (max-width: 700px) {
+@media screen and (max-width: 1024px) {
 
   .name{
     width:100%;
   }
   .head{
-    font-size: 13vw;
+    font-size: 10.5vw;
     margin-bottom: 0px !important;
     padding: 0 !important;
+	position:relative;
 
   }
   .text{
     font-size: 4vw;
     margin-bottom: 4px !important;
     margin-top: 5px !important;
+	position:relative;
   }
   .ico{
     border: 4px double white;
@@ -183,6 +187,7 @@ p{
     transition: all 0.2s ease;
     text-decoration: none;
     margin: 0px 3px !important;
+	
 
   }
   .icons{
@@ -212,4 +217,6 @@ p{
     padding:0px !important;
 
   }
+  
+
 }
