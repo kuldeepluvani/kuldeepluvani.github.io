@@ -191,7 +191,7 @@ function resize() {
   orbitR = Math.min(W, H) * 0.24;
   socialOrbitR = Math.min(W, H) * 0.40;
   if (_nodes && _nodes.length) {
-    _nodes[0].r = 54 * S;
+    _nodes[0].r = 60 * S;
     for (let i = 1; i <= 4; i++) if (_nodes[i]) _nodes[i].r = 42 * S;
     for (let i = 5; i <= 9; i++) if (_nodes[i]) _nodes[i].r = 26 * S;
   }
@@ -250,7 +250,7 @@ const edges = [];
 // Center (index 0)
 nodes.push({
   x: W/2, y: H/2, vx: 0, vy: 0,
-  r: 54 * S, color: theme.accent, rgb: theme.accentRGB,
+  r: 60 * S, color: theme.accent, rgb: theme.accentRGB,
   label: 'KL', sublabel: 'Kuldeep Luvani',
   type: 'center', data: null, glow: 0
 });
@@ -537,7 +537,7 @@ function draw() {
 
     // Label
     if (n.label) {
-      if (n.type === 'center') ctx.font = `600 ${Math.round(22 * S)}px Inter`;
+      if (n.type === 'center') ctx.font = `700 ${Math.round(28 * S)}px Inter`;
       else if (n.type === 'social') ctx.font = `600 ${Math.round(12 * S)}px "JetBrains Mono", monospace`;
       else ctx.font = `${Math.round(26 * S)}px sans-serif`;
       ctx.fillStyle = n.color;
@@ -547,8 +547,8 @@ function draw() {
 
     // Sublabel
     if (n.sublabel) {
-      const fs = n.type === 'social' ? Math.round(10 * S) : Math.round(12 * S);
-      ctx.font = `${n.type === 'center' ? '300' : '500'} ${fs}px Inter`;
+      const fs = n.type === 'center' ? Math.round(15 * S) : (n.type === 'social' ? Math.round(10 * S) : Math.round(12 * S));
+      ctx.font = `${n.type === 'center' ? '400' : '500'} ${fs}px Inter`;
       ctx.fillStyle = `rgba(${n.rgb},${lAlpha + n.glow * 0.3})`;
       ctx.textAlign = 'center';
       ctx.fillText(n.sublabel, n.x, n.y + r + (n.type === 'social' ? 14 : 18));
@@ -556,8 +556,8 @@ function draw() {
   });
 
   // Typing
-  const typingY = nodes[0].y + nodes[0].r + 36;
-  ctx.font = `400 ${Math.round(12 * S)}px "JetBrains Mono", monospace`;
+  const typingY = nodes[0].y + nodes[0].r + 40;
+  ctx.font = `400 ${Math.round(14 * S)}px "JetBrains Mono", monospace`;
   ctx.fillStyle = theme.typingColor;
   ctx.textAlign = 'center';
   const phrase = typingPhrases[tpIdx];
