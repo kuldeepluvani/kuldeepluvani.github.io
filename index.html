@@ -143,7 +143,7 @@ let isDark = false;
 const theme = {
   get bg()       { return isDark ? '#06060c' : '#f5f5fa'; },
   get grid()     { return isDark ? 'rgba(25,192,218,0.025)' : 'rgba(8,145,178,0.06)'; },
-  get dotAlpha() { return isDark ? 0.12 : 0.2; },
+  get dotAlpha() { return isDark ? 0.3 : 0.45; },
   get edgeMul()  { return isDark ? 1 : 1.8; },
   get nodeFill() { return isDark ? 0.08 : 0.1; },
   get nodeBorder(){ return isDark ? 0.35 : 0.5; },
@@ -294,7 +294,7 @@ for (let i = 0; i < dotCount; i++) {
   nodes.push({
     x: Math.random() * W, y: Math.random() * H,
     vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
-    r: 1.5 + Math.random() * 2.5, color: theme.accent, rgb: theme.accentRGB,
+    r: 2 + Math.random() * 3, color: theme.accent, rgb: theme.accentRGB,
     label: null, sublabel: null, type: 'dot', data: null, glow: 0
   });
 }
@@ -472,7 +472,7 @@ function draw() {
       const dx = a.x - b.x, dy = a.y - b.y;
       const dist = Math.sqrt(dx*dx + dy*dy);
       if (dist < linkDist) {
-        const alpha = (1 - dist / linkDist) * 0.15 * eMul;
+        const alpha = (1 - dist / linkDist) * 0.25 * eMul;
         ctx.strokeStyle = `rgba(${theme.accentRGB},${alpha})`;
         ctx.lineWidth = 0.6;
         ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
