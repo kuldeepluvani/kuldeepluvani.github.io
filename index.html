@@ -11,96 +11,117 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #06060c;
-      color: #e4e4ef;
       font-family: 'Inter', -apple-system, sans-serif;
       overflow: hidden;
       height: 100vh;
       cursor: default;
+      transition: background 0.4s ease, color 0.4s ease;
     }
+    body.light { background: #f5f5fa; color: #1a1a2e; }
+    body.dark  { background: #06060c; color: #e4e4ef; }
+
     canvas { display: block; position: fixed; top: 0; left: 0; z-index: 0; }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed; top: 1.2rem; right: 1.2rem; z-index: 20;
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 1.5px solid; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; font-size: 1.1rem;
+      transition: all 0.3s ease; background: transparent;
+    }
+    .light .theme-toggle { border-color: #ccc; color: #555; }
+    .light .theme-toggle:hover { border-color: #0891b2; color: #0891b2; background: rgba(8,145,178,0.08); }
+    .dark .theme-toggle { border-color: #333; color: #888; }
+    .dark .theme-toggle:hover { border-color: #19C0DA; color: #19C0DA; background: rgba(25,192,218,0.1); }
 
     /* Bubble overlay */
     .bubble-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       z-index: 10; display: none; align-items: center; justify-content: center;
-      background: rgba(6,6,12,0.85); backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
       opacity: 0; transition: opacity 0.3s ease;
     }
+    .light .bubble-overlay { background: rgba(245,245,250,0.85); }
+    .dark  .bubble-overlay { background: rgba(6,6,12,0.85); }
     .bubble-overlay.active { display: flex; opacity: 1; }
 
     .bubble {
       max-width: 560px; width: 90%; padding: 2.5rem;
-      background: radial-gradient(ellipse at top left, #151525, #0d0d18);
-      border: 1px solid var(--node-color, #19C0DA);
+      border: 1px solid var(--node-color, #0891b2);
       border-radius: 20px; position: relative;
-      box-shadow: 0 0 60px rgba(var(--node-rgb, 25,192,218), 0.2),
-                  inset 0 0 30px rgba(var(--node-rgb, 25,192,218), 0.05);
+      box-shadow: 0 0 60px rgba(var(--node-rgb, 8,145,178), 0.15);
       transform: scale(0.7); opacity: 0;
       transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
     }
+    .light .bubble { background: rgba(255,255,255,0.95); }
+    .dark  .bubble { background: radial-gradient(ellipse at top left, #151525, #0d0d18); }
     .bubble-overlay.active .bubble { transform: scale(1); opacity: 1; }
 
     .bubble-close {
       position: absolute; top: 1rem; right: 1.2rem; background: none;
-      border: none; color: #666; font-size: 1.5rem; cursor: pointer;
-      transition: color 0.2s;
+      border: none; font-size: 1.5rem; cursor: pointer; transition: color 0.2s;
     }
-    .bubble-close:hover { color: #fff; }
+    .light .bubble-close { color: #aaa; }
+    .light .bubble-close:hover { color: #333; }
+    .dark  .bubble-close { color: #666; }
+    .dark  .bubble-close:hover { color: #fff; }
 
     .bubble-icon {
       width: 56px; height: 56px; border-radius: 14px; display: flex;
       align-items: center; justify-content: center; font-size: 1.5rem;
       margin-bottom: 1rem;
-      background: rgba(var(--node-rgb, 25,192,218), 0.15);
-      border: 1px solid rgba(var(--node-rgb, 25,192,218), 0.3);
+      background: rgba(var(--node-rgb, 8,145,178), 0.12);
+      border: 1px solid rgba(var(--node-rgb, 8,145,178), 0.25);
     }
-
     .bubble h2 {
       font-size: 1.6rem; font-weight: 700; margin-bottom: 0.2rem;
-      color: var(--node-color, #19C0DA);
+      color: var(--node-color, #0891b2);
     }
     .bubble .subtitle {
       font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
-      color: #8888a0; margin-bottom: 1rem;
+      margin-bottom: 1rem;
     }
-    .bubble p {
-      color: #aaaabc; font-size: 0.95rem; line-height: 1.7; margin-bottom: 1.2rem;
-    }
-    .bubble .tags {
-      display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem;
-    }
+    .light .bubble .subtitle { color: #888; }
+    .dark  .bubble .subtitle { color: #8888a0; }
+    .bubble p { font-size: 0.95rem; line-height: 1.7; margin-bottom: 1.2rem; }
+    .light .bubble p { color: #555; }
+    .dark  .bubble p { color: #aaaabc; }
+    .bubble .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem; }
     .bubble .tag {
       font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
       padding: 0.25rem 0.55rem; border-radius: 4px;
-      background: rgba(var(--node-rgb, 25,192,218), 0.1);
-      color: var(--node-color, #19C0DA);
+      background: rgba(var(--node-rgb, 8,145,178), 0.1);
+      color: var(--node-color, #0891b2);
     }
     .bubble .link {
       display: inline-flex; align-items: center; gap: 0.5rem;
-      color: var(--node-color, #19C0DA); text-decoration: none;
+      color: var(--node-color, #0891b2); text-decoration: none;
       font-size: 0.9rem; font-weight: 500; transition: opacity 0.2s;
     }
     .bubble .link:hover { opacity: 0.7; }
     .bubble .link svg { width: 16px; height: 16px; fill: currentColor; }
 
-    /* Intro hint */
+    /* Hint */
     .hint {
       position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
-      z-index: 5; color: #555; font-size: 0.75rem;
+      z-index: 5; font-size: 0.75rem;
       font-family: 'JetBrains Mono', monospace;
       animation: pulse 3s ease-in-out infinite;
     }
+    .light .hint { color: #aaa; }
+    .dark  .hint { color: #555; }
     @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
   </style>
 </head>
-<body>
+<body class="light">
+
+<button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">&#9790;</button>
 
 <canvas id="graph"></canvas>
 
 <div class="hint">click a node to explore</div>
 
-<!-- Bubble overlay -->
 <div class="bubble-overlay" id="bubbleOverlay">
   <div class="bubble" id="bubbleContent">
     <button class="bubble-close" id="bubbleClose">&times;</button>
@@ -117,9 +138,47 @@
 </div>
 
 <script>
+// ===================== Theme =====================
+let isDark = false;
+const theme = {
+  get bg()       { return isDark ? '#06060c' : '#f5f5fa'; },
+  get grid()     { return isDark ? 'rgba(25,192,218,0.025)' : 'rgba(8,145,178,0.06)'; },
+  get dotAlpha() { return isDark ? 0.12 : 0.2; },
+  get edgeMul()  { return isDark ? 1 : 1.8; },
+  get nodeFill() { return isDark ? 0.08 : 0.1; },
+  get nodeBorder(){ return isDark ? 0.35 : 0.5; },
+  get labelAlpha(){ return isDark ? 0.5 : 0.7; },
+  get typingColor(){ return isDark ? 'rgba(25,192,218,0.45)' : 'rgba(8,145,178,0.6)'; },
+  get accent()   { return isDark ? '#19C0DA' : '#0891b2'; },
+  get accentRGB(){ return isDark ? '25,192,218' : '8,145,178'; }
+};
+
+const toggleBtn = document.getElementById('themeToggle');
+toggleBtn.addEventListener('click', () => {
+  isDark = !isDark;
+  document.body.className = isDark ? 'dark' : 'light';
+  toggleBtn.innerHTML = isDark ? '&#9788;' : '&#9790;';
+  // Update center node color
+  if (nodes.length) {
+    nodes[0].color = theme.accent;
+    nodes[0].rgb = theme.accentRGB;
+  }
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+});
+
+// Restore saved preference
+if (localStorage.getItem('theme') === 'dark') {
+  isDark = true;
+  document.body.className = 'dark';
+  toggleBtn.innerHTML = '&#9788;';
+}
+
+// ===================== Canvas =====================
 const canvas = document.getElementById('graph');
 const ctx = canvas.getContext('2d');
 let W, H, dpr, mouseX = -1000, mouseY = -1000;
+let orbitR, socialOrbitR, S = 1;
+let _nodes;
 
 function resize() {
   dpr = window.devicePixelRatio || 1;
@@ -127,139 +186,128 @@ function resize() {
   canvas.width = W * dpr; canvas.height = H * dpr;
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // Responsive scaling
-  const scale = Math.min(W, H) / 800; // 1.0 at 800px, scales up/down
-  S = Math.max(0.6, Math.min(1.6, scale)); // clamp 0.6 to 1.6
+  const scale = Math.min(W, H) / 800;
+  S = Math.max(0.6, Math.min(1.6, scale));
   orbitR = Math.min(W, H) * 0.24;
   socialOrbitR = Math.min(W, H) * 0.40;
-  // Update node radii on resize (guarded — nodes may not exist on first call)
-  if (typeof _nodes !== 'undefined' && _nodes.length) {
-    _nodes[0].r = 54 * S; // center
+  if (_nodes && _nodes.length) {
+    _nodes[0].r = 54 * S;
     for (let i = 1; i <= 4; i++) if (_nodes[i]) _nodes[i].r = 42 * S;
     for (let i = 5; i <= 9; i++) if (_nodes[i]) _nodes[i].r = 26 * S;
   }
 }
-let orbitR, socialOrbitR, S = 1;
-let _nodes; // forward ref for resize
 window.addEventListener('resize', resize);
 resize();
 
-// Project data
+// ===================== Data =====================
 const projects = [
   {
     id: 'claim', name: 'CLAIM', subtitle: 'Claude AI Memory', icon: '\u{1F9E0}',
-    color: '#19C0DA', rgb: '25,192,218',
+    color: '#0891b2', darkColor: '#19C0DA', rgb: '8,145,178', darkRgb: '25,192,218',
     desc: 'Single-file, self-bootstrapping memory system for Claude Code. Multi-vault Obsidian integration with autonomous capture, software engineering triggers, and semantic routing. Memory shapes behavior. Vaults store knowledge.',
     tags: ['claude-code-plugin','obsidian','multi-vault','autonomous-capture','self-bootstrapping','POSIX'],
     url: 'https://github.com/kuldeepluvani/claim'
   },
   {
     id: 'claudegotchi', name: 'Claudegotchi', subtitle: 'Developer Wellness Plugin', icon: '\u{1F436}',
-    color: '#34d399', rgb: '52,211,153',
+    color: '#059669', darkColor: '#34d399', rgb: '5,150,105', darkRgb: '52,211,153',
     desc: 'Tamagotchi-style wellness tracking for Claude Code. Monitors session duration, velocity, and frustration. Rewards healthy habits through a virtual creature with HP, XP, coins, and evolution stages. Multi-session isolation with per-session state.',
     tags: ['claude-code-plugin','wellness','gamification','multi-session','dashboard','sqlite'],
     url: 'https://github.com/kuldeepluvani/ClaudeGotchi'
   },
   {
     id: 'mycelium', name: 'Mycelium', subtitle: 'Self-Enriching Knowledge Engine', icon: '\u{1F344}',
-    color: '#a78bfa', rgb: '167,139,250',
+    color: '#7c3aed', darkColor: '#a78bfa', rgb: '124,58,237', darkRgb: '167,139,250',
     desc: 'A living knowledge network that learns while you sleep and thinks while you work. Ingests Markdown vaults and Git repos, builds a knowledge graph, auto-discovers specialist AI agents from data clusters, and answers through a hierarchical multi-agent cortex.',
     tags: ['knowledge-graph','multi-agent','NATS JetStream','FAISS','FastAPI','NetworkX'],
     url: 'https://github.com/kuldeepluvani/mycelium'
   },
   {
     id: 'gittimemachine', name: 'GitTimeMachine', subtitle: "Like Apple's Time Machine, but for Git", icon: '\u{231B}',
-    color: '#fbbf24', rgb: '251,191,36',
+    color: '#d97706', darkColor: '#fbbf24', rgb: '217,119,6', darkRgb: '251,191,36',
     desc: "Like Apple's Time Machine, but for Git. Visual time-travel through your repository history. Browse, compare, and restore any file from any point in time with an intuitive timeline interface.",
     tags: ['git','version-control','time-machine','cli','developer-tools'],
     url: 'https://github.com/kuldeepluvani/GitTimeMachine'
   }
 ];
 
-// Social/link data
 const socials = [
-  { id: 'github', label: 'GH', name: 'GitHub', color: '#8b949e', rgb: '139,148,158', url: 'https://github.com/kuldeepluvani', icon: '\u{2B22}' },
-  { id: 'linkedin', label: 'LI', name: 'LinkedIn', color: '#0a66c2', rgb: '10,102,194', url: 'https://www.linkedin.com/in/kuldeep-luvani-28a93336/', icon: '\u{1F310}' },
-  { id: 'email', label: '@', name: 'Email', color: '#f472b6', rgb: '244,114,182', url: 'mailto:kuldeepluvani@gmail.com', icon: '\u{2709}' },
-  { id: 'resume', label: 'CV', name: 'Resume', color: '#fb923c', rgb: '251,146,60', url: 'Kuldeep Luvani Resume.pdf', icon: '\u{1F4C4}' },
-  { id: 'blog', label: 'B', name: 'Blog', color: '#60a5fa', rgb: '96,165,250', url: 'https://pythonhighschool.wordpress.com/', icon: '\u{270D}' },
+  { id: 'github', label: 'GH', name: 'GitHub', color: '#555', darkColor: '#8b949e', rgb: '85,85,85', darkRgb: '139,148,158', url: 'https://github.com/kuldeepluvani' },
+  { id: 'linkedin', label: 'LI', name: 'LinkedIn', color: '#0a66c2', darkColor: '#3b82f6', rgb: '10,102,194', darkRgb: '59,130,246', url: 'https://www.linkedin.com/in/kuldeep-luvani-28a93336/' },
+  { id: 'email', label: '@', name: 'Email', color: '#db2777', darkColor: '#f472b6', rgb: '219,39,119', darkRgb: '244,114,182', url: 'mailto:kuldeepluvani@gmail.com' },
+  { id: 'resume', label: 'CV', name: 'Resume', color: '#ea580c', darkColor: '#fb923c', rgb: '234,88,12', darkRgb: '251,146,60', url: 'Kuldeep Luvani Resume.pdf' },
+  { id: 'blog', label: 'B', name: 'Blog', color: '#2563eb', darkColor: '#60a5fa', rgb: '37,99,235', darkRgb: '96,165,250', url: 'https://pythonhighschool.wordpress.com/' },
 ];
 
-// Nodes
+function getColor(item) { return isDark ? item.darkColor : item.color; }
+function getRgb(item) { return isDark ? item.darkRgb : item.rgb; }
+
+// ===================== Nodes =====================
 const nodes = [];
-_nodes = nodes; // link to forward ref for resize()
+_nodes = nodes;
 const edges = [];
 
-// Center node (index 0)
-const center = {
+// Center (index 0)
+nodes.push({
   x: W/2, y: H/2, vx: 0, vy: 0,
-  r: 54 * S, color: '#19C0DA', rgb: '25,192,218',
+  r: 54 * S, color: theme.accent, rgb: theme.accentRGB,
   label: 'KL', sublabel: 'Kuldeep Luvani',
   type: 'center', data: null, glow: 0
-};
-nodes.push(center);
+});
 
-// Project nodes (indices 1-4)
-const projAngleStep = (Math.PI * 2) / projects.length;
+// Projects (indices 1-4)
+const pStep = (Math.PI * 2) / projects.length;
 projects.forEach((p, i) => {
-  const a = projAngleStep * i - Math.PI / 2;
+  const a = pStep * i - Math.PI / 2;
   nodes.push({
     x: W/2 + Math.cos(a) * orbitR, y: H/2 + Math.sin(a) * orbitR,
-    vx: 0, vy: 0, r: 42 * S, color: p.color, rgb: p.rgb,
+    vx: 0, vy: 0, r: 42 * S,
+    color: getColor(p), rgb: getRgb(p),
     label: p.icon, sublabel: p.name,
-    type: 'project', data: p, glow: 0,
-    orbitAngle: a, orbitRadius: orbitR
+    type: 'project', data: p, glow: 0
   });
   edges.push({ a: 0, b: nodes.length - 1, type: 'project' });
 });
 
-// Social nodes (indices 5-9)
-const socialAngleStep = (Math.PI * 2) / socials.length;
+// Socials (indices 5-9)
+const sStep = (Math.PI * 2) / socials.length;
 socials.forEach((s, i) => {
-  const a = socialAngleStep * i + Math.PI / 5;
+  const a = sStep * i + Math.PI / 5;
   nodes.push({
     x: W/2 + Math.cos(a) * socialOrbitR, y: H/2 + Math.sin(a) * socialOrbitR,
-    vx: 0, vy: 0, r: 26 * S, color: s.color, rgb: s.rgb,
+    vx: 0, vy: 0, r: 26 * S,
+    color: getColor(s), rgb: getRgb(s),
     label: s.label, sublabel: s.name,
-    type: 'social', data: s, glow: 0,
-    orbitAngle: a, orbitRadius: socialOrbitR
+    type: 'social', data: s, glow: 0
   });
   edges.push({ a: 0, b: nodes.length - 1, type: 'social' });
 });
 
-// Connect projects to each other with faint edges
-for (let i = 1; i <= projects.length; i++) {
-  for (let j = i + 1; j <= projects.length; j++) {
+// Inter-project edges
+for (let i = 1; i <= projects.length; i++)
+  for (let j = i + 1; j <= projects.length; j++)
     edges.push({ a: i, b: j, type: 'inter' });
-  }
-}
 
 // Ambient dots
 for (let i = 0; i < 30; i++) {
   nodes.push({
     x: Math.random() * W, y: Math.random() * H,
     vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
-    r: 1.5 + Math.random() * 2, color: '#19C0DA', rgb: '25,192,218',
+    r: 1.5 + Math.random() * 2, color: theme.accent, rgb: theme.accentRGB,
     label: null, sublabel: null, type: 'dot', data: null, glow: 0
   });
 }
 
-// Ambient dot connections
 const dotStart = 1 + projects.length + socials.length;
-for (let i = dotStart; i < nodes.length; i++) {
+for (let i = dotStart; i < nodes.length; i++)
   for (let j = i + 1; j < nodes.length; j++) {
-    const dx = nodes[i].x - nodes[j].x;
-    const dy = nodes[i].y - nodes[j].y;
-    if (Math.sqrt(dx*dx + dy*dy) < 180) {
-      edges.push({ a: i, b: j, type: 'ambient' });
-    }
+    const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+    if (Math.sqrt(dx*dx + dy*dy) < 180) edges.push({ a: i, b: j, type: 'ambient' });
   }
-}
 
-// Physics
+// ===================== Physics =====================
 function physics() {
   const cx = W / 2, cy = H / 2;
-
   nodes.forEach((n, i) => {
     if (n.type === 'dot') {
       n.x += n.vx; n.y += n.vy;
@@ -267,54 +315,43 @@ function physics() {
       if (n.y < -20) n.y = H + 20; if (n.y > H + 20) n.y = -20;
       return;
     }
-
     if (n.type === 'center') {
       n.vx += (cx - n.x) * 0.003;
       n.vy += (cy - n.y) * 0.003;
     }
-
     if (n.type === 'project' || n.type === 'social') {
       const targetR = n.type === 'project' ? orbitR : socialOrbitR;
-      const dx = n.x - nodes[0].x;
-      const dy = n.y - nodes[0].y;
+      const dx = n.x - nodes[0].x, dy = n.y - nodes[0].y;
       const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-      const force = (dist - targetR) * 0.004;
-      n.vx -= (dx / dist) * force;
-      n.vy -= (dy / dist) * force;
-
-      // Very slow orbit — gentle enough to click
+      n.vx -= (dx / dist) * (dist - targetR) * 0.004;
+      n.vy -= (dy / dist) * (dist - targetR) * 0.004;
       const angle = Math.atan2(dy, dx);
       const speed = n.type === 'social' ? 0.005 : 0.008;
       n.vx += Math.cos(angle + Math.PI/2) * speed;
       n.vy += Math.sin(angle + Math.PI/2) * speed;
     }
-
-    // Mouse ATTRACTION — nodes gently drift toward cursor when nearby
+    // Mouse attraction
     if (n.type !== 'dot') {
-      const mdx = mouseX - n.x;
-      const mdy = mouseY - n.y;
+      const mdx = mouseX - n.x, mdy = mouseY - n.y;
       const mdist = Math.sqrt(mdx*mdx + mdy*mdy) || 1;
       if (mdist < 200 && mdist > n.r) {
-        const strength = (1 - mdist / 200) * 0.15;
-        n.vx += (mdx / mdist) * strength;
-        n.vy += (mdy / mdist) * strength;
+        const str = (1 - mdist / 200) * 0.15;
+        n.vx += (mdx / mdist) * str;
+        n.vy += (mdy / mdist) * str;
       }
     }
-
-    // Node repulsion
-    nodes.forEach((other, j) => {
-      if (i === j || other.type === 'dot') return;
-      const dx = n.x - other.x;
-      const dy = n.y - other.y;
+    // Repulsion
+    nodes.forEach((o, j) => {
+      if (i === j || o.type === 'dot') return;
+      const dx = n.x - o.x, dy = n.y - o.y;
       const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-      const minDist = n.r + other.r + 30;
-      if (dist < minDist) {
-        const force = (minDist - dist) * 0.008;
-        n.vx += (dx / dist) * force;
-        n.vy += (dy / dist) * force;
+      const minD = n.r + o.r + 30;
+      if (dist < minD) {
+        const f = (minD - dist) * 0.008;
+        n.vx += (dx / dist) * f;
+        n.vy += (dy / dist) * f;
       }
     });
-
     n.vx *= 0.92; n.vy *= 0.92;
     n.x += n.vx; n.y += n.vy;
     n.x = Math.max(n.r + 10, Math.min(W - n.r - 10, n.x));
@@ -322,51 +359,48 @@ function physics() {
   });
 }
 
-// Hover
+// ===================== Interaction =====================
 let hoveredNode = null;
 canvas.addEventListener('mousemove', e => {
   mouseX = e.clientX; mouseY = e.clientY;
-  hoveredNode = null;
-  canvas.style.cursor = 'default';
+  hoveredNode = null; canvas.style.cursor = 'default';
   nodes.forEach(n => {
     if (n.type === 'dot') return;
-    const dx = e.clientX - n.x, dy = e.clientY - n.y;
-    if (Math.sqrt(dx*dx + dy*dy) < n.r + 15) {
+    const d = Math.sqrt((e.clientX-n.x)**2 + (e.clientY-n.y)**2);
+    if (d < n.r + 15) {
       hoveredNode = n;
       if (n.type === 'project' || n.type === 'social') canvas.style.cursor = 'pointer';
     }
   });
 });
 
-// Click
 canvas.addEventListener('click', e => {
   nodes.forEach(n => {
-    const dx = e.clientX - n.x, dy = e.clientY - n.y;
-    if (Math.sqrt(dx*dx + dy*dy) > n.r + 15) return;
+    const d = Math.sqrt((e.clientX-n.x)**2 + (e.clientY-n.y)**2);
+    if (d > n.r + 15) return;
     if (n.type === 'project') openBubble(n.data);
     if (n.type === 'social') window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank');
   });
 });
 
-// Touch
 canvas.addEventListener('touchstart', e => {
-  const t = e.touches[0];
-  mouseX = t.clientX; mouseY = t.clientY;
+  const t = e.touches[0]; mouseX = t.clientX; mouseY = t.clientY;
   nodes.forEach(n => {
-    const dx = t.clientX - n.x, dy = t.clientY - n.y;
-    if (Math.sqrt(dx*dx + dy*dy) > n.r + 20) return;
+    const d = Math.sqrt((t.clientX-n.x)**2 + (t.clientY-n.y)**2);
+    if (d > n.r + 20) return;
     if (n.type === 'project') openBubble(n.data);
     if (n.type === 'social') window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank');
   });
 });
 
-// Bubble
+// ===================== Bubble =====================
 const overlay = document.getElementById('bubbleOverlay');
 const bubbleEl = document.getElementById('bubbleContent');
 
 function openBubble(p) {
-  bubbleEl.style.setProperty('--node-color', p.color);
-  bubbleEl.style.setProperty('--node-rgb', p.rgb);
+  const c = getColor(p), r = getRgb(p);
+  bubbleEl.style.setProperty('--node-color', c);
+  bubbleEl.style.setProperty('--node-rgb', r);
   document.getElementById('bubbleIcon').textContent = p.icon;
   document.getElementById('bubbleName').textContent = p.name;
   document.getElementById('bubbleSubtitle').textContent = p.subtitle;
@@ -381,18 +415,43 @@ document.getElementById('bubbleClose').addEventListener('click', closeBubble);
 overlay.addEventListener('click', e => { if (e.target === overlay) closeBubble(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBubble(); });
 
-// Draw
+// ===================== Draw =====================
 let time = 0;
+
+function updateNodeColors() {
+  nodes[0].color = theme.accent;
+  nodes[0].rgb = theme.accentRGB;
+  for (let i = 1; i <= projects.length; i++) {
+    nodes[i].color = getColor(projects[i-1]);
+    nodes[i].rgb = getRgb(projects[i-1]);
+  }
+  for (let i = 0; i < socials.length; i++) {
+    const ni = 1 + projects.length + i;
+    nodes[ni].color = getColor(socials[i]);
+    nodes[ni].rgb = getRgb(socials[i]);
+  }
+  for (let i = dotStart; i < nodes.length; i++) {
+    nodes[i].color = theme.accent;
+    nodes[i].rgb = theme.accentRGB;
+  }
+}
+
 function draw() {
   time += 0.008;
-  ctx.clearRect(0, 0, W, H);
+  updateNodeColors();
 
-  // Background grid
-  ctx.strokeStyle = 'rgba(25,192,218,0.025)';
+  // Background
+  ctx.fillStyle = theme.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = theme.grid;
   ctx.lineWidth = 0.5;
   const gs = 60;
   for (let x = 0; x < W; x += gs) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
   for (let y = 0; y < H; y += gs) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  const eMul = theme.edgeMul;
 
   // Edges
   edges.forEach(e => {
@@ -401,39 +460,40 @@ function draw() {
     const dist = Math.sqrt(dx*dx + dy*dy);
 
     if (e.type === 'ambient') {
-      const alpha = Math.max(0, 1 - dist / 180) * 0.05;
+      const alpha = Math.max(0, 1 - dist / 180) * 0.05 * eMul;
       if (alpha <= 0) return;
-      ctx.strokeStyle = `rgba(25,192,218,${alpha})`;
+      ctx.strokeStyle = `rgba(${theme.accentRGB},${alpha})`;
       ctx.lineWidth = 0.5;
     } else if (e.type === 'social') {
-      const alpha = Math.max(0, 1 - dist / (socialOrbitR * 2)) * 0.12;
+      const alpha = Math.max(0, 1 - dist / (socialOrbitR * 2)) * 0.12 * eMul;
       ctx.strokeStyle = `rgba(${b.rgb || a.rgb},${alpha})`;
       ctx.lineWidth = 0.8;
     } else if (e.type === 'inter') {
-      const alpha = Math.max(0, 1 - dist / (orbitR * 3)) * 0.06;
+      const alpha = Math.max(0, 1 - dist / (orbitR * 3)) * 0.06 * eMul;
       if (alpha <= 0) return;
-      ctx.strokeStyle = `rgba(100,100,140,${alpha})`;
+      ctx.strokeStyle = `rgba(${isDark ? '100,100,140' : '120,120,160'},${alpha})`;
       ctx.lineWidth = 0.5;
       ctx.setLineDash([4, 6]);
     } else {
-      // Project-to-center
       const pulse = (Math.sin(time * 2.5 + e.b) + 1) / 2;
       const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-      grad.addColorStop(0, `rgba(${a.rgb},0.15)`);
-      grad.addColorStop(pulse, `rgba(${b.rgb},0.4)`);
-      grad.addColorStop(1, `rgba(${b.rgb},0.15)`);
+      const baseA = (isDark ? 0.15 : 0.2);
+      const peakA = (isDark ? 0.4 : 0.5);
+      grad.addColorStop(0, `rgba(${a.rgb},${baseA})`);
+      grad.addColorStop(pulse, `rgba(${b.rgb},${peakA})`);
+      grad.addColorStop(1, `rgba(${b.rgb},${baseA})`);
       ctx.strokeStyle = grad;
       ctx.lineWidth = 1.5;
     }
-
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
     ctx.setLineDash([]);
   });
 
   // Nodes
+  const nFill = theme.nodeFill;
+  const nBorder = theme.nodeBorder;
+  const lAlpha = theme.labelAlpha;
+
   nodes.forEach(n => {
     const isHovered = n === hoveredNode;
     n.glow += ((isHovered ? 1 : 0) - n.glow) * 0.1;
@@ -441,7 +501,7 @@ function draw() {
     if (n.type === 'dot') {
       ctx.beginPath();
       ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${n.rgb},${0.12 + Math.sin(time * 1.5 + n.x) * 0.04})`;
+      ctx.fillStyle = `rgba(${n.rgb},${theme.dotAlpha + Math.sin(time * 1.5 + n.x) * 0.04})`;
       ctx.fill();
       return;
     }
@@ -454,21 +514,18 @@ function draw() {
     const ga = n.type === 'center' ? 0.1 : (n.type === 'social' ? 0.06 : 0.08);
     grad.addColorStop(0, `rgba(${n.rgb},${ga + n.glow * 0.15})`);
     grad.addColorStop(1, `rgba(${n.rgb},0)`);
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
-    ctx.fillStyle = grad;
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
+    ctx.fillStyle = grad; ctx.fill();
 
-    // Circle fill + border
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${n.rgb},${n.type === 'social' ? 0.06 : 0.08})`;
+    // Circle
+    ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${n.rgb},${nFill})`;
     ctx.fill();
-    ctx.strokeStyle = `rgba(${n.rgb},${0.35 + n.glow * 0.4})`;
+    ctx.strokeStyle = `rgba(${n.rgb},${nBorder + n.glow * 0.3})`;
     ctx.lineWidth = n.type === 'social' ? 1 : 1.5 + n.glow;
     ctx.stroke();
 
-    // Spinning arc for project nodes
+    // Spinning arc
     if (n.type === 'project') {
       ctx.beginPath();
       const arcS = time * 1.5 + nodes.indexOf(n) * 1.2;
@@ -480,38 +537,31 @@ function draw() {
 
     // Label
     if (n.label) {
-      if (n.type === 'center') {
-        ctx.font = `600 ${Math.round(22 * S)}px Inter`;
-      } else if (n.type === 'social') {
-        ctx.font = `600 ${Math.round(12 * S)}px "JetBrains Mono", monospace`;
-      } else {
-        ctx.font = `${Math.round(26 * S)}px sans-serif`;
-      }
+      if (n.type === 'center') ctx.font = `600 ${Math.round(22 * S)}px Inter`;
+      else if (n.type === 'social') ctx.font = `600 ${Math.round(12 * S)}px "JetBrains Mono", monospace`;
+      else ctx.font = `${Math.round(26 * S)}px sans-serif`;
       ctx.fillStyle = n.color;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(n.label, n.x, n.y);
     }
 
     // Sublabel
     if (n.sublabel) {
-      const fontSize = n.type === 'social' ? Math.round(10 * S) : Math.round(12 * S);
-      const weight = n.type === 'center' ? '300' : '500';
-      ctx.font = `${weight} ${fontSize}px Inter`;
-      ctx.fillStyle = `rgba(${n.rgb},${0.5 + n.glow * 0.4})`;
+      const fs = n.type === 'social' ? Math.round(10 * S) : Math.round(12 * S);
+      ctx.font = `${n.type === 'center' ? '300' : '500'} ${fs}px Inter`;
+      ctx.fillStyle = `rgba(${n.rgb},${lAlpha + n.glow * 0.3})`;
       ctx.textAlign = 'center';
       ctx.fillText(n.sublabel, n.x, n.y + r + (n.type === 'social' ? 14 : 18));
     }
   });
 
-  // Typing text under center
+  // Typing
   const typingY = nodes[0].y + nodes[0].r + 36;
-  ctx.font = '400 12px "JetBrains Mono", monospace';
-  ctx.fillStyle = 'rgba(25,192,218,0.45)';
+  ctx.font = `400 ${Math.round(12 * S)}px "JetBrains Mono", monospace`;
+  ctx.fillStyle = theme.typingColor;
   ctx.textAlign = 'center';
   const phrase = typingPhrases[tpIdx];
-  const display = phrase.substring(0, tcIdx);
-  ctx.fillText(display + (Math.floor(time * 4) % 2 === 0 ? '|' : ''), nodes[0].x, typingY);
+  ctx.fillText(phrase.substring(0, tcIdx) + (Math.floor(time * 4) % 2 === 0 ? '|' : ''), nodes[0].x, typingY);
 
   physics();
   requestAnimationFrame(draw);
@@ -527,13 +577,8 @@ const typingPhrases = [
 let tpIdx = 0, tcIdx = 0, tDel = false, tPause = 0;
 setInterval(() => {
   if (tPause > 0) { tPause--; return; }
-  if (tDel) {
-    tcIdx--;
-    if (tcIdx <= 0) { tDel = false; tpIdx = (tpIdx + 1) % typingPhrases.length; tPause = 8; }
-  } else {
-    tcIdx++;
-    if (tcIdx > typingPhrases[tpIdx].length) { tDel = true; tPause = 40; }
-  }
+  if (tDel) { tcIdx--; if (tcIdx <= 0) { tDel = false; tpIdx = (tpIdx + 1) % typingPhrases.length; tPause = 8; } }
+  else { tcIdx++; if (tcIdx > typingPhrases[tpIdx].length) { tDel = true; tPause = 40; } }
 }, 50);
 
 draw();
