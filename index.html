@@ -127,11 +127,19 @@ function resize() {
   canvas.width = W * dpr; canvas.height = H * dpr;
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // Recalculate orbit
-  orbitR = Math.min(W, H) * 0.22;
-  socialOrbitR = Math.min(W, H) * 0.38;
+  // Responsive scaling
+  const scale = Math.min(W, H) / 800; // 1.0 at 800px, scales up/down
+  S = Math.max(0.6, Math.min(1.6, scale)); // clamp 0.6 to 1.6
+  orbitR = Math.min(W, H) * 0.24;
+  socialOrbitR = Math.min(W, H) * 0.40;
+  // Update node radii on resize
+  if (nodes.length) {
+    nodes[0].r = 54 * S; // center
+    for (let i = 1; i <= projects.length; i++) nodes[i].r = 42 * S;
+    for (let i = projects.length + 1; i <= projects.length + socials.length; i++) nodes[i].r = 26 * S;
+  }
 }
-let orbitR, socialOrbitR;
+let orbitR, socialOrbitR, S = 1;
 window.addEventListener('resize', resize);
 resize();
 
@@ -183,7 +191,7 @@ const edges = [];
 // Center node (index 0)
 const center = {
   x: W/2, y: H/2, vx: 0, vy: 0,
-  r: 44, color: '#19C0DA', rgb: '25,192,218',
+  r: 54 * S, color: '#19C0DA', rgb: '25,192,218',
   label: 'KL', sublabel: 'Kuldeep Luvani',
   type: 'center', data: null, glow: 0
 };
@@ -195,7 +203,7 @@ projects.forEach((p, i) => {
   const a = projAngleStep * i - Math.PI / 2;
   nodes.push({
     x: W/2 + Math.cos(a) * orbitR, y: H/2 + Math.sin(a) * orbitR,
-    vx: 0, vy: 0, r: 32, color: p.color, rgb: p.rgb,
+    vx: 0, vy: 0, r: 42 * S, color: p.color, rgb: p.rgb,
     label: p.icon, sublabel: p.name,
     type: 'project', data: p, glow: 0,
     orbitAngle: a, orbitRadius: orbitR
@@ -209,7 +217,7 @@ socials.forEach((s, i) => {
   const a = socialAngleStep * i + Math.PI / 5;
   nodes.push({
     x: W/2 + Math.cos(a) * socialOrbitR, y: H/2 + Math.sin(a) * socialOrbitR,
-    vx: 0, vy: 0, r: 20, color: s.color, rgb: s.rgb,
+    vx: 0, vy: 0, r: 26 * S, color: s.color, rgb: s.rgb,
     label: s.label, sublabel: s.name,
     type: 'social', data: s, glow: 0,
     orbitAngle: a, orbitRadius: socialOrbitR
@@ -272,20 +280,23 @@ function physics() {
       n.vx -= (dx / dist) * force;
       n.vy -= (dy / dist) * force;
 
-      // Slow orbit
+      // Very slow orbit — gentle enough to click
       const angle = Math.atan2(dy, dx);
-      const speed = n.type === 'social' ? 0.015 : 0.02;
+      const speed = n.type === 'social' ? 0.005 : 0.008;
       n.vx += Math.cos(angle + Math.PI/2) * speed;
       n.vy += Math.sin(angle + Math.PI/2) * speed;
     }
 
-    // Mouse repulsion
-    const mdx = n.x - mouseX;
-    const mdy = n.y - mouseY;
-    const mdist = Math.sqrt(mdx*mdx + mdy*mdy) || 1;
-    if (mdist < 120 && n.type !== 'dot') {
-      n.vx += (mdx / mdist) * 0.4;
-      n.vy += (mdy / mdist) * 0.4;
+    // Mouse ATTRACTION — nodes gently drift toward cursor when nearby
+    if (n.type !== 'dot') {
+      const mdx = mouseX - n.x;
+      const mdy = mouseY - n.y;
+      const mdist = Math.sqrt(mdx*mdx + mdy*mdy) || 1;
+      if (mdist < 200 && mdist > n.r) {
+        const strength = (1 - mdist / 200) * 0.15;
+        n.vx += (mdx / mdist) * strength;
+        n.vy += (mdy / mdist) * strength;
+      }
     }
 
     // Node repulsion
@@ -302,7 +313,7 @@ function physics() {
       }
     });
 
-    n.vx *= 0.94; n.vy *= 0.94;
+    n.vx *= 0.92; n.vy *= 0.92;
     n.x += n.vx; n.y += n.vy;
     n.x = Math.max(n.r + 10, Math.min(W - n.r - 10, n.x));
     n.y = Math.max(n.r + 10, Math.min(H - n.r - 10, n.y));
@@ -318,7 +329,7 @@ canvas.addEventListener('mousemove', e => {
   nodes.forEach(n => {
     if (n.type === 'dot') return;
     const dx = e.clientX - n.x, dy = e.clientY - n.y;
-    if (Math.sqrt(dx*dx + dy*dy) < n.r + 8) {
+    if (Math.sqrt(dx*dx + dy*dy) < n.r + 15) {
       hoveredNode = n;
       if (n.type === 'project' || n.type === 'social') canvas.style.cursor = 'pointer';
     }
@@ -329,7 +340,7 @@ canvas.addEventListener('mousemove', e => {
 canvas.addEventListener('click', e => {
   nodes.forEach(n => {
     const dx = e.clientX - n.x, dy = e.clientY - n.y;
-    if (Math.sqrt(dx*dx + dy*dy) > n.r + 8) return;
+    if (Math.sqrt(dx*dx + dy*dy) > n.r + 15) return;
     if (n.type === 'project') openBubble(n.data);
     if (n.type === 'social') window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank');
   });
@@ -341,7 +352,7 @@ canvas.addEventListener('touchstart', e => {
   mouseX = t.clientX; mouseY = t.clientY;
   nodes.forEach(n => {
     const dx = t.clientX - n.x, dy = t.clientY - n.y;
-    if (Math.sqrt(dx*dx + dy*dy) > n.r + 12) return;
+    if (Math.sqrt(dx*dx + dy*dy) > n.r + 20) return;
     if (n.type === 'project') openBubble(n.data);
     if (n.type === 'social') window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank');
   });
@@ -468,11 +479,11 @@ function draw() {
     // Label
     if (n.label) {
       if (n.type === 'center') {
-        ctx.font = '600 20px Inter';
+        ctx.font = `600 ${Math.round(22 * S)}px Inter`;
       } else if (n.type === 'social') {
-        ctx.font = '600 11px "JetBrains Mono", monospace';
+        ctx.font = `600 ${Math.round(12 * S)}px "JetBrains Mono", monospace`;
       } else {
-        ctx.font = '22px sans-serif';
+        ctx.font = `${Math.round(26 * S)}px sans-serif`;
       }
       ctx.fillStyle = n.color;
       ctx.textAlign = 'center';
@@ -482,12 +493,12 @@ function draw() {
 
     // Sublabel
     if (n.sublabel) {
-      const fontSize = n.type === 'social' ? 9 : (n.type === 'center' ? 11 : 11);
+      const fontSize = n.type === 'social' ? Math.round(10 * S) : Math.round(12 * S);
       const weight = n.type === 'center' ? '300' : '500';
       ctx.font = `${weight} ${fontSize}px Inter`;
       ctx.fillStyle = `rgba(${n.rgb},${0.5 + n.glow * 0.4})`;
       ctx.textAlign = 'center';
-      ctx.fillText(n.sublabel, n.x, n.y + r + (n.type === 'social' ? 12 : 16));
+      ctx.fillText(n.sublabel, n.x, n.y + r + (n.type === 'social' ? 14 : 18));
     }
   });
 
