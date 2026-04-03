@@ -92,20 +92,6 @@
       animation: pulse 3s ease-in-out infinite;
     }
     @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
-
-    /* Social bar */
-    .socials {
-      position: fixed; bottom: 2rem; right: 2rem; z-index: 5;
-      display: flex; gap: 0.6rem;
-    }
-    .socials a {
-      width: 36px; height: 36px; border: 1px solid #222; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      color: #555; text-decoration: none; font-size: 0.85rem;
-      transition: all 0.2s;
-    }
-    .socials a:hover { color: #19C0DA; border-color: #19C0DA; transform: translateY(-2px); }
-    .socials svg { width: 16px; height: 16px; fill: currentColor; }
   </style>
 </head>
 <body>
@@ -113,21 +99,6 @@
 <canvas id="graph"></canvas>
 
 <div class="hint">click a node to explore</div>
-
-<div class="socials">
-  <a href="https://github.com/kuldeepluvani" title="GitHub">
-    <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12 24 5.37 18.63 0 12 0z"/></svg>
-  </a>
-  <a href="https://www.linkedin.com/in/kuldeep-luvani-28a93336/" title="LinkedIn">
-    <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-  </a>
-  <a href="mailto:kuldeepluvani@gmail.com" title="Email">
-    <svg viewBox="0 0 24 24"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 010 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/></svg>
-  </a>
-  <a href="Kuldeep Luvani Resume.pdf" title="Resume">
-    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-3h8v2H8v-2z"/></svg>
-  </a>
-</div>
 
 <!-- Bubble overlay -->
 <div class="bubble-overlay" id="bubbleOverlay">
@@ -156,7 +127,11 @@ function resize() {
   canvas.width = W * dpr; canvas.height = H * dpr;
   canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Recalculate orbit
+  orbitR = Math.min(W, H) * 0.22;
+  socialOrbitR = Math.min(W, H) * 0.38;
 }
+let orbitR, socialOrbitR;
 window.addEventListener('resize', resize);
 resize();
 
@@ -182,125 +157,159 @@ const projects = [
     desc: 'A living knowledge network that learns while you sleep and thinks while you work. Ingests Markdown vaults and Git repos, builds a knowledge graph, auto-discovers specialist AI agents from data clusters, and answers through a hierarchical multi-agent cortex.',
     tags: ['knowledge-graph','multi-agent','NATS JetStream','FAISS','FastAPI','NetworkX'],
     url: 'https://github.com/kuldeepluvani/mycelium'
+  },
+  {
+    id: 'gittimemachine', name: 'GitTimeMachine', subtitle: "Like Apple's Time Machine, but for Git", icon: '\u{231B}',
+    color: '#fbbf24', rgb: '251,191,36',
+    desc: "Like Apple's Time Machine, but for Git. Visual time-travel through your repository history. Browse, compare, and restore any file from any point in time with an intuitive timeline interface.",
+    tags: ['git','version-control','time-machine','cli','developer-tools'],
+    url: 'https://github.com/kuldeepluvani/GitTimeMachine'
   }
 ];
 
-// Nodes: center + projects + decoration nodes
+// Social/link data
+const socials = [
+  { id: 'github', label: 'GH', name: 'GitHub', color: '#8b949e', rgb: '139,148,158', url: 'https://github.com/kuldeepluvani', icon: '\u{2B22}' },
+  { id: 'linkedin', label: 'LI', name: 'LinkedIn', color: '#0a66c2', rgb: '10,102,194', url: 'https://www.linkedin.com/in/kuldeep-luvani-28a93336/', icon: '\u{1F310}' },
+  { id: 'email', label: '@', name: 'Email', color: '#f472b6', rgb: '244,114,182', url: 'mailto:kuldeepluvani@gmail.com', icon: '\u{2709}' },
+  { id: 'resume', label: 'CV', name: 'Resume', color: '#fb923c', rgb: '251,146,60', url: 'Kuldeep Luvani Resume.pdf', icon: '\u{1F4C4}' },
+  { id: 'blog', label: 'B', name: 'Blog', color: '#60a5fa', rgb: '96,165,250', url: 'https://pythonhighschool.wordpress.com/', icon: '\u{270D}' },
+];
+
+// Nodes
 const nodes = [];
 const edges = [];
 
-// Center node
+// Center node (index 0)
 const center = {
   x: W/2, y: H/2, vx: 0, vy: 0,
   r: 44, color: '#19C0DA', rgb: '25,192,218',
   label: 'KL', sublabel: 'Kuldeep Luvani',
-  type: 'center', project: null, glow: 0
+  type: 'center', data: null, glow: 0
 };
 nodes.push(center);
 
-// Project nodes — arranged around center
-const angleStep = (Math.PI * 2) / projects.length;
-const orbitR = Math.min(W, H) * 0.25;
+// Project nodes (indices 1-4)
+const projAngleStep = (Math.PI * 2) / projects.length;
 projects.forEach((p, i) => {
-  const a = angleStep * i - Math.PI / 2;
-  const node = {
+  const a = projAngleStep * i - Math.PI / 2;
+  nodes.push({
     x: W/2 + Math.cos(a) * orbitR, y: H/2 + Math.sin(a) * orbitR,
-    vx: 0, vy: 0, r: 34, color: p.color, rgb: p.rgb,
+    vx: 0, vy: 0, r: 32, color: p.color, rgb: p.rgb,
     label: p.icon, sublabel: p.name,
-    type: 'project', project: p, glow: 0
-  };
-  nodes.push(node);
-  edges.push({ a: 0, b: nodes.length - 1 });
+    type: 'project', data: p, glow: 0,
+    orbitAngle: a, orbitRadius: orbitR
+  });
+  edges.push({ a: 0, b: nodes.length - 1, type: 'project' });
 });
 
-// Ambient floating dots
-for (let i = 0; i < 35; i++) {
+// Social nodes (indices 5-9)
+const socialAngleStep = (Math.PI * 2) / socials.length;
+socials.forEach((s, i) => {
+  const a = socialAngleStep * i + Math.PI / 5;
+  nodes.push({
+    x: W/2 + Math.cos(a) * socialOrbitR, y: H/2 + Math.sin(a) * socialOrbitR,
+    vx: 0, vy: 0, r: 20, color: s.color, rgb: s.rgb,
+    label: s.label, sublabel: s.name,
+    type: 'social', data: s, glow: 0,
+    orbitAngle: a, orbitRadius: socialOrbitR
+  });
+  edges.push({ a: 0, b: nodes.length - 1, type: 'social' });
+});
+
+// Connect projects to each other with faint edges
+for (let i = 1; i <= projects.length; i++) {
+  for (let j = i + 1; j <= projects.length; j++) {
+    edges.push({ a: i, b: j, type: 'inter' });
+  }
+}
+
+// Ambient dots
+for (let i = 0; i < 30; i++) {
   nodes.push({
     x: Math.random() * W, y: Math.random() * H,
     vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
-    r: 2 + Math.random() * 2, color: '#19C0DA', rgb: '25,192,218',
-    label: null, sublabel: null, type: 'dot', project: null, glow: 0
+    r: 1.5 + Math.random() * 2, color: '#19C0DA', rgb: '25,192,218',
+    label: null, sublabel: null, type: 'dot', data: null, glow: 0
   });
 }
 
-// Connect some dots to each other for ambient graph feel
-for (let i = 4; i < nodes.length; i++) {
+// Ambient dot connections
+const dotStart = 1 + projects.length + socials.length;
+for (let i = dotStart; i < nodes.length; i++) {
   for (let j = i + 1; j < nodes.length; j++) {
     const dx = nodes[i].x - nodes[j].x;
     const dy = nodes[i].y - nodes[j].y;
-    if (Math.sqrt(dx*dx + dy*dy) < 200) {
-      edges.push({ a: i, b: j });
+    if (Math.sqrt(dx*dx + dy*dy) < 180) {
+      edges.push({ a: i, b: j, type: 'ambient' });
     }
   }
 }
 
 // Physics
 function physics() {
-  const centerX = W / 2, centerY = H / 2;
+  const cx = W / 2, cy = H / 2;
 
   nodes.forEach((n, i) => {
     if (n.type === 'dot') {
       n.x += n.vx; n.y += n.vy;
-      if (n.x < -20) n.x = W + 20;
-      if (n.x > W + 20) n.x = -20;
-      if (n.y < -20) n.y = H + 20;
-      if (n.y > H + 20) n.y = -20;
+      if (n.x < -20) n.x = W + 20; if (n.x > W + 20) n.x = -20;
+      if (n.y < -20) n.y = H + 20; if (n.y > H + 20) n.y = -20;
       return;
     }
 
     if (n.type === 'center') {
-      // Gently attract center to screen center
-      n.vx += (centerX - n.x) * 0.002;
-      n.vy += (centerY - n.y) * 0.002;
+      n.vx += (cx - n.x) * 0.003;
+      n.vy += (cy - n.y) * 0.003;
     }
 
-    if (n.type === 'project') {
-      // Spring to orbit distance from center
+    if (n.type === 'project' || n.type === 'social') {
+      const targetR = n.type === 'project' ? orbitR : socialOrbitR;
       const dx = n.x - nodes[0].x;
       const dy = n.y - nodes[0].y;
       const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-      const force = (dist - orbitR) * 0.003;
+      const force = (dist - targetR) * 0.004;
       n.vx -= (dx / dist) * force;
       n.vy -= (dy / dist) * force;
 
-      // Slow orbital drift
+      // Slow orbit
       const angle = Math.atan2(dy, dx);
-      n.vx += Math.cos(angle + Math.PI/2) * 0.02;
-      n.vy += Math.sin(angle + Math.PI/2) * 0.02;
+      const speed = n.type === 'social' ? 0.015 : 0.02;
+      n.vx += Math.cos(angle + Math.PI/2) * speed;
+      n.vy += Math.sin(angle + Math.PI/2) * speed;
     }
 
-    // Mouse interaction — gentle repulsion from cursor
+    // Mouse repulsion
     const mdx = n.x - mouseX;
     const mdy = n.y - mouseY;
     const mdist = Math.sqrt(mdx*mdx + mdy*mdy) || 1;
-    if (mdist < 150 && n.type !== 'dot') {
-      n.vx += (mdx / mdist) * 0.5;
-      n.vy += (mdy / mdist) * 0.5;
+    if (mdist < 120 && n.type !== 'dot') {
+      n.vx += (mdx / mdist) * 0.4;
+      n.vy += (mdy / mdist) * 0.4;
     }
 
-    // Repulsion between project nodes
+    // Node repulsion
     nodes.forEach((other, j) => {
       if (i === j || other.type === 'dot') return;
       const dx = n.x - other.x;
       const dy = n.y - other.y;
       const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-      if (dist < 120) {
-        const force = (120 - dist) * 0.005;
+      const minDist = n.r + other.r + 30;
+      if (dist < minDist) {
+        const force = (minDist - dist) * 0.008;
         n.vx += (dx / dist) * force;
         n.vy += (dy / dist) * force;
       }
     });
 
-    n.vx *= 0.95; n.vy *= 0.95;
+    n.vx *= 0.94; n.vy *= 0.94;
     n.x += n.vx; n.y += n.vy;
-
-    // Keep on screen
-    n.x = Math.max(n.r, Math.min(W - n.r, n.x));
-    n.y = Math.max(n.r, Math.min(H - n.r, n.y));
+    n.x = Math.max(n.r + 10, Math.min(W - n.r - 10, n.x));
+    n.y = Math.max(n.r + 10, Math.min(H - n.r - 10, n.y));
   });
 }
 
-// Hover detection
+// Hover
 let hoveredNode = null;
 canvas.addEventListener('mousemove', e => {
   mouseX = e.clientX; mouseY = e.clientY;
@@ -311,17 +320,30 @@ canvas.addEventListener('mousemove', e => {
     const dx = e.clientX - n.x, dy = e.clientY - n.y;
     if (Math.sqrt(dx*dx + dy*dy) < n.r + 8) {
       hoveredNode = n;
-      if (n.type === 'project') canvas.style.cursor = 'pointer';
+      if (n.type === 'project' || n.type === 'social') canvas.style.cursor = 'pointer';
     }
   });
 });
 
-// Click — open bubble
+// Click
 canvas.addEventListener('click', e => {
   nodes.forEach(n => {
-    if (n.type !== 'project') return;
     const dx = e.clientX - n.x, dy = e.clientY - n.y;
-    if (Math.sqrt(dx*dx + dy*dy) < n.r + 8) openBubble(n.project);
+    if (Math.sqrt(dx*dx + dy*dy) > n.r + 8) return;
+    if (n.type === 'project') openBubble(n.data);
+    if (n.type === 'social') window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank');
+  });
+});
+
+// Touch
+canvas.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  mouseX = t.clientX; mouseY = t.clientY;
+  nodes.forEach(n => {
+    const dx = t.clientX - n.x, dy = t.clientY - n.y;
+    if (Math.sqrt(dx*dx + dy*dy) > n.r + 12) return;
+    if (n.type === 'project') openBubble(n.data);
+    if (n.type === 'social') window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank');
   });
 });
 
@@ -332,12 +354,11 @@ const bubbleEl = document.getElementById('bubbleContent');
 function openBubble(p) {
   bubbleEl.style.setProperty('--node-color', p.color);
   bubbleEl.style.setProperty('--node-rgb', p.rgb);
-  document.getElementById('bubbleIcon').textContent = projects.find(x=>x.id===p.id).icon;
+  document.getElementById('bubbleIcon').textContent = p.icon;
   document.getElementById('bubbleName').textContent = p.name;
   document.getElementById('bubbleSubtitle').textContent = p.subtitle;
   document.getElementById('bubbleDesc').textContent = p.desc;
-  const tagsEl = document.getElementById('bubbleTags');
-  tagsEl.innerHTML = p.tags.map(t => `<span class="tag">${t}</span>`).join('');
+  document.getElementById('bubbleTags').innerHTML = p.tags.map(t => `<span class="tag">${t}</span>`).join('');
   document.getElementById('bubbleLink').href = p.url;
   overlay.classList.add('active');
 }
@@ -350,171 +371,157 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBubble(
 // Draw
 let time = 0;
 function draw() {
-  time += 0.01;
+  time += 0.008;
   ctx.clearRect(0, 0, W, H);
 
   // Background grid
-  ctx.strokeStyle = 'rgba(25,192,218,0.03)';
+  ctx.strokeStyle = 'rgba(25,192,218,0.025)';
   ctx.lineWidth = 0.5;
-  const gridSize = 60;
-  for (let x = 0; x < W; x += gridSize) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-  }
-  for (let y = 0; y < H; y += gridSize) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
+  const gs = 60;
+  for (let x = 0; x < W; x += gs) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += gs) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
-  // Draw edges
+  // Edges
   edges.forEach(e => {
     const a = nodes[e.a], b = nodes[e.b];
     const dx = a.x - b.x, dy = a.y - b.y;
     const dist = Math.sqrt(dx*dx + dy*dy);
-    let alpha = 0;
 
-    if (a.type === 'dot' || b.type === 'dot') {
-      alpha = Math.max(0, 1 - dist / 200) * 0.06;
-    } else {
-      alpha = Math.max(0, 1 - dist / (orbitR * 2)) * 0.3;
-    }
-
-    if (alpha <= 0) return;
-
-    // Animated pulse along edges for project connections
-    if (a.type !== 'dot' && b.type !== 'dot') {
-      const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-      const pulse = (Math.sin(time * 2 + e.a) + 1) / 2;
-      grad.addColorStop(0, `rgba(${a.rgb},${alpha})`);
-      grad.addColorStop(pulse, `rgba(${a.rgb},${alpha * 2})`);
-      grad.addColorStop(1, `rgba(${b.rgb},${alpha})`);
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = 1.5;
-    } else {
+    if (e.type === 'ambient') {
+      const alpha = Math.max(0, 1 - dist / 180) * 0.05;
+      if (alpha <= 0) return;
       ctx.strokeStyle = `rgba(25,192,218,${alpha})`;
       ctx.lineWidth = 0.5;
+    } else if (e.type === 'social') {
+      const alpha = Math.max(0, 1 - dist / (socialOrbitR * 2)) * 0.12;
+      ctx.strokeStyle = `rgba(${b.rgb || a.rgb},${alpha})`;
+      ctx.lineWidth = 0.8;
+    } else if (e.type === 'inter') {
+      const alpha = Math.max(0, 1 - dist / (orbitR * 3)) * 0.06;
+      if (alpha <= 0) return;
+      ctx.strokeStyle = `rgba(100,100,140,${alpha})`;
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([4, 6]);
+    } else {
+      // Project-to-center
+      const pulse = (Math.sin(time * 2.5 + e.b) + 1) / 2;
+      const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+      grad.addColorStop(0, `rgba(${a.rgb},0.15)`);
+      grad.addColorStop(pulse, `rgba(${b.rgb},0.4)`);
+      grad.addColorStop(1, `rgba(${b.rgb},0.15)`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.5;
     }
 
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
+    ctx.setLineDash([]);
   });
 
-  // Draw nodes
+  // Nodes
   nodes.forEach(n => {
     const isHovered = n === hoveredNode;
-    const targetGlow = isHovered ? 1 : 0;
-    n.glow += (targetGlow - n.glow) * 0.1;
+    n.glow += ((isHovered ? 1 : 0) - n.glow) * 0.1;
 
     if (n.type === 'dot') {
       ctx.beginPath();
       ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${n.rgb},${0.15 + Math.sin(time + n.x) * 0.05})`;
+      ctx.fillStyle = `rgba(${n.rgb},${0.12 + Math.sin(time * 1.5 + n.x) * 0.04})`;
       ctx.fill();
       return;
     }
 
-    const r = n.r + n.glow * 6;
+    const r = n.r + n.glow * 5;
 
-    // Outer glow
-    if (n.glow > 0.01 || n.type === 'project') {
-      const glowR = r + 20 + n.glow * 15;
-      const grad = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, glowR);
-      const glowAlpha = n.type === 'center' ? 0.1 : (0.08 + n.glow * 0.15);
-      grad.addColorStop(0, `rgba(${n.rgb},${glowAlpha})`);
-      grad.addColorStop(1, `rgba(${n.rgb},0)`);
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-    }
+    // Glow
+    const glowR = r + (n.type === 'social' ? 12 : 20) + n.glow * 12;
+    const grad = ctx.createRadialGradient(n.x, n.y, r * 0.5, n.x, n.y, glowR);
+    const ga = n.type === 'center' ? 0.1 : (n.type === 'social' ? 0.06 : 0.08);
+    grad.addColorStop(0, `rgba(${n.rgb},${ga + n.glow * 0.15})`);
+    grad.addColorStop(1, `rgba(${n.rgb},0)`);
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
 
-    // Ring
+    // Circle fill + border
     ctx.beginPath();
     ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${n.rgb},0.08)`;
+    ctx.fillStyle = `rgba(${n.rgb},${n.type === 'social' ? 0.06 : 0.08})`;
     ctx.fill();
-    ctx.strokeStyle = `rgba(${n.rgb},${0.4 + n.glow * 0.4})`;
-    ctx.lineWidth = 1.5 + n.glow;
+    ctx.strokeStyle = `rgba(${n.rgb},${0.35 + n.glow * 0.4})`;
+    ctx.lineWidth = n.type === 'social' ? 1 : 1.5 + n.glow;
     ctx.stroke();
 
     // Spinning arc for project nodes
     if (n.type === 'project') {
       ctx.beginPath();
-      const arcStart = time * 1.5 + nodes.indexOf(n);
-      ctx.arc(n.x, n.y, r + 4, arcStart, arcStart + Math.PI * 0.6);
-      ctx.strokeStyle = `rgba(${n.rgb},${0.3 + n.glow * 0.3})`;
+      const arcS = time * 1.5 + nodes.indexOf(n) * 1.2;
+      ctx.arc(n.x, n.y, r + 4, arcS, arcS + Math.PI * 0.5);
+      ctx.strokeStyle = `rgba(${n.rgb},${0.25 + n.glow * 0.3})`;
       ctx.lineWidth = 2;
       ctx.stroke();
     }
 
-    // Label (icon/text)
+    // Label
     if (n.label) {
-      ctx.font = n.type === 'center' ? '600 20px Inter' : '22px sans-serif';
+      if (n.type === 'center') {
+        ctx.font = '600 20px Inter';
+      } else if (n.type === 'social') {
+        ctx.font = '600 11px "JetBrains Mono", monospace';
+      } else {
+        ctx.font = '22px sans-serif';
+      }
       ctx.fillStyle = n.color;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(n.label, n.x, n.y);
     }
 
-    // Sublabel below
+    // Sublabel
     if (n.sublabel) {
-      ctx.font = n.type === 'center' ? '300 11px Inter' : '500 11px Inter';
-      ctx.fillStyle = `rgba(${n.rgb},${0.6 + n.glow * 0.4})`;
+      const fontSize = n.type === 'social' ? 9 : (n.type === 'center' ? 11 : 11);
+      const weight = n.type === 'center' ? '300' : '500';
+      ctx.font = `${weight} ${fontSize}px Inter`;
+      ctx.fillStyle = `rgba(${n.rgb},${0.5 + n.glow * 0.4})`;
       ctx.textAlign = 'center';
-      ctx.fillText(n.sublabel, n.x, n.y + r + 16);
+      ctx.fillText(n.sublabel, n.x, n.y + r + (n.type === 'social' ? 12 : 16));
     }
   });
 
-  // Center typing text
-  const typingY = nodes[0].y + nodes[0].r + 38;
-  ctx.font = '400 13px "JetBrains Mono", monospace';
-  ctx.fillStyle = 'rgba(25,192,218,0.5)';
+  // Typing text under center
+  const typingY = nodes[0].y + nodes[0].r + 36;
+  ctx.font = '400 12px "JetBrains Mono", monospace';
+  ctx.fillStyle = 'rgba(25,192,218,0.45)';
   ctx.textAlign = 'center';
-  const currentPhrase = typingPhrases[currentPhraseIdx];
-  const displayText = currentPhrase.substring(0, currentCharIdx);
-  ctx.fillText(displayText + (Math.floor(time * 3) % 2 === 0 ? '|' : ''), nodes[0].x, typingY);
+  const phrase = typingPhrases[tpIdx];
+  const display = phrase.substring(0, tcIdx);
+  ctx.fillText(display + (Math.floor(time * 4) % 2 === 0 ? '|' : ''), nodes[0].x, typingY);
 
   physics();
   requestAnimationFrame(draw);
 }
 
-// Typing for center node
+// Typing
 const typingPhrases = [
   'building AI-powered developer tools',
   'knowledge systems that think while you work',
   'memory that persists across sessions',
   'wellness-first developer experience'
 ];
-let currentPhraseIdx = 0, currentCharIdx = 0, typingDeleting = false, typingPause = 0;
-
+let tpIdx = 0, tcIdx = 0, tDel = false, tPause = 0;
 setInterval(() => {
-  if (typingPause > 0) { typingPause--; return; }
-  if (typingDeleting) {
-    currentCharIdx--;
-    if (currentCharIdx <= 0) {
-      typingDeleting = false;
-      currentPhraseIdx = (currentPhraseIdx + 1) % typingPhrases.length;
-      typingPause = 8;
-    }
+  if (tPause > 0) { tPause--; return; }
+  if (tDel) {
+    tcIdx--;
+    if (tcIdx <= 0) { tDel = false; tpIdx = (tpIdx + 1) % typingPhrases.length; tPause = 8; }
   } else {
-    currentCharIdx++;
-    if (currentCharIdx > typingPhrases[currentPhraseIdx].length) {
-      typingDeleting = true;
-      typingPause = 40;
-    }
+    tcIdx++;
+    if (tcIdx > typingPhrases[tpIdx].length) { tDel = true; tPause = 40; }
   }
 }, 50);
-
-// Touch support
-canvas.addEventListener('touchstart', e => {
-  const t = e.touches[0];
-  mouseX = t.clientX; mouseY = t.clientY;
-  nodes.forEach(n => {
-    if (n.type !== 'project') return;
-    const dx = t.clientX - n.x, dy = t.clientY - n.y;
-    if (Math.sqrt(dx*dx + dy*dy) < n.r + 12) openBubble(n.project);
-  });
-});
 
 draw();
 </script>
