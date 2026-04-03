@@ -8,513 +8,515 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="font-awesome-4.5.0/css/font-awesome.min.css">
   <style>
-    :root {
-      --bg: #0a0a0f;
-      --surface: #12121a;
-      --surface-hover: #1a1a25;
-      --border: #222233;
-      --text: #e4e4ef;
-      --text-muted: #8888a0;
-      --accent: #19C0DA;
-      --accent-dim: rgba(25, 192, 218, 0.15);
-      --green: #34d399;
-      --purple: #a78bfa;
-      --amber: #fbbf24;
-      --pink: #f472b6;
-    }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    html { scroll-behavior: smooth; }
-
     body {
+      background: #06060c;
+      color: #e4e4ef;
       font-family: 'Inter', -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
-
-    /* ---- Particles background ---- */
-    #particles-js {
-      position: fixed;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      background: var(--bg);
-    }
-
-    .content { position: relative; z-index: 1; }
-
-    /* ---- Hero ---- */
-    .hero {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 2rem;
-    }
-
-    .hero-inner { max-width: 700px; }
-
-    .hero h1 {
-      font-size: clamp(2.5rem, 7vw, 5rem);
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: -0.02em;
-      margin-bottom: 0.5rem;
-    }
-
-    .hero .tagline {
-      font-size: clamp(1rem, 2.5vw, 1.25rem);
-      color: var(--text-muted);
-      margin-bottom: 1rem;
-      font-weight: 300;
-    }
-
-    .hero .typing {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: clamp(0.85rem, 1.8vw, 1rem);
-      color: var(--accent);
-      opacity: 0.8;
-      min-height: 1.5em;
-    }
-
-    .hero .typing .cursor {
-      animation: blink 1s infinite;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    .socials {
-      display: flex;
-      gap: 0.75rem;
-      justify-content: center;
-      margin-top: 2rem;
-    }
-
-    .socials a {
-      width: 44px;
-      height: 44px;
-      border: 1.5px solid var(--border);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--accent);
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-
-    .socials a:hover {
-      border-color: var(--accent);
-      transform: translateY(-2px);
-      background: var(--accent-dim);
-    }
-
-    .scroll-hint {
-      position: absolute;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      animation: bounce 2s infinite;
-      cursor: pointer;
-      text-decoration: none;
-    }
-
-    @keyframes bounce {
-      0%, 100% { transform: translateX(-50%) translateY(0); }
-      50% { transform: translateX(-50%) translateY(8px); }
-    }
-
-    /* ---- Section ---- */
-    section {
-      padding: 6rem 2rem;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    .section-title {
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      color: var(--accent);
-      margin-bottom: 3rem;
-      text-align: center;
-    }
-
-    /* ---- Project Cards ---- */
-    .projects-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 2rem;
-    }
-
-    .project-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2rem;
-      transition: all 0.3s ease;
-      position: relative;
       overflow: hidden;
+      height: 100vh;
+      cursor: default;
     }
+    canvas { display: block; position: fixed; top: 0; left: 0; z-index: 0; }
 
-    .project-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: var(--card-accent, var(--accent));
-      opacity: 0;
-      transition: opacity 0.3s ease;
+    /* Bubble overlay */
+    .bubble-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 10; display: none; align-items: center; justify-content: center;
+      background: rgba(6,6,12,0.85); backdrop-filter: blur(8px);
+      opacity: 0; transition: opacity 0.3s ease;
     }
+    .bubble-overlay.active { display: flex; opacity: 1; }
 
-    .project-card:hover {
-      border-color: var(--card-accent, var(--accent));
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    .bubble {
+      max-width: 560px; width: 90%; padding: 2.5rem;
+      background: radial-gradient(ellipse at top left, #151525, #0d0d18);
+      border: 1px solid var(--node-color, #19C0DA);
+      border-radius: 20px; position: relative;
+      box-shadow: 0 0 60px rgba(var(--node-rgb, 25,192,218), 0.2),
+                  inset 0 0 30px rgba(var(--node-rgb, 25,192,218), 0.05);
+      transform: scale(0.7); opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
     }
+    .bubble-overlay.active .bubble { transform: scale(1); opacity: 1; }
 
-    .project-card:hover::before { opacity: 1; }
+    .bubble-close {
+      position: absolute; top: 1rem; right: 1.2rem; background: none;
+      border: none; color: #666; font-size: 1.5rem; cursor: pointer;
+      transition: color 0.2s;
+    }
+    .bubble-close:hover { color: #fff; }
 
-    .project-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
+    .bubble-icon {
+      width: 56px; height: 56px; border-radius: 14px; display: flex;
+      align-items: center; justify-content: center; font-size: 1.5rem;
       margin-bottom: 1rem;
+      background: rgba(var(--node-rgb, 25,192,218), 0.15);
+      border: 1px solid rgba(var(--node-rgb, 25,192,218), 0.3);
     }
 
-    .project-icon {
-      font-size: 1.5rem;
-      margin-right: 0.75rem;
+    .bubble h2 {
+      font-size: 1.6rem; font-weight: 700; margin-bottom: 0.2rem;
+      color: var(--node-color, #19C0DA);
     }
-
-    .project-name {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--text);
+    .bubble .subtitle {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+      color: #8888a0; margin-bottom: 1rem;
     }
+    .bubble p {
+      color: #aaaabc; font-size: 0.95rem; line-height: 1.7; margin-bottom: 1.2rem;
+    }
+    .bubble .tags {
+      display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem;
+    }
+    .bubble .tag {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+      padding: 0.25rem 0.55rem; border-radius: 4px;
+      background: rgba(var(--node-rgb, 25,192,218), 0.1);
+      color: var(--node-color, #19C0DA);
+    }
+    .bubble .link {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      color: var(--node-color, #19C0DA); text-decoration: none;
+      font-size: 0.9rem; font-weight: 500; transition: opacity 0.2s;
+    }
+    .bubble .link:hover { opacity: 0.7; }
+    .bubble .link svg { width: 16px; height: 16px; fill: currentColor; }
 
-    .project-subtitle {
+    /* Intro hint */
+    .hint {
+      position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      z-index: 5; color: #555; font-size: 0.75rem;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
-      color: var(--card-accent, var(--accent));
-      margin-top: 0.25rem;
+      animation: pulse 3s ease-in-out infinite;
     }
+    @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
 
-    .project-desc {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      line-height: 1.7;
-      margin-bottom: 1.5rem;
+    /* Social bar */
+    .socials {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 5;
+      display: flex; gap: 0.6rem;
     }
-
-    .project-features {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
+    .socials a {
+      width: 36px; height: 36px; border: 1px solid #222; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #555; text-decoration: none; font-size: 0.85rem;
+      transition: all 0.2s;
     }
-
-    .tag {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      padding: 0.3rem 0.6rem;
-      border-radius: 4px;
-      background: var(--accent-dim);
-      color: var(--accent);
-      border: 1px solid transparent;
-    }
-
-    .project-links {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    .project-links a {
-      font-size: 0.85rem;
-      color: var(--accent);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      transition: opacity 0.2s;
-    }
-
-    .project-links a:hover { opacity: 0.7; }
-
-    .project-stat {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-left: auto;
-    }
-
-    /* Card accent colors */
-    .card-claim { --card-accent: var(--accent); }
-    .card-claudegotchi { --card-accent: var(--green); }
-    .card-claudegotchi .tag { background: rgba(52, 211, 153, 0.15); color: var(--green); }
-    .card-mycelium { --card-accent: var(--purple); }
-    .card-mycelium .tag { background: rgba(167, 139, 250, 0.15); color: var(--purple); }
-
-    /* ---- About ---- */
-    .about-content {
-      max-width: 650px;
-      margin: 0 auto;
-      text-align: center;
-    }
-
-    .about-content p {
-      color: var(--text-muted);
-      font-size: 1rem;
-      line-height: 1.8;
-      margin-bottom: 1rem;
-    }
-
-    .tech-stack {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      justify-content: center;
-      margin-top: 1.5rem;
-    }
-
-    .tech-stack .tag {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-    }
-
-    /* ---- Footer ---- */
-    footer {
-      text-align: center;
-      padding: 3rem 2rem;
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      border-top: 1px solid var(--border);
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    footer a { color: var(--accent); text-decoration: none; }
-
-    /* ---- Responsive ---- */
-    @media (min-width: 768px) {
-      .projects-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-      .project-card.featured {
-        grid-column: 1 / -1;
-      }
-    }
+    .socials a:hover { color: #19C0DA; border-color: #19C0DA; transform: translateY(-2px); }
+    .socials svg { width: 16px; height: 16px; fill: currentColor; }
   </style>
 </head>
 <body>
 
-<div id="particles-js"></div>
+<canvas id="graph"></canvas>
 
-<div class="content">
-  <!-- Hero -->
-  <div class="hero">
-    <div class="hero-inner">
-      <h1>Kuldeep Luvani</h1>
-      <p class="tagline">Software Engineer &middot; AI Tools &middot; Knowledge Systems</p>
-      <div class="typing">
-        <span id="typed"></span><span class="cursor">|</span>
-      </div>
-      <div class="socials">
-        <a href="https://github.com/kuldeepluvani" title="GitHub"><i class="fa fa-github"></i></a>
-        <a href="https://www.linkedin.com/in/kuldeep-luvani-28a93336/" title="LinkedIn"><i class="fa fa-linkedin"></i></a>
-        <a href="mailto:kuldeepluvani@gmail.com" title="Email"><i class="fa fa-envelope"></i></a>
-        <a href="Kuldeep Luvani Resume.pdf" title="Resume"><i class="fa fa-file-text"></i></a>
-      </div>
-    </div>
-    <a href="#projects" class="scroll-hint">
-      <i class="fa fa-chevron-down"></i>
-    </a>
-  </div>
+<div class="hint">click a node to explore</div>
 
-  <!-- Projects -->
-  <section id="projects">
-    <div class="section-title">Open Source Projects</div>
-    <div class="projects-grid">
-
-      <!-- CLAIM -->
-      <div class="project-card featured card-claim">
-        <div class="project-header">
-          <div>
-            <div class="project-name">CLAIM</div>
-            <div class="project-subtitle">Claude AI Memory</div>
-          </div>
-        </div>
-        <p class="project-desc">
-          Single-file, self-bootstrapping memory system for Claude Code. Multi-vault Obsidian integration with autonomous capture, software engineering triggers, and semantic routing. Memory shapes behavior. Vaults store knowledge.
-        </p>
-        <div class="project-features">
-          <span class="tag">claude-code-plugin</span>
-          <span class="tag">obsidian</span>
-          <span class="tag">multi-vault</span>
-          <span class="tag">autonomous-capture</span>
-          <span class="tag">self-bootstrapping</span>
-          <span class="tag">POSIX</span>
-        </div>
-        <div class="project-links">
-          <a href="https://github.com/kuldeepluvani/claim"><i class="fa fa-github"></i> GitHub</a>
-          <span class="project-stat">v2.0.1</span>
-        </div>
-      </div>
-
-      <!-- Claudegotchi -->
-      <div class="project-card card-claudegotchi">
-        <div class="project-header">
-          <div>
-            <div class="project-name">Claudegotchi</div>
-            <div class="project-subtitle">Developer Wellness Plugin</div>
-          </div>
-        </div>
-        <p class="project-desc">
-          Tamagotchi-style wellness tracking for Claude Code. Monitors session duration, velocity, and frustration. Rewards healthy habits through a virtual creature with HP, XP, coins, and evolution stages.
-        </p>
-        <div class="project-features">
-          <span class="tag">claude-code-plugin</span>
-          <span class="tag">wellness</span>
-          <span class="tag">gamification</span>
-          <span class="tag">multi-session</span>
-          <span class="tag">dashboard</span>
-        </div>
-        <div class="project-links">
-          <a href="https://github.com/kuldeepluvani/ClaudeGotchi"><i class="fa fa-github"></i> GitHub</a>
-        </div>
-      </div>
-
-      <!-- Mycelium -->
-      <div class="project-card card-mycelium">
-        <div class="project-header">
-          <div>
-            <div class="project-name">Mycelium</div>
-            <div class="project-subtitle">Self-Enriching Knowledge Engine</div>
-          </div>
-        </div>
-        <p class="project-desc">
-          A living knowledge network that learns while you sleep and thinks while you work. Ingests Markdown vaults and Git repos, builds a knowledge graph, auto-discovers specialist AI agents from data clusters, and answers through a hierarchical multi-agent cortex.
-        </p>
-        <div class="project-features">
-          <span class="tag">knowledge-graph</span>
-          <span class="tag">multi-agent</span>
-          <span class="tag">NATS JetStream</span>
-          <span class="tag">FAISS</span>
-          <span class="tag">FastAPI</span>
-          <span class="tag">NetworkX</span>
-        </div>
-        <div class="project-links">
-          <a href="https://github.com/kuldeepluvani/mycelium"><i class="fa fa-github"></i> GitHub</a>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- About -->
-  <section id="about">
-    <div class="section-title">About</div>
-    <div class="about-content">
-      <p>
-        Software engineer focused on AI-powered developer tools, knowledge systems, and automation platforms. Building at the intersection of large language models, structured knowledge, and developer experience.
-      </p>
-      <div class="tech-stack">
-        <span class="tag">Python</span>
-        <span class="tag">Go</span>
-        <span class="tag">TypeScript</span>
-        <span class="tag">Bash</span>
-        <span class="tag">GCP</span>
-        <span class="tag">AWS</span>
-        <span class="tag">Kubernetes</span>
-        <span class="tag">Airflow</span>
-        <span class="tag">FastAPI</span>
-        <span class="tag">Claude Code</span>
-        <span class="tag">Obsidian</span>
-      </div>
-    </div>
-  </section>
-
-  <footer>
-    Built by <a href="https://github.com/kuldeepluvani">Kuldeep Luvani</a>
-  </footer>
+<div class="socials">
+  <a href="https://github.com/kuldeepluvani" title="GitHub">
+    <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12 24 5.37 18.63 0 12 0z"/></svg>
+  </a>
+  <a href="https://www.linkedin.com/in/kuldeep-luvani-28a93336/" title="LinkedIn">
+    <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+  </a>
+  <a href="mailto:kuldeepluvani@gmail.com" title="Email">
+    <svg viewBox="0 0 24 24"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 010 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/></svg>
+  </a>
+  <a href="Kuldeep Luvani Resume.pdf" title="Resume">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-3h8v2H8v-2z"/></svg>
+  </a>
 </div>
 
-<script src="js/particles.min.js"></script>
+<!-- Bubble overlay -->
+<div class="bubble-overlay" id="bubbleOverlay">
+  <div class="bubble" id="bubbleContent">
+    <button class="bubble-close" id="bubbleClose">&times;</button>
+    <div class="bubble-icon" id="bubbleIcon"></div>
+    <h2 id="bubbleName"></h2>
+    <div class="subtitle" id="bubbleSubtitle"></div>
+    <p id="bubbleDesc"></p>
+    <div class="tags" id="bubbleTags"></div>
+    <a class="link" id="bubbleLink" href="#" target="_blank">
+      <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12 24 5.37 18.63 0 12 0z"/></svg>
+      <span>View on GitHub</span>
+    </a>
+  </div>
+</div>
+
 <script>
-  // Particles config
-  particlesJS('particles-js', {
-    particles: {
-      number: { value: 60, density: { enable: true, value_area: 900 } },
-      color: { value: '#19C0DA' },
-      shape: { type: 'circle' },
-      opacity: { value: 0.15, random: true },
-      size: { value: 2, random: true },
-      line_linked: { enable: true, distance: 150, color: '#19C0DA', opacity: 0.08, width: 1 },
-      move: { enable: true, speed: 0.8, direction: 'none', random: true, out_mode: 'out' }
-    },
-    interactivity: {
-      detect_on: 'canvas',
-      events: {
-        onhover: { enable: true, mode: 'grab' },
-        onclick: { enable: false },
-        resize: true
-      },
-      modes: { grab: { distance: 140, line_linked: { opacity: 0.3 } } }
-    },
-    retina_detect: true
+const canvas = document.getElementById('graph');
+const ctx = canvas.getContext('2d');
+let W, H, dpr, mouseX = -1000, mouseY = -1000;
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Project data
+const projects = [
+  {
+    id: 'claim', name: 'CLAIM', subtitle: 'Claude AI Memory', icon: '\u{1F9E0}',
+    color: '#19C0DA', rgb: '25,192,218',
+    desc: 'Single-file, self-bootstrapping memory system for Claude Code. Multi-vault Obsidian integration with autonomous capture, software engineering triggers, and semantic routing. Memory shapes behavior. Vaults store knowledge.',
+    tags: ['claude-code-plugin','obsidian','multi-vault','autonomous-capture','self-bootstrapping','POSIX'],
+    url: 'https://github.com/kuldeepluvani/claim'
+  },
+  {
+    id: 'claudegotchi', name: 'Claudegotchi', subtitle: 'Developer Wellness Plugin', icon: '\u{1F436}',
+    color: '#34d399', rgb: '52,211,153',
+    desc: 'Tamagotchi-style wellness tracking for Claude Code. Monitors session duration, velocity, and frustration. Rewards healthy habits through a virtual creature with HP, XP, coins, and evolution stages. Multi-session isolation with per-session state.',
+    tags: ['claude-code-plugin','wellness','gamification','multi-session','dashboard','sqlite'],
+    url: 'https://github.com/kuldeepluvani/ClaudeGotchi'
+  },
+  {
+    id: 'mycelium', name: 'Mycelium', subtitle: 'Self-Enriching Knowledge Engine', icon: '\u{1F344}',
+    color: '#a78bfa', rgb: '167,139,250',
+    desc: 'A living knowledge network that learns while you sleep and thinks while you work. Ingests Markdown vaults and Git repos, builds a knowledge graph, auto-discovers specialist AI agents from data clusters, and answers through a hierarchical multi-agent cortex.',
+    tags: ['knowledge-graph','multi-agent','NATS JetStream','FAISS','FastAPI','NetworkX'],
+    url: 'https://github.com/kuldeepluvani/mycelium'
+  }
+];
+
+// Nodes: center + projects + decoration nodes
+const nodes = [];
+const edges = [];
+
+// Center node
+const center = {
+  x: W/2, y: H/2, vx: 0, vy: 0,
+  r: 44, color: '#19C0DA', rgb: '25,192,218',
+  label: 'KL', sublabel: 'Kuldeep Luvani',
+  type: 'center', project: null, glow: 0
+};
+nodes.push(center);
+
+// Project nodes — arranged around center
+const angleStep = (Math.PI * 2) / projects.length;
+const orbitR = Math.min(W, H) * 0.25;
+projects.forEach((p, i) => {
+  const a = angleStep * i - Math.PI / 2;
+  const node = {
+    x: W/2 + Math.cos(a) * orbitR, y: H/2 + Math.sin(a) * orbitR,
+    vx: 0, vy: 0, r: 34, color: p.color, rgb: p.rgb,
+    label: p.icon, sublabel: p.name,
+    type: 'project', project: p, glow: 0
+  };
+  nodes.push(node);
+  edges.push({ a: 0, b: nodes.length - 1 });
+});
+
+// Ambient floating dots
+for (let i = 0; i < 35; i++) {
+  nodes.push({
+    x: Math.random() * W, y: Math.random() * H,
+    vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+    r: 2 + Math.random() * 2, color: '#19C0DA', rgb: '25,192,218',
+    label: null, sublabel: null, type: 'dot', project: null, glow: 0
   });
+}
 
-  // Typing effect
-  const phrases = [
-    'Building AI-powered developer tools',
-    'Knowledge systems that think while you work',
-    'Memory that persists across sessions',
-    'Wellness-first developer experience'
-  ];
-
-  let phraseIndex = 0;
-  let charIndex = 0;
-  let isDeleting = false;
-  const typedEl = document.getElementById('typed');
-
-  function type() {
-    const current = phrases[phraseIndex];
-    if (isDeleting) {
-      typedEl.textContent = current.substring(0, charIndex--);
-      if (charIndex < 0) {
-        isDeleting = false;
-        phraseIndex = (phraseIndex + 1) % phrases.length;
-        setTimeout(type, 400);
-        return;
-      }
-      setTimeout(type, 40);
-    } else {
-      typedEl.textContent = current.substring(0, charIndex++);
-      if (charIndex > current.length) {
-        isDeleting = true;
-        setTimeout(type, 2000);
-        return;
-      }
-      setTimeout(type, 80);
+// Connect some dots to each other for ambient graph feel
+for (let i = 4; i < nodes.length; i++) {
+  for (let j = i + 1; j < nodes.length; j++) {
+    const dx = nodes[i].x - nodes[j].x;
+    const dy = nodes[i].y - nodes[j].y;
+    if (Math.sqrt(dx*dx + dy*dy) < 200) {
+      edges.push({ a: i, b: j });
     }
   }
-  type();
+}
+
+// Physics
+function physics() {
+  const centerX = W / 2, centerY = H / 2;
+
+  nodes.forEach((n, i) => {
+    if (n.type === 'dot') {
+      n.x += n.vx; n.y += n.vy;
+      if (n.x < -20) n.x = W + 20;
+      if (n.x > W + 20) n.x = -20;
+      if (n.y < -20) n.y = H + 20;
+      if (n.y > H + 20) n.y = -20;
+      return;
+    }
+
+    if (n.type === 'center') {
+      // Gently attract center to screen center
+      n.vx += (centerX - n.x) * 0.002;
+      n.vy += (centerY - n.y) * 0.002;
+    }
+
+    if (n.type === 'project') {
+      // Spring to orbit distance from center
+      const dx = n.x - nodes[0].x;
+      const dy = n.y - nodes[0].y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      const force = (dist - orbitR) * 0.003;
+      n.vx -= (dx / dist) * force;
+      n.vy -= (dy / dist) * force;
+
+      // Slow orbital drift
+      const angle = Math.atan2(dy, dx);
+      n.vx += Math.cos(angle + Math.PI/2) * 0.02;
+      n.vy += Math.sin(angle + Math.PI/2) * 0.02;
+    }
+
+    // Mouse interaction — gentle repulsion from cursor
+    const mdx = n.x - mouseX;
+    const mdy = n.y - mouseY;
+    const mdist = Math.sqrt(mdx*mdx + mdy*mdy) || 1;
+    if (mdist < 150 && n.type !== 'dot') {
+      n.vx += (mdx / mdist) * 0.5;
+      n.vy += (mdy / mdist) * 0.5;
+    }
+
+    // Repulsion between project nodes
+    nodes.forEach((other, j) => {
+      if (i === j || other.type === 'dot') return;
+      const dx = n.x - other.x;
+      const dy = n.y - other.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      if (dist < 120) {
+        const force = (120 - dist) * 0.005;
+        n.vx += (dx / dist) * force;
+        n.vy += (dy / dist) * force;
+      }
+    });
+
+    n.vx *= 0.95; n.vy *= 0.95;
+    n.x += n.vx; n.y += n.vy;
+
+    // Keep on screen
+    n.x = Math.max(n.r, Math.min(W - n.r, n.x));
+    n.y = Math.max(n.r, Math.min(H - n.r, n.y));
+  });
+}
+
+// Hover detection
+let hoveredNode = null;
+canvas.addEventListener('mousemove', e => {
+  mouseX = e.clientX; mouseY = e.clientY;
+  hoveredNode = null;
+  canvas.style.cursor = 'default';
+  nodes.forEach(n => {
+    if (n.type === 'dot') return;
+    const dx = e.clientX - n.x, dy = e.clientY - n.y;
+    if (Math.sqrt(dx*dx + dy*dy) < n.r + 8) {
+      hoveredNode = n;
+      if (n.type === 'project') canvas.style.cursor = 'pointer';
+    }
+  });
+});
+
+// Click — open bubble
+canvas.addEventListener('click', e => {
+  nodes.forEach(n => {
+    if (n.type !== 'project') return;
+    const dx = e.clientX - n.x, dy = e.clientY - n.y;
+    if (Math.sqrt(dx*dx + dy*dy) < n.r + 8) openBubble(n.project);
+  });
+});
+
+// Bubble
+const overlay = document.getElementById('bubbleOverlay');
+const bubbleEl = document.getElementById('bubbleContent');
+
+function openBubble(p) {
+  bubbleEl.style.setProperty('--node-color', p.color);
+  bubbleEl.style.setProperty('--node-rgb', p.rgb);
+  document.getElementById('bubbleIcon').textContent = projects.find(x=>x.id===p.id).icon;
+  document.getElementById('bubbleName').textContent = p.name;
+  document.getElementById('bubbleSubtitle').textContent = p.subtitle;
+  document.getElementById('bubbleDesc').textContent = p.desc;
+  const tagsEl = document.getElementById('bubbleTags');
+  tagsEl.innerHTML = p.tags.map(t => `<span class="tag">${t}</span>`).join('');
+  document.getElementById('bubbleLink').href = p.url;
+  overlay.classList.add('active');
+}
+
+function closeBubble() { overlay.classList.remove('active'); }
+document.getElementById('bubbleClose').addEventListener('click', closeBubble);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeBubble(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBubble(); });
+
+// Draw
+let time = 0;
+function draw() {
+  time += 0.01;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(25,192,218,0.03)';
+  ctx.lineWidth = 0.5;
+  const gridSize = 60;
+  for (let x = 0; x < W; x += gridSize) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += gridSize) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Draw edges
+  edges.forEach(e => {
+    const a = nodes[e.a], b = nodes[e.b];
+    const dx = a.x - b.x, dy = a.y - b.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    let alpha = 0;
+
+    if (a.type === 'dot' || b.type === 'dot') {
+      alpha = Math.max(0, 1 - dist / 200) * 0.06;
+    } else {
+      alpha = Math.max(0, 1 - dist / (orbitR * 2)) * 0.3;
+    }
+
+    if (alpha <= 0) return;
+
+    // Animated pulse along edges for project connections
+    if (a.type !== 'dot' && b.type !== 'dot') {
+      const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+      const pulse = (Math.sin(time * 2 + e.a) + 1) / 2;
+      grad.addColorStop(0, `rgba(${a.rgb},${alpha})`);
+      grad.addColorStop(pulse, `rgba(${a.rgb},${alpha * 2})`);
+      grad.addColorStop(1, `rgba(${b.rgb},${alpha})`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.5;
+    } else {
+      ctx.strokeStyle = `rgba(25,192,218,${alpha})`;
+      ctx.lineWidth = 0.5;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  });
+
+  // Draw nodes
+  nodes.forEach(n => {
+    const isHovered = n === hoveredNode;
+    const targetGlow = isHovered ? 1 : 0;
+    n.glow += (targetGlow - n.glow) * 0.1;
+
+    if (n.type === 'dot') {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${n.rgb},${0.15 + Math.sin(time + n.x) * 0.05})`;
+      ctx.fill();
+      return;
+    }
+
+    const r = n.r + n.glow * 6;
+
+    // Outer glow
+    if (n.glow > 0.01 || n.type === 'project') {
+      const glowR = r + 20 + n.glow * 15;
+      const grad = ctx.createRadialGradient(n.x, n.y, r, n.x, n.y, glowR);
+      const glowAlpha = n.type === 'center' ? 0.1 : (0.08 + n.glow * 0.15);
+      grad.addColorStop(0, `rgba(${n.rgb},${glowAlpha})`);
+      grad.addColorStop(1, `rgba(${n.rgb},0)`);
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+
+    // Ring
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${n.rgb},0.08)`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${n.rgb},${0.4 + n.glow * 0.4})`;
+    ctx.lineWidth = 1.5 + n.glow;
+    ctx.stroke();
+
+    // Spinning arc for project nodes
+    if (n.type === 'project') {
+      ctx.beginPath();
+      const arcStart = time * 1.5 + nodes.indexOf(n);
+      ctx.arc(n.x, n.y, r + 4, arcStart, arcStart + Math.PI * 0.6);
+      ctx.strokeStyle = `rgba(${n.rgb},${0.3 + n.glow * 0.3})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Label (icon/text)
+    if (n.label) {
+      ctx.font = n.type === 'center' ? '600 20px Inter' : '22px sans-serif';
+      ctx.fillStyle = n.color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(n.label, n.x, n.y);
+    }
+
+    // Sublabel below
+    if (n.sublabel) {
+      ctx.font = n.type === 'center' ? '300 11px Inter' : '500 11px Inter';
+      ctx.fillStyle = `rgba(${n.rgb},${0.6 + n.glow * 0.4})`;
+      ctx.textAlign = 'center';
+      ctx.fillText(n.sublabel, n.x, n.y + r + 16);
+    }
+  });
+
+  // Center typing text
+  const typingY = nodes[0].y + nodes[0].r + 38;
+  ctx.font = '400 13px "JetBrains Mono", monospace';
+  ctx.fillStyle = 'rgba(25,192,218,0.5)';
+  ctx.textAlign = 'center';
+  const currentPhrase = typingPhrases[currentPhraseIdx];
+  const displayText = currentPhrase.substring(0, currentCharIdx);
+  ctx.fillText(displayText + (Math.floor(time * 3) % 2 === 0 ? '|' : ''), nodes[0].x, typingY);
+
+  physics();
+  requestAnimationFrame(draw);
+}
+
+// Typing for center node
+const typingPhrases = [
+  'building AI-powered developer tools',
+  'knowledge systems that think while you work',
+  'memory that persists across sessions',
+  'wellness-first developer experience'
+];
+let currentPhraseIdx = 0, currentCharIdx = 0, typingDeleting = false, typingPause = 0;
+
+setInterval(() => {
+  if (typingPause > 0) { typingPause--; return; }
+  if (typingDeleting) {
+    currentCharIdx--;
+    if (currentCharIdx <= 0) {
+      typingDeleting = false;
+      currentPhraseIdx = (currentPhraseIdx + 1) % typingPhrases.length;
+      typingPause = 8;
+    }
+  } else {
+    currentCharIdx++;
+    if (currentCharIdx > typingPhrases[currentPhraseIdx].length) {
+      typingDeleting = true;
+      typingPause = 40;
+    }
+  }
+}, 50);
+
+// Touch support
+canvas.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  mouseX = t.clientX; mouseY = t.clientY;
+  nodes.forEach(n => {
+    if (n.type !== 'project') return;
+    const dx = t.clientX - n.x, dy = t.clientY - n.y;
+    if (Math.sqrt(dx*dx + dy*dy) < n.r + 12) openBubble(n.project);
+  });
+});
+
+draw();
 </script>
 
 </body>
