@@ -1,152 +1,521 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kuldeep Luvani</title>
-  <link rel="stylesheet" type="text/css" href="css/main.css" />
-  <link href='http://fonts.googleapis.com/css?family=Playfair+Display' rel='stylesheet' type='text/css' />
-  <link href='https://fonts.googleapis.com/css?family=Raleway' rel='stylesheet' type='text/css'>
-  <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
-  <link href='https://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet' type='text/css'>
-  <link  rel="stylesheet" href="font-awesome-4.5.0/css/font-awesome.min.css">
-  <link href='https://fonts.googleapis.com/css?family=Karla' rel='stylesheet' type='text/css'>
-  <link href='https://fonts.googleapis.com/css?family=Lustria' rel='stylesheet' type='text/css'>
+  <title>Kuldeep Luvani — Software Engineer</title>
+  <meta name="description" content="Software Engineer building AI-powered developer tools, knowledge systems, and automation platforms.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="font-awesome-4.5.0/css/font-awesome.min.css">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface-hover: #1a1a25;
+      --border: #222233;
+      --text: #e4e4ef;
+      --text-muted: #8888a0;
+      --accent: #19C0DA;
+      --accent-dim: rgba(25, 192, 218, 0.15);
+      --green: #34d399;
+      --purple: #a78bfa;
+      --amber: #fbbf24;
+      --pink: #f472b6;
+    }
 
-  <!-- change -->
-  <link href="http://www.jqueryscript.net/css/jquerysctipttop.css" rel="stylesheet" type="text/css">
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    <!-- end -->
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ---- Particles background ---- */
+    #particles-js {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      background: var(--bg);
+    }
+
+    .content { position: relative; z-index: 1; }
+
+    /* ---- Hero ---- */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .hero-inner { max-width: 700px; }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 7vw, 5rem);
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero .tagline {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-weight: 300;
+    }
+
+    .hero .typing {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(0.85rem, 1.8vw, 1rem);
+      color: var(--accent);
+      opacity: 0.8;
+      min-height: 1.5em;
+    }
+
+    .hero .typing .cursor {
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .socials {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+
+    .socials a {
+      width: 44px;
+      height: 44px;
+      border: 1.5px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .socials a:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      background: var(--accent-dim);
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      animation: bounce 2s infinite;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
+
+    /* ---- Section ---- */
+    section {
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+
+    /* ---- Project Cards ---- */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .project-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .project-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--card-accent, var(--accent));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .project-card:hover {
+      border-color: var(--card-accent, var(--accent));
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    }
+
+    .project-card:hover::before { opacity: 1; }
+
+    .project-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .project-icon {
+      font-size: 1.5rem;
+      margin-right: 0.75rem;
+    }
+
+    .project-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .project-subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--card-accent, var(--accent));
+      margin-top: 0.25rem;
+    }
+
+    .project-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+
+    .project-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid transparent;
+    }
+
+    .project-links {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .project-links a {
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: opacity 0.2s;
+    }
+
+    .project-links a:hover { opacity: 0.7; }
+
+    .project-stat {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    /* Card accent colors */
+    .card-claim { --card-accent: var(--accent); }
+    .card-claudegotchi { --card-accent: var(--green); }
+    .card-claudegotchi .tag { background: rgba(52, 211, 153, 0.15); color: var(--green); }
+    .card-mycelium { --card-accent: var(--purple); }
+    .card-mycelium .tag { background: rgba(167, 139, 250, 0.15); color: var(--purple); }
+
+    /* ---- About ---- */
+    .about-content {
+      max-width: 650px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .about-content p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+
+    .tech-stack .tag {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    /* ---- Footer ---- */
+    footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+
+    /* ---- Responsive ---- */
+    @media (min-width: 768px) {
+      .projects-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .project-card.featured {
+        grid-column: 1 / -1;
+      }
+    }
+  </style>
 </head>
 <body>
 
+<div id="particles-js"></div>
 
-  <!-- <audio id="audio" src="ad.mp3" ></audio> -->
-<div class="wrapper">
-  <div id="particles-js"></div>
-  <div class="section">
-    <div class="name">
-      <ul id="scene"
-      data-calibrate-x="false"
-      data-calibrate-y="false"
-      data-invert-x="true"
-      data-invert-y="true"
-      data-limit-x="false"
-      data-limit-y="false"
-      data-scalar-x="2"
-      data-scalar-y="2"
-      data-friction-x="0.1"
-      data-friction-y="0.1"
-      data-origin-x="0.0"
-      data-origin-y="0.0">
-      <p class="head layer" data-depth="1.0">Kuldeep Luvani</p>
-    </ul>
-
-      <ul id="scene1"
-      data-calibrate-x="false"
-      data-calibrate-y="false"
-      data-invert-x="false"
-      data-invert-y="true"
-      data-limit-x="false"
-      data-limit-y="false"
-      data-scalar-x="2"
-      data-scalar-y="2"
-      data-friction-x="0.1"
-      data-friction-y="0.1"
-      data-origin-x="0.0"
-      data-origin-y="0.0">
-      <p id="textdisp" class="text layer" data-depth="0.5">7+ Experience as Data/ML Ops Engineer</p>
-      </ul>
-      <ul id="scene2"
-      data-calibrate-x="false"
-      data-calibrate-y="false"
-      data-invert-x="false"
-      data-invert-y="true"
-      data-limit-x="false"
-      data-limit-y="false"
-      data-scalar-x="2"
-      data-scalar-y="2"
-      data-friction-x="0.1"
-      data-friction-y="0.1"
-      data-origin-x="0.0"
-      data-origin-y="0.0">
-      <div class="icons layer" data-depth="0.6">
-        <div class="ico"><a href="https://www.hackerrank.com/kuldeepluvani?hr_r=1"><i class="fa fa-code fa-2x fb" style ="margin-left: -3px;
-    margin-top: -2px;"></i></a></div>
-        <div class="ico"><a href="https://www.linkedin.com/in/kuldeep-luvani-28a93336/"><i class="fa fa-linkedin fa-2x lin" style ="margin-left: 0px;
-    margin-top: -2px;"></i></a></div>
-        <div class="ico"><a href="https://github.com/kuldeepluvani"><i class="fa fa-github fa-2x git"></i></a></div>
-        <div class="ico"><a href="https://pythonhighschool.wordpress.com/"><i class="fa fa-list fa-2x twit" style="margin-left: -2px; margin-top: 0px;"></i></a></div>
-        <div class="ico"><a href="mailto:kuldeepluvani@gmail.com"><i class="fa fa-envelope fa-2x mail" style ="margin-left: -2px;
-    margin-top: -2px;"></i></a></div>
+<div class="content">
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-inner">
+      <h1>Kuldeep Luvani</h1>
+      <p class="tagline">Software Engineer &middot; AI Tools &middot; Knowledge Systems</p>
+      <div class="typing">
+        <span id="typed"></span><span class="cursor">|</span>
       </div>
-      <div class="resume">
-          <div class="ico-res"><a href="Kuldeep Luvani Resume.pdf"><i class="fa fa-file-text fa-3x res"></i></a></div>
+      <div class="socials">
+        <a href="https://github.com/kuldeepluvani" title="GitHub"><i class="fa fa-github"></i></a>
+        <a href="https://www.linkedin.com/in/kuldeep-luvani-28a93336/" title="LinkedIn"><i class="fa fa-linkedin"></i></a>
+        <a href="mailto:kuldeepluvani@gmail.com" title="Email"><i class="fa fa-envelope"></i></a>
+        <a href="Kuldeep Luvani Resume.pdf" title="Resume"><i class="fa fa-file-text"></i></a>
       </div>
-    </ul>
-	<!-- change -->
-	<div class="text">
-		<span id="ghost"></span>|
-	</div>
-	<script src="js/jquery-1.12.4.min.js"></script>
-	<script src="js/ghost-typer.js"></script>
-	<script>
-		$("#ghost").ghosttyper({
-			messages: ['Delivered innovative technology solutions', 'Built large-scale data processing pipeline with 99.9% SLA','Led engineering initiatives"'],
-			timeWrite: 150,
-			timeDelete: 100,
-			timePause: 1200
-		});
-	</script>
-	<!-- end -->
-	
-	
-	</div>
+    </div>
+    <a href="#projects" class="scroll-hint">
+      <i class="fa fa-chevron-down"></i>
+    </a>
   </div>
+
+  <!-- Projects -->
+  <section id="projects">
+    <div class="section-title">Open Source Projects</div>
+    <div class="projects-grid">
+
+      <!-- CLAIM -->
+      <div class="project-card featured card-claim">
+        <div class="project-header">
+          <div>
+            <div class="project-name">CLAIM</div>
+            <div class="project-subtitle">Claude AI Memory</div>
+          </div>
+        </div>
+        <p class="project-desc">
+          Single-file, self-bootstrapping memory system for Claude Code. Multi-vault Obsidian integration with autonomous capture, software engineering triggers, and semantic routing. Memory shapes behavior. Vaults store knowledge.
+        </p>
+        <div class="project-features">
+          <span class="tag">claude-code-plugin</span>
+          <span class="tag">obsidian</span>
+          <span class="tag">multi-vault</span>
+          <span class="tag">autonomous-capture</span>
+          <span class="tag">self-bootstrapping</span>
+          <span class="tag">POSIX</span>
+        </div>
+        <div class="project-links">
+          <a href="https://github.com/kuldeepluvani/claim"><i class="fa fa-github"></i> GitHub</a>
+          <span class="project-stat">v2.0.1</span>
+        </div>
+      </div>
+
+      <!-- Claudegotchi -->
+      <div class="project-card card-claudegotchi">
+        <div class="project-header">
+          <div>
+            <div class="project-name">Claudegotchi</div>
+            <div class="project-subtitle">Developer Wellness Plugin</div>
+          </div>
+        </div>
+        <p class="project-desc">
+          Tamagotchi-style wellness tracking for Claude Code. Monitors session duration, velocity, and frustration. Rewards healthy habits through a virtual creature with HP, XP, coins, and evolution stages.
+        </p>
+        <div class="project-features">
+          <span class="tag">claude-code-plugin</span>
+          <span class="tag">wellness</span>
+          <span class="tag">gamification</span>
+          <span class="tag">multi-session</span>
+          <span class="tag">dashboard</span>
+        </div>
+        <div class="project-links">
+          <a href="https://github.com/kuldeepluvani/ClaudeGotchi"><i class="fa fa-github"></i> GitHub</a>
+        </div>
+      </div>
+
+      <!-- Mycelium -->
+      <div class="project-card card-mycelium">
+        <div class="project-header">
+          <div>
+            <div class="project-name">Mycelium</div>
+            <div class="project-subtitle">Self-Enriching Knowledge Engine</div>
+          </div>
+        </div>
+        <p class="project-desc">
+          A living knowledge network that learns while you sleep and thinks while you work. Ingests Markdown vaults and Git repos, builds a knowledge graph, auto-discovers specialist AI agents from data clusters, and answers through a hierarchical multi-agent cortex.
+        </p>
+        <div class="project-features">
+          <span class="tag">knowledge-graph</span>
+          <span class="tag">multi-agent</span>
+          <span class="tag">NATS JetStream</span>
+          <span class="tag">FAISS</span>
+          <span class="tag">FastAPI</span>
+          <span class="tag">NetworkX</span>
+        </div>
+        <div class="project-links">
+          <a href="https://github.com/kuldeepluvani/mycelium"><i class="fa fa-github"></i> GitHub</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- About -->
+  <section id="about">
+    <div class="section-title">About</div>
+    <div class="about-content">
+      <p>
+        Software engineer focused on AI-powered developer tools, knowledge systems, and automation platforms. Building at the intersection of large language models, structured knowledge, and developer experience.
+      </p>
+      <div class="tech-stack">
+        <span class="tag">Python</span>
+        <span class="tag">Go</span>
+        <span class="tag">TypeScript</span>
+        <span class="tag">Bash</span>
+        <span class="tag">GCP</span>
+        <span class="tag">AWS</span>
+        <span class="tag">Kubernetes</span>
+        <span class="tag">Airflow</span>
+        <span class="tag">FastAPI</span>
+        <span class="tag">Claude Code</span>
+        <span class="tag">Obsidian</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Built by <a href="https://github.com/kuldeepluvani">Kuldeep Luvani</a>
+  </footer>
 </div>
 
+<script src="js/particles.min.js"></script>
+<script>
+  // Particles config
+  particlesJS('particles-js', {
+    particles: {
+      number: { value: 60, density: { enable: true, value_area: 900 } },
+      color: { value: '#19C0DA' },
+      shape: { type: 'circle' },
+      opacity: { value: 0.15, random: true },
+      size: { value: 2, random: true },
+      line_linked: { enable: true, distance: 150, color: '#19C0DA', opacity: 0.08, width: 1 },
+      move: { enable: true, speed: 0.8, direction: 'none', random: true, out_mode: 'out' }
+    },
+    interactivity: {
+      detect_on: 'canvas',
+      events: {
+        onhover: { enable: true, mode: 'grab' },
+        onclick: { enable: false },
+        resize: true
+      },
+      modes: { grab: { distance: 140, line_linked: { opacity: 0.3 } } }
+    },
+    retina_detect: true
+  });
 
+  // Typing effect
+  const phrases = [
+    'Building AI-powered developer tools',
+    'Knowledge systems that think while you work',
+    'Memory that persists across sessions',
+    'Wellness-first developer experience'
+  ];
 
-  <script src="js/jquery.min.js"></script>
-  <script src="js/modernizr.custom.js"></script>
-  <script type="text/javascript" src="js/particles.min.js"></script>
-  <script type="text/javascript" src="js/parallax-master/deploy/parallax.min.js"></script>
-  <script type="text/javascript" src="js/parallax-master/deploy/jquery.parallax.min.js"></script>
-  <script type="text/javascript" src="js/main.js"></script>
-  <script type="text/javascript" src="js/text-autotype.js" ></script>
+  let phraseIndex = 0;
+  let charIndex = 0;
+  let isDeleting = false;
+  const typedEl = document.getElementById('typed');
 
-    <!-- Start of StatCounter Code for Default Guide -->
-<script type="text/javascript">
-var sc_project=11409650; 
-var sc_invisible=1; 
-var sc_security="4b6d8ce7"; 
-var scJsHost = (("https:" == document.location.protocol) ?
-"https://secure." : "http://www.");
-document.write("<sc"+"ript type='text/javascript' src='" +
-scJsHost+
-"statcounter.com/counter/counter.js'></"+"script>");
+  function type() {
+    const current = phrases[phraseIndex];
+    if (isDeleting) {
+      typedEl.textContent = current.substring(0, charIndex--);
+      if (charIndex < 0) {
+        isDeleting = false;
+        phraseIndex = (phraseIndex + 1) % phrases.length;
+        setTimeout(type, 400);
+        return;
+      }
+      setTimeout(type, 40);
+    } else {
+      typedEl.textContent = current.substring(0, charIndex++);
+      if (charIndex > current.length) {
+        isDeleting = true;
+        setTimeout(type, 2000);
+        return;
+      }
+      setTimeout(type, 80);
+    }
+  }
+  type();
 </script>
-<noscript><div class="statcounter"><a title="free hit
-counter" href="http://statcounter.com/" target="_blank"><img
-class="statcounter"
-src="//c.statcounter.com/11409650/0/4b6d8ce7/1/" alt="free
-hit counter"></a></div></noscript>
-<!-- End of StatCounter Code for Default Guide -->
-  
-    <script>
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
 
-  ga('create', 'UA-102962659-1', 'auto');
-  ga('send', 'pageview');
-
-</script>
 </body>
-
-
-
 </html>
