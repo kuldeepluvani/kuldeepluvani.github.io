@@ -426,7 +426,7 @@ canvas.addEventListener('click', e => {
     clicked = true;
     // Spawn ripple effect
     ripples.push({ x: n.x, y: n.y, r: n.r, maxR: n.r + 80, rgb: n.rgb, alpha: 0.6, speed: 3 });
-    if (n.type === 'project') setTimeout(() => openBubble(n.data), 200); // slight delay for ripple
+    if (n.type === 'project' || n.type === 'mini') setTimeout(() => openBubble(n.data), 200); // slight delay for ripple
     if (n.type === 'social') setTimeout(() => window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank'), 150);
   });
   // Click on empty space — small ambient ripple

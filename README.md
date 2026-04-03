@@ -1,4 +1,7 @@
-# https://kuldeepluvani.github.io
+# kuldeepluvani.github.io
 
+Interactive graph-node portfolio. Each project is a node — click to explore.
 
-Machine Leaning Engineer, Python Developer, Algorithm developer, Deep Learning Engineer, Data Scientist. 
+**Live:** [kuldeepluvani.github.io](https://kuldeepluvani.github.io)
+
+Built with vanilla HTML5 Canvas — no frameworks, no dependencies.
