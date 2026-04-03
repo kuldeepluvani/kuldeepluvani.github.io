@@ -132,14 +132,15 @@ function resize() {
   S = Math.max(0.6, Math.min(1.6, scale)); // clamp 0.6 to 1.6
   orbitR = Math.min(W, H) * 0.24;
   socialOrbitR = Math.min(W, H) * 0.40;
-  // Update node radii on resize
-  if (nodes.length) {
-    nodes[0].r = 54 * S; // center
-    for (let i = 1; i <= projects.length; i++) nodes[i].r = 42 * S;
-    for (let i = projects.length + 1; i <= projects.length + socials.length; i++) nodes[i].r = 26 * S;
+  // Update node radii on resize (guarded — nodes may not exist on first call)
+  if (typeof _nodes !== 'undefined' && _nodes.length) {
+    _nodes[0].r = 54 * S; // center
+    for (let i = 1; i <= 4; i++) if (_nodes[i]) _nodes[i].r = 42 * S;
+    for (let i = 5; i <= 9; i++) if (_nodes[i]) _nodes[i].r = 26 * S;
   }
 }
 let orbitR, socialOrbitR, S = 1;
+let _nodes; // forward ref for resize
 window.addEventListener('resize', resize);
 resize();
 
@@ -186,6 +187,7 @@ const socials = [
 
 // Nodes
 const nodes = [];
+_nodes = nodes; // link to forward ref for resize()
 const edges = [];
 
 // Center node (index 0)
