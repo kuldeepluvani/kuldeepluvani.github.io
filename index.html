@@ -288,22 +288,22 @@ for (let i = 1; i <= projects.length; i++)
   for (let j = i + 1; j <= projects.length; j++)
     edges.push({ a: i, b: j, type: 'inter' });
 
-// Ambient dots
-for (let i = 0; i < 30; i++) {
+// Ambient dots — high density like particles.js
+const dotCount = Math.round(Math.max(50, (W * H) / 12000)); // scale with screen
+for (let i = 0; i < dotCount; i++) {
   nodes.push({
     x: Math.random() * W, y: Math.random() * H,
-    vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
-    r: 1.5 + Math.random() * 2, color: theme.accent, rgb: theme.accentRGB,
+    vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+    r: 1.5 + Math.random() * 2.5, color: theme.accent, rgb: theme.accentRGB,
     label: null, sublabel: null, type: 'dot', data: null, glow: 0
   });
 }
 
 const dotStart = 1 + projects.length + socials.length;
-for (let i = dotStart; i < nodes.length; i++)
-  for (let j = i + 1; j < nodes.length; j++) {
-    const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
-    if (Math.sqrt(dx*dx + dy*dy) < 180) edges.push({ a: i, b: j, type: 'ambient' });
-  }
+// No static dot edges — we draw dynamic proximity edges each frame (particles.js style)
+
+// Click ripple effects
+const ripples = [];
 
 // ===================== Physics =====================
 function physics() {
@@ -375,12 +375,20 @@ canvas.addEventListener('mousemove', e => {
 });
 
 canvas.addEventListener('click', e => {
+  let clicked = false;
   nodes.forEach(n => {
     const d = Math.sqrt((e.clientX-n.x)**2 + (e.clientY-n.y)**2);
     if (d > n.r + 15) return;
-    if (n.type === 'project') openBubble(n.data);
-    if (n.type === 'social') window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank');
+    clicked = true;
+    // Spawn ripple effect
+    ripples.push({ x: n.x, y: n.y, r: n.r, maxR: n.r + 80, rgb: n.rgb, alpha: 0.6, speed: 3 });
+    if (n.type === 'project') setTimeout(() => openBubble(n.data), 200); // slight delay for ripple
+    if (n.type === 'social') setTimeout(() => window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank'), 150);
   });
+  // Click on empty space — small ambient ripple
+  if (!clicked) {
+    ripples.push({ x: e.clientX, y: e.clientY, r: 0, maxR: 60, rgb: theme.accentRGB, alpha: 0.3, speed: 2 });
+  }
 });
 
 canvas.addEventListener('touchstart', e => {
@@ -452,19 +460,44 @@ function draw() {
   for (let y = 0; y < H; y += gs) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
   const eMul = theme.edgeMul;
+  const linkDist = 150; // dot-to-dot link distance
+  const grabDist = 180; // mouse grab distance
 
-  // Edges
+  // Dynamic dot proximity edges (particles.js style — recomputed each frame)
+  for (let i = dotStart; i < nodes.length; i++) {
+    const a = nodes[i];
+    // Dot-to-dot connections
+    for (let j = i + 1; j < nodes.length; j++) {
+      const b = nodes[j];
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < linkDist) {
+        const alpha = (1 - dist / linkDist) * 0.15 * eMul;
+        ctx.strokeStyle = `rgba(${theme.accentRGB},${alpha})`;
+        ctx.lineWidth = 0.6;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+    }
+    // Mouse grab — bright lines from cursor to nearby dots
+    if (mouseX > 0) {
+      const mdx = a.x - mouseX, mdy = a.y - mouseY;
+      const mdist = Math.sqrt(mdx*mdx + mdy*mdy);
+      if (mdist < grabDist) {
+        const alpha = (1 - mdist / grabDist) * 0.4 * eMul;
+        ctx.strokeStyle = `rgba(${theme.accentRGB},${alpha})`;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(a.x, a.y); ctx.stroke();
+      }
+    }
+  }
+
+  // Structural edges (project, social, inter)
   edges.forEach(e => {
     const a = nodes[e.a], b = nodes[e.b];
     const dx = a.x - b.x, dy = a.y - b.y;
     const dist = Math.sqrt(dx*dx + dy*dy);
 
-    if (e.type === 'ambient') {
-      const alpha = Math.max(0, 1 - dist / 180) * 0.05 * eMul;
-      if (alpha <= 0) return;
-      ctx.strokeStyle = `rgba(${theme.accentRGB},${alpha})`;
-      ctx.lineWidth = 0.5;
-    } else if (e.type === 'social') {
+    if (e.type === 'social') {
       const alpha = Math.max(0, 1 - dist / (socialOrbitR * 2)) * 0.12 * eMul;
       ctx.strokeStyle = `rgba(${b.rgb || a.rgb},${alpha})`;
       ctx.lineWidth = 0.8;
@@ -554,6 +587,27 @@ function draw() {
       ctx.fillText(n.sublabel, n.x, n.y + r + (n.type === 'social' ? 14 : 18));
     }
   });
+
+  // Ripple effects
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const rp = ripples[i];
+    rp.r += rp.speed;
+    rp.alpha -= 0.015;
+    if (rp.alpha <= 0 || rp.r >= rp.maxR) { ripples.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${rp.rgb},${rp.alpha})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Second ring for depth
+    if (rp.r > 15) {
+      ctx.beginPath();
+      ctx.arc(rp.x, rp.y, rp.r * 0.6, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${rp.rgb},${rp.alpha * 0.4})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
 
   // Typing
   const typingY = nodes[0].y + nodes[0].r + 40;
