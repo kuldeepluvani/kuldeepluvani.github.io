@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ZgaHf+wM0LWpeQ2M1xENoIdOD3QGeW3uxZcNtJJii14='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-DpRSGRLxV0+J9EVmPAHnyk3ps8TU/yQAxa4FBwnoE2Y='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Agent Loop: Stop Conditions, Ralph Loops and Sub-Agents · The Harness</title>
@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/site.css?v=10">
+<link rel="stylesheet" href="../assets/site.css?v=11">
 <style>
   /* LOOP STEPPER (prefix: ls-) */
   #inst .hint { margin: 0 0 14px; }
@@ -104,7 +104,7 @@
     <p class="eyebrow">The Harness · Chapter 1</p>
     <h1>The Loop</h1>
     <p class="dek">Every agent is a loop of observe, plan, act and verify. The hard parts are when it stops, when to run more than one, and how it survives a restart.</p>
-    <div class="ch-meta"><span>~16 MIN READ</span><span>1 LIVE INSTRUMENT</span><span>UPDATED OCT 2026</span></div>
+    <div class="ch-meta"><span>~15 MIN READ</span><span>1 LIVE INSTRUMENT</span><span>UPDATED OCT 2026</span></div>
   </section>
 
   <div class="ch-body">
@@ -144,7 +144,7 @@
 
       <blockquote class="pull">“Without a check it can run, ‘looks done’ is the only signal available, and you become the verification loop.”<cite>— Claude Code best practices, Anthropic</cite></blockquote>
 
-      <p>The guide lays out four escalating gates: a check written into the prompt, a <code>/goal</code> evaluator, a Stop hook that acts as a deterministic gate, and a verification subagent.<sup class="cite"><a href="#r10">10</a></sup> A Stop hook can return a JSON <code>decision</code> of <code>block</code> with a reason, or exit with code 2, and the model keeps working with that reason in front of it. Its input carries a <code>stop_hook_active</code> flag so the hook itself can avoid looping forever.<sup class="cite"><a href="#r11">11</a></sup> In your own loop the same gate is a check that runs whenever the model ends a turn without a tool call; on failure, its output goes back in as the next message. Even compaction has a breaker: if the context refills right after each summary, Claude Code gives up after a few attempts and shows an error.<sup class="cite"><a href="#r2">2</a></sup></p>
+      <p>The guide lays out four escalating gates: a check written into the prompt, a <code>/goal</code> evaluator, a Stop hook that acts as a deterministic gate, and a verification subagent.<sup class="cite"><a href="#r10">10</a></sup> A Stop hook can return a JSON <code>decision</code> of <code>block</code> with a reason, or exit with code 2, and the model keeps working with that reason in front of it. Its input carries a <code>stop_hook_active</code> flag so the hook itself can avoid looping forever.<sup class="cite"><a href="#r11">11</a></sup> In your own loop the same gate is a check that runs whenever the model ends a turn without a tool call; on failure, its output goes back in as the next message.</p>
       <p>The stepper below plays the six-step “fix the failing tests” sequence from Claude Code's docs.<sup class="cite"><a href="#r2">2</a></sup> Turn the verification check off and watch what the loop reports.</p>
 
       <section class="instrument" id="inst" aria-label="Loop stepper">
@@ -154,9 +154,9 @@
             <button class="btn primary" id="ls-step" type="button">Step</button>
             <button class="btn" id="ls-run" type="button" aria-pressed="false">Run</button>
             <button class="btn" id="ls-reset" type="button">Reset</button>
-            <button class="chip" id="ls-verify" type="button" aria-pressed="true">Verification check: ON</button>
+            <button class="chip" id="ls-verify" type="button" aria-pressed="true">Verification check</button>
           </div>
-          <p class="hint" id="ls-hint">switch the check OFF, press Run, and read the stop signal.</p>
+          <p class="hint" id="ls-hint">switch the Verification check off, press Run, and read the stop signal.</p>
           <div class="ls-grid">
             <svg class="ls-ring" viewBox="0 0 240 240" role="img" aria-label="Loop ring with phases observe, plan, act and verify">
               <defs><radialGradient id="ls-core"><stop offset="0" stop-color="rgba(62,230,255,.12)"/><stop offset="1" stop-color="rgba(62,230,255,0)"/></radialGradient></defs>
@@ -226,12 +226,13 @@
 #!/usr/bin/env bash
 # save as .claude/hooks/tests-gate.sh, chmod +x (needs jq)
 input=$(cat)
+cd "$CLAUDE_PROJECT_DIR" || exit 1   # hooks run in the current dir, which follows cd
 # Already continuing because a Stop hook blocked: allow the stop, never loop forever
 [ "$(jq -r '.stop_hook_active' &lt;&lt;&lt;"$input")" = "true" ] &amp;&amp; exit 0
 if out=$(npm test 2&gt;&amp;1); then exit 0; fi
 jq -n --arg r "Tests are failing. Fix them and rerun npm test before stopping.
 $(tail -n 20 &lt;&lt;&lt;"$out")" '{decision: "block", reason: $r}'</code></pre>
-      <p>The guard buys one forced retry per stop. Remove it and Claude Code's own cap, which ends the turn after eight consecutive hook continuations, is the backstop.<sup class="cite"><a href="#r11">11</a></sup> Any other harness: when the model returns with no tool call, run the test command; if it fails, append the last 20 lines as a user message and call the model again, at most N times.</p>
+      <p>The guard buys one forced retry per stop. Remove it and Claude Code's own backstop applies: after stop hooks continue the turn eight times in a row with no tool call between, it overrides the next block and ends the turn (raise it with <code>CLAUDE_CODE_STOP_HOOK_BLOCK_CAP</code>).<sup class="cite"><a href="#r11">11</a></sup> Any other harness: when the model returns with no tool call, run the test command; if it fails, append the last 20 lines as a user message and call the model again, at most N times.</p>
 
       <h2 id="s-4">Ralph: the dumbest loop that works</h2>
       <p>Ralph is a pattern you can take to production: a deterministic outer loop around a nondeterministic worker, with all state on disk and a hard spend cap. Geoffrey Huntley's original is one line of shell, <code>while :; do cat PROMPT.md | claude-code ; done</code>.<sup class="cite"><a href="#r13">13</a></sup> The same prompt runs every pass against a repository that changes underneath it. Each pass reads the files, does one item, and exits.</p>
@@ -240,29 +241,29 @@ $(tail -n 20 &lt;&lt;&lt;"$out")" '{decision: "block", reason: $r}'</code></pre>
 
       <p>When Ralph does something dumb, you do not swap the model; you add a sign to the prompt. Huntley's headline result, an MVP on a $50k contract for $297, is one practitioner's report, not a measurement.<sup class="cite"><a href="#r13">13</a></sup></p>
       <p>The original line will not run as written against the current CLI. A form that does, with both caps made explicit:</p>
-<pre><code># Run only inside a container or VM: this skips every permission prompt.
+<pre><code># Run only inside a container or VM, as a non-root user (e.g. the
+# devcontainer): this skips every permission prompt, and Claude Code
+# refuses the flag as root. --bare skips hooks and CLAUDE.md discovery
+# and needs ANTHROPIC_API_KEY.
 for i in $(seq 1 20); do                      # hard cap: 20 passes
-  out=$(claude -p "$(cat PROMPT.md)" \
+  out=$(claude -p "$(cat PROMPT.md)" --bare \
         --dangerously-skip-permissions \
         --max-budget-usd 2.00)                # per-pass spend cap
   grep -q '&lt;promise&gt;DONE&lt;/promise&gt;' &lt;&lt;&lt;"$out" &amp;&amp; break
 done                                          # worst case about 20 x $2</code></pre>
-      <p><code>--max-budget-usd</code> stops a print-mode run once its estimated spend reaches the cap, counts subagent spend toward it, and can overshoot slightly, so leave headroom.<sup class="cite"><a href="#r14">14</a></sup> Claude Code's docs limit skipping permissions to isolated containers and VMs; an unattended loop belongs in one.<sup class="cite"><a href="#r15">15</a></sup> State lives in the repository and a progress file, never in the session.</p>
-      <p>Anthropic's ralph-wiggum plugin moves the loop inside the session with a Stop hook. You start it with a prompt, <code>--max-iterations</code> and <code>--completion-promise</code>. The prompt never changes, and the agent improves by reading its own past work in files. The hook blocks every stop until the output contains the exact promise string inside <code>&lt;promise&gt;</code> tags or the count reaches the cap, and its system message reminds the agent not to claim completion falsely. The README tells you to rely on <code>--max-iterations</code> as the primary safety mechanism.<sup class="cite"><a href="#r12">12</a></sup> In the Ralph panel above, drag the cap below the iteration where the promise lands: the loop stops, the spend is fixed, and the work is unfinished. That is the correct failure. In a harness without the plugin, the outer script above does the same job: count passes, check for the promise, stop at the cap.</p>
+      <p><code>--max-budget-usd</code> stops a print-mode run once its estimated spend reaches the cap, counts subagent spend toward it, and can overshoot slightly, so leave headroom.<sup class="cite"><a href="#r14">14</a></sup> Claude Code's docs limit skipping permissions to isolated containers and VMs, and on Linux and macOS it will not start in that mode as root or under <code>sudo</code> outside a recognized sandbox; an unattended loop belongs in a container, run as a non-root user.<sup class="cite"><a href="#r15">15</a></sup> State lives in the repository and a progress file, never in the session.</p>
+      <p>Anthropic's ralph-wiggum plugin moves the loop inside the session with a Stop hook, started with a prompt, <code>--max-iterations</code> and <code>--completion-promise</code>. The hook blocks every stop until the output contains the exact promise string inside <code>&lt;promise&gt;</code> tags or the count reaches the cap. The README tells you to rely on <code>--max-iterations</code> as the primary safety mechanism.<sup class="cite"><a href="#r12">12</a></sup> In the Ralph panel above, drag the cap below the iteration where the promise lands: the loop stops, the spend is fixed, and the work is unfinished. That is the correct failure. Without the plugin, the outer script above does the same job.</p>
 
-      <h2 id="s-5">Fan-out, and its critics</h2>
-      <p>Once one loop works, the obvious move is to run several. Anthropic's research system has a lead agent that plans and delegates to subagents running in parallel. In that 2025 setup, with Opus 4 leading Sonnet 4 workers, it beat single-agent Opus 4 by 90.2% on an internal research eval. Token usage alone explained 80% of the performance variance on BrowseComp, the system uses about 15 times the tokens of a chat, and parallel tool calls cut research time by up to 90%.<sup class="cite"><a href="#r16">16</a></sup> Its prompts scale effort to the query: one agent and 3 to 10 tool calls for a fact, 2 to 4 subagents for a comparison, more than 10 for complex research.<sup class="cite"><a href="#r16">16</a></sup></p>
-      <p>Cognition's Walden Yan argued the opposite the same month: share full context and full agent traces, not just individual messages.<sup class="cite"><a href="#r17">17</a></sup></p>
+      <h2 id="s-5">Fan-out and orchestration</h2>
+      <p>Once one loop works, the obvious move is to run several. Anthropic's research system has a lead agent that plans and delegates to subagents running in parallel. In that 2025 setup, with Opus 4 leading Sonnet 4 workers, it beat single-agent Opus 4 by 90.2% on an internal research eval. Token usage alone explained 80% of the performance variance on BrowseComp, the system uses about 15 times the tokens of a chat, and parallel tool calls cut research time by up to 90%.<sup class="cite"><a href="#r16">16</a></sup> Cognition's Walden Yan argued the opposite the same month: share full context and full agent traces, not just individual messages. His example is a Flappy Bird clone split between two subagents that return a background and a bird in mismatched styles.<sup class="cite"><a href="#r17">17</a></sup></p>
 
       <blockquote class="pull">“Actions carry implicit decisions, and conflicting decisions carry bad results.”<cite>— Walden Yan, Cognition (2025)</cite></blockquote>
 
-      <p>His example is a Flappy Bird clone split between two subagents that return a background and a bird in mismatched styles.<sup class="cite"><a href="#r17">17</a></sup> A Berkeley study of more than 1,600 multi-agent traces across seven frameworks found 14 failure modes in three categories: system design, inter-agent misalignment, and task verification.<sup class="cite"><a href="#r18">18</a></sup> Verification shows up again.</p>
-      <p>The two positions reconcile once you look at what each side parallelizes. Research is reads. Subagents search, condense and report back, which Anthropic's context-engineering guidance frames as a clean separation between search and synthesis.<sup class="cite"><a href="#r19">19</a></sup> Code is writes, and two writers with different assumptions collide. Claude Code keeps subagents in separate context windows that return summaries, recommends a fresh-context reviewer that will not be biased toward code it just wrote, and gives parallel writers their own git worktrees.<sup class="cite"><a href="#r10">10</a></sup> In your own harness a subagent is a child loop with its own message list, and its final message is the only thing the parent reads. Cursor 2.0 runs up to eight agents on one prompt the same way, isolated on worktrees or remote machines.<sup class="cite"><a href="#r20">20</a></sup></p>
+      <p>The two positions reconcile once you look at what each side parallelizes. Research is reads. Subagents search, condense and report back, which Anthropic's context-engineering guidance frames as a clean separation between search and synthesis.<sup class="cite"><a href="#r18">18</a></sup> Code is writes, and two writers with different assumptions collide. Claude Code keeps subagents in separate context windows that return summaries, recommends a fresh-context reviewer that will not be biased toward code it just wrote, and gives parallel writers their own git worktrees.<sup class="cite"><a href="#r10">10</a></sup> Cursor 2.0 runs up to eight agents on one prompt the same way, isolated on worktrees or remote machines.<sup class="cite"><a href="#r19">19</a></sup> In your own harness a subagent is a child loop with its own message list, and its final message is the only thing the parent reads.</p>
 
       <div class="note"><b>Field note</b>Parallelize reads, serialize writes. Fan out for search, review and investigation. When two agents must change code, give each its own worktree and merge through a single point that runs the tests.</div>
 
-      <h2 id="s-6">Orchestration patterns that hold up</h2>
-      <p>Four shapes cover most multi-agent systems. Three come straight from Anthropic's workflow taxonomy: orchestrator-workers, prompt chaining, and evaluator-optimizer with its voting variant.<sup class="cite"><a href="#r8">8</a></sup> The fourth is what coding tools added: parallel writers, each isolated on its own worktree.<sup class="cite"><a href="#r10">10</a></sup><sup class="cite"><a href="#r20">20</a></sup></p>
+      <p>Four shapes cover most multi-agent systems. Three map onto Anthropic's workflow taxonomy: orchestrator-workers, prompt chaining, and the review shapes, which combine evaluator-optimizer with parallelization's voting variant (the same task run several times).<sup class="cite"><a href="#r8">8</a></sup> The fourth is what coding tools added: parallel writers, each isolated on its own worktree.</p>
 
       <div class="tbl-scroll">
         <table class="tbl">
@@ -270,13 +271,13 @@ done                                          # worst case about 20 x $2</code><
           <tbody>
             <tr><td>Lead / worker</td><td>A lead plans, spawns workers with narrow briefs, merges their reports</td><td>Research, investigation, wide reads</td><td>Workers drifting from the brief; the lead stopping early</td></tr>
             <tr><td>Pipeline</td><td>Fixed stages, each output feeds the next, a check between stages</td><td>Work you can decompose ahead of time</td><td>An early error compounding through every later stage</td></tr>
-            <tr><td>Review / debate</td><td>One agent produces, a fresh-context agent critiques, or several vote</td><td>Code review, plan review, claims that need checking</td><td>A reviewer that shares the writer's context and agrees with it</td></tr>
+            <tr><td>Review / vote</td><td>One agent produces and a fresh-context agent critiques, or several run the same task and vote</td><td>Code review, plan review, claims that need checking</td><td>A reviewer that shares the writer's context and agrees with it</td></tr>
             <tr><td>Parallel on worktrees</td><td>N writers on separate checkouts, one merge point that runs the tests</td><td>Independent changes, migrations, trying N approaches</td><td>Conflicting implicit decisions surfacing at merge</td></tr>
           </tbody>
         </table>
       </div>
 
-      <p><b>What a subagent returns is an API.</b> Anthropic's guidance notes a subagent may spend tens of thousands of tokens exploring and still return a condensed summary, often 1,000 to 2,000 tokens.<sup class="cite"><a href="#r19">19</a></sup> Make that a contract: fixed fields, a hard cap of 2,000 tokens, and a lead that validates the shape before it reads the content. The field names below are a suggestion; the fixed shape is the point.</p>
+      <p><b>What a subagent returns is an API.</b> Anthropic's guidance notes a subagent may spend tens of thousands of tokens exploring and still return a condensed summary, often 1,000 to 2,000 tokens.<sup class="cite"><a href="#r18">18</a></sup> Make that a contract: fixed fields, a hard cap of 2,000 tokens, and a lead that validates the shape before it reads the content. The field names below are a suggestion; the fixed shape is the point.</p>
 <pre><code>{
   "status": "done | partial | blocked",
   "answer": "the conclusion, in 3 to 8 sentences",
@@ -286,8 +287,8 @@ done                                          # worst case about 20 x $2</code><
   "tokens_used": 41200
 }</code></pre>
       <p>A <code>blocked</code> status with a question is a legitimate answer. Without it, a worker that lacks information guesses.</p>
-      <p><b>Budget the tree, not the node.</b> Fan-out multiplied tokens about fifteenfold in Anthropic's system,<sup class="cite"><a href="#r16">16</a></sup> so per-agent caps still let a lead spawn its way past any sane total. Give the root one budget that every descendant draws from, and cap depth and width as well. Claude Code and its Agent SDK already count subagent spend toward the run's budget; once it is reached, spawning another subagent fails with “Budget limit reached” and running background subagents are stopped.<sup class="cite"><a href="#r21">21</a></sup> In your own orchestrator, pass a shared budget down the tree, decrement it on every model response, and refuse to spawn when it is empty.</p>
-      <p><b>Check the failure modes before launch.</b> The Berkeley MAST taxonomy groups its 14 modes into three categories.<sup class="cite"><a href="#r18">18</a></sup> Read them as a pre-launch checklist:</p>
+      <p><b>Budget the tree, not the node.</b> At fifteen times the tokens, per-agent caps still let a lead spawn its way past any sane total. Give the root one budget that every descendant draws from, and cap depth and width as well. Claude Code and its Agent SDK already count subagent spend toward the run's budget; once it is reached, spawning another subagent fails with “Budget limit reached” and running background subagents are stopped.<sup class="cite"><a href="#r20">20</a></sup> In your own orchestrator, pass a shared budget down the tree, decrement it on every model response, and refuse to spawn when it is empty.</p>
+      <p><b>Check the failure modes before launch.</b> A Berkeley study of more than 1,600 multi-agent traces across seven frameworks (MAST) found 14 failure modes in three categories, and verification is one of them.<sup class="cite"><a href="#r21">21</a></sup> Read them as a pre-launch checklist:</p>
 
       <div class="tbl-scroll">
         <table class="tbl">
@@ -300,7 +301,7 @@ done                                          # worst case about 20 x $2</code><
         </table>
       </div>
 
-      <h2 id="s-7">When the loop breaks</h2>
+      <h2 id="s-6">When the loop breaks</h2>
       <p>Production loops seldom fail in the model's reasoning. They fail at the seams: a 529 from the API, a tool that hangs, a write that half-happened before a crash, a retry that sends the email twice. Sort every failure into one of three classes, because each gets a different retry rule and the model sees something different.</p>
 
       <div class="tbl-scroll">
@@ -316,23 +317,21 @@ done                                          # worst case about 20 x $2</code><
 
       <p>Claude Code runs a separate <code>StopFailure</code> hook when a turn ends on an API error, with types such as <code>rate_limit</code>, <code>overloaded</code> and <code>server_error</code>, which is the place to hang an alert.<sup class="cite"><a href="#r11">11</a></sup></p>
       <p><b>Give every write tool an idempotency key.</b> Retries and resumes replay calls, and a payment, email or ticket created twice is a real incident. Stripe's API is the reference design: the client sends a unique key, the server saves the first result, and a retry with the same key gets that saved result instead of a second action.<sup class="cite"><a href="#r24">24</a></sup> For an agent, derive the key from the run id and the tool-call id, so a resumed run reuses it.</p>
-      <p><b>Put a timeout on every tool.</b> A hung tool holds the whole loop and its budget. Claude Code's Bash tool defaults to two minutes and lets the model raise that to ten, and HTTP-based MCP requests time out after 60 seconds by default.<sup class="cite"><a href="#r25">25</a></sup></p>
+      <p><b>Put a timeout on every tool.</b> A hung tool holds the whole loop and its budget. Claude Code's Bash tool defaults to two minutes and lets the model raise that to ten, and HTTP-based MCP requests time out after 60 seconds by default, but the overall MCP tool limit defaults to about 28 hours, so give slow servers their own <code>timeout</code>.<sup class="cite"><a href="#r25">25</a></sup></p>
       <p><b>Checkpoint before the side effect, not after.</b> Write the intended call and its inputs to durable storage, run it, then record the result. On restart, a call with an intent and no result is the one to reconcile, using its key. Do not lean on the agent's undo: Claude Code's checkpoints track files edited in the session, not files changed only by Bash, and nothing outside the filesystem.<sup class="cite"><a href="#r26">26</a></sup></p>
       <p><b>Show the model one useful line.</b> After a failure the model needs what failed, why, and what to try next, not 400 lines of traceback. SWE-agent's interface gains came partly from error feedback designed for the model,<sup class="cite"><a href="#r7">7</a></sup> and Anthropic's tool-writing guidance says the same.<sup class="cite"><a href="#r27">27</a></sup></p>
 
       <blockquote class="pull">“…prompt-engineer your error responses to clearly communicate specific and actionable improvements, rather than opaque error codes or tracebacks.”<cite>— Ken Aizawa, Anthropic (2025)</cite></blockquote>
 
-      <h2 id="s-8">Surviving the session boundary</h2>
+      <h2 id="s-7">Surviving the session boundary</h2>
       <p>Long tasks outlive a context window, and each new session begins with no memory of the last.<sup class="cite"><a href="#r28">28</a></sup> Anthropic's harness for long-running agents treats that as a handoff problem. An initializer agent writes an <code>init.sh</code>, a progress file and the first commit. Every later session is a coding agent that builds one feature against a JSON list of 200-plus features, each marked pass or fail. Each session opens with the same ritual: read the progress log, check git history, run the basic tests, pick the next failing feature.<sup class="cite"><a href="#r28">28</a></sup></p>
       <p>Drop the ritual and the failures are predictable: declaring the project done early, leaving bugs and undocumented changes behind, marking features passed without testing them, and spending tokens rediscovering state.<sup class="cite"><a href="#r28">28</a></sup> Two of those four are verification failures.</p>
       <p>Cloud agents face a harder version, where the gap is a CI run or a human review that takes hours. Cognition found containers cannot survive those gaps and now snapshots memory, process trees and filesystem at the hypervisor level so a task can stop and resume.<sup class="cite"><a href="#r29">29</a></sup> OpenAI's Codex cloud gives each task its own workspace and hands back diffs, logs and test results with citations, not a claim that it worked.<sup class="cite"><a href="#r30">30</a></sup> Claude Code stores sessions as JSONL that can be resumed or forked, but sessions are independent.<sup class="cite"><a href="#r2">2</a></sup> Anything that must carry over belongs in files.</p>
 
       <div class="note case"><b>From my harness · CLAIM</b>CLAIM, the memory system I built for coding agents, turns that opening ritual into a hook. Six lifecycle hooks capture tool uses, decisions and discoveries as a session runs. A SessionStart hook then injects a briefing of what is relevant, so the next session begins where the last one left off instead of rediscovering state. The memory is markdown I own, with SQLite alongside for speed, and the token cost lands on periodic sweep cycles rather than on every session. The pattern travels to any harness that can run a command at session start and put its output in context; in Claude Code, SessionStart is one of the few events whose output the model sees.<sup class="cite"><a href="#r11">11</a></sup></div>
 
-      <h2 id="s-9">What it costs</h2>
-      <p>The loop is free. A <code>while</code> statement costs nothing. What costs money is each pass through the model, and what costs trust is each pass that ends without a check.</p>
-      <p>Anthropic's research numbers give the shape: tokens explain most of the quality, fan-out multiplies tokens roughly fifteenfold, and parallelism buys back time, not money.<sup class="cite"><a href="#r16">16</a></sup> Agentic systems trade latency and cost for task performance by design.<sup class="cite"><a href="#r8">8</a></sup> Model speed is a loop-level lever too; Cursor pitches its Composer model as 4x faster than similarly intelligent models.<sup class="cite"><a href="#r20">20</a></sup> And a cap is a budget. Maximum iterations times tokens per iteration is the most a loop can spend, which is why the Ralph panel multiplies them. For a tree of agents the cap belongs at the root, as above.</p>
-      <p>So keep the loop simple, cap it, and spend on verification: the test run, the fresh reviewer, the Stop hook that refuses “looks done.” Every turn of the loop also feeds the model a context window, and that window is usually the first thing to degrade. That is <a href="02-context.html">Chapter 2</a>. Cost per task, model routing, and how to staff and govern all of this are in <a href="06-operating.html">Part 06</a>.</p>
+      <h2 id="s-8">What it costs</h2>
+      <p>A <code>while</code> statement costs nothing; each pass through the model does. A cap is a budget: maximum iterations times tokens per iteration is the most a loop can spend, which is why the Ralph panel multiplies them, and for a tree of agents the cap belongs at the root. Agentic systems trade latency and cost for task performance by design,<sup class="cite"><a href="#r8">8</a></sup> so spend on verification: the test run, the fresh reviewer, the Stop hook that refuses “looks done.” Cost per task, model routing, and how to staff and govern all of this are in <a href="06-operating.html">Part 06</a>. Every turn also feeds the model a context window, and that window is usually the first thing to degrade. That is <a href="02-context.html">Chapter 2</a>.</p>
 
       <details class="refbox" id="s-refs"><summary>References</summary>
       <ol class="refs">
@@ -353,10 +352,10 @@ done                                          # worst case about 20 x $2</code><
         <li id="r15">Anthropic, “Permission modes,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/permission-modes">code.claude.com/docs/en/permission-modes</a></li>
         <li id="r16">Anthropic, “How we built our multi-agent research system,” Anthropic, Jun 2025. <a href="https://www.anthropic.com/engineering/multi-agent-research-system">anthropic.com/engineering/multi-agent-research-system</a></li>
         <li id="r17">Walden Yan, “Don't Build Multi-Agents,” Cognition, Jun 2025. <a href="https://cognition.com/blog/dont-build-multi-agents">cognition.com/blog/dont-build-multi-agents</a></li>
-        <li id="r18">Cemri et al. (UC Berkeley), “Why Do Multi-Agent LLM Systems Fail?,” arXiv, Mar 2025. <a href="https://arxiv.org/abs/2503.13657">arxiv.org/abs/2503.13657</a></li>
-        <li id="r19">Anthropic, “Effective context engineering for AI agents,” Anthropic, Sep 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
-        <li id="r20">Cursor, “Cursor 2.0,” Cursor changelog, Oct 2025. <a href="https://cursor.com/changelog/2-0">cursor.com/changelog/2-0</a></li>
-        <li id="r21">Anthropic, “How the agent loop works,” Claude Agent SDK docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/agent-sdk/agent-loop">code.claude.com/docs/en/agent-sdk/agent-loop</a></li>
+        <li id="r18">Anthropic, “Effective context engineering for AI agents,” Anthropic, Sep 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
+        <li id="r19">Cursor, “Cursor 2.0,” Cursor changelog, Oct 2025. <a href="https://cursor.com/changelog/2-0">cursor.com/changelog/2-0</a></li>
+        <li id="r20">Anthropic, “How the agent loop works,” Claude Agent SDK docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/agent-sdk/agent-loop">code.claude.com/docs/en/agent-sdk/agent-loop</a></li>
+        <li id="r21">Cemri et al. (UC Berkeley), “Why Do Multi-Agent LLM Systems Fail?,” arXiv, Mar 2025. <a href="https://arxiv.org/abs/2503.13657">arxiv.org/abs/2503.13657</a></li>
         <li id="r22">Anthropic, “Claude API errors,” Claude Platform docs, accessed Oct 2026. <a href="https://platform.claude.com/docs/en/api/errors">platform.claude.com/docs/en/api/errors</a></li>
         <li id="r23">Anthropic, “Handle tool calls,” Claude Platform docs, accessed Oct 2026. <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls">platform.claude.com/docs/…/handle-tool-calls</a></li>
         <li id="r24">Stripe, “Idempotent requests,” Stripe API reference, accessed Oct 2026. <a href="https://docs.stripe.com/api/idempotent_requests">docs.stripe.com/api/idempotent_requests</a></li>
@@ -382,11 +381,10 @@ done                                          # worst case about 20 x $2</code><
         <li><a href="#s-2">Where the loop came from</a></li>
         <li><a href="#s-3">“Looks done” is not a stop signal</a></li>
         <li><a href="#s-4">Ralph: the dumbest loop that works</a></li>
-        <li><a href="#s-5">Fan-out, and its critics</a></li>
-        <li><a href="#s-6">Orchestration patterns</a></li>
-        <li><a href="#s-7">When the loop breaks</a></li>
-        <li><a href="#s-8">Surviving the session boundary</a></li>
-        <li><a href="#s-9">What it costs</a></li>
+        <li><a href="#s-5">Fan-out and orchestration</a></li>
+        <li><a href="#s-6">When the loop breaks</a></li>
+        <li><a href="#s-7">Surviving the session boundary</a></li>
+        <li><a href="#s-8">What it costs</a></li>
       </ol>
     </aside>
   </div>
@@ -394,7 +392,7 @@ done                                          # worst case about 20 x $2</code><
 
 <footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
 
-<script src="../assets/site.js?v=10"></script>
+<script src="../assets/site.js?v=11"></script>
 <script>
 (() => {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -520,7 +518,7 @@ done                                          # worst case about 20 x $2</code><
     const aha = done && !verify;                                 // hint tracks the state instead of going stale
     hint.classList.toggle('done', aha);
     hint.textContent = aha ? '"LOOKS DONE" is the model’s guess, not a test result: you are the verification loop.'
-      : verify ? 'switch the check OFF, press Run, and read the stop signal.' : 'now press Run and read the stop signal.';
+      : verify ? 'switch the Verification check off, press Run, and read the stop signal.' : 'now press Run and read the stop signal.';
   }
 
   // the run the agent never made: a dashed ghost completes the ring and logs the skipped pytest
@@ -572,8 +570,6 @@ done                                          # worst case about 20 x $2</code><
   H.$('#ls-reset').addEventListener('click', reset);
   vBtn.addEventListener('click', () => {
     verify = !verify; vBtn.setAttribute('aria-pressed', String(verify));
-    vBtn.textContent = 'Verification check: ' + (verify ? 'ON' : 'OFF');
-    vBtn.classList.toggle('warn', !verify);
     reset();
   });
   reset();

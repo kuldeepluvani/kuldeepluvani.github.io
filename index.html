@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ag4Z2DrBpK0O+HkRZQI+nzAyhVwYqX2C+cfxh741ofs='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-UxJ449AW8BjOrXBdnNZAameWc1fkHXX6hewizXdKn/Y='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Harness — Harness Engineering for AI Agents · Kuldeep Luvani</title>
@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/site.css?v=10">
+<link rel="stylesheet" href="assets/site.css?v=11">
 <style>
   /* ---- hero ---- */
   .hero { min-height: calc(100svh - 50px); display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; gap: 40px; padding-top: 40px; padding-bottom: 64px; }
@@ -71,6 +71,8 @@
   .orrery.idle .spin, .orrery.idle .spin g, .orrery.idle .pulse { animation-play-state: paused; }
   .orrery .node text { fill: var(--text); font: 500 12px var(--mono); letter-spacing: .06em; pointer-events: none; }
   .orrery .node .n { fill: var(--cyan); font-size: 11px; }
+  @media (max-width: 900px) { .orrery .node text { font-size: 20px; } .orrery .node .n { font-size: 17px; } .orrery .core-label { font-size: 26px; } .orrery .core-sub { font-size: 14px; } }
+  .myc-fig.idle .flow { animation-play-state: paused; }
   .orrery .core { fill: url(#coreGrad); }
   .orrery .core-label { fill: #fff; font: 600 20px var(--sans); letter-spacing: .14em; }
   .orrery .core-sub { fill: var(--text-faint); font: 500 10px var(--mono); letter-spacing: .2em; }
@@ -173,9 +175,10 @@
       <h1>The <em>Harness</em></h1>
       <p class="equation"><b>AGENT</b> = <b>MODEL</b> + <span class="h">HARNESS</span></p>
       <p class="byline">A field manual by <a href="#about">Kuldeep Luvani</a> · Software Engineer</p>
-      <p class="dek">A free field manual for the engineering around the model: the loop, the context, the tools, the guardrails and the evals that decide whether an agent ships. Every chapter has a live instrument you can operate.</p>
+      <p class="dek">A free field manual for the engineering around the model: the loop, the context, the tools, the guardrails and the evals that decide whether an agent ships, and how to run all of it as a program. Every chapter has a live instrument you can operate.</p>
       <div class="cta">
         <a class="go" href="book/00-prologue.html">Begin reading →</a>
+        <a class="alt" href="book/06-operating.html#inst-ready">Run the readiness checklist</a>
         <a class="alt" href="#built">What I've built</a>
       </div>
       <div class="stats">
@@ -311,7 +314,6 @@
         <a href="https://github.com/kuldeepluvani" target="_blank" rel="noopener">GitHub <span>@kuldeepluvani ↗</span></a>
         <a href="https://www.linkedin.com/in/kuldeep-luvani-28a93336/" target="_blank" rel="noopener">LinkedIn <span>connect ↗</span></a>
         <a href="mailto:kuldeepluvani@gmail.com">Email <span>kuldeepluvani@gmail.com</span></a>
-        <a href="https://pythonhighschool.wordpress.com/" target="_blank" rel="noopener">Blog <span>Python High School ↗</span></a>
       </div>
     </div>
   </section>
@@ -319,7 +321,7 @@
 
 <footer class="foot"><div class="wrap"><span>© 2026 Kuldeep Luvani · The Harness is free to read and share with attribution.</span><span><a href="#book">Contents</a> · <a href="book/sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani/kuldeepluvani.github.io">Source code</a></span></div></footer>
 
-<script src="assets/site.js?v=10"></script>
+<script src="assets/site.js?v=11"></script>
 <script>
 (() => {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -428,7 +430,7 @@
   const inView = el => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; };
   if (!reduce) setInterval(() => { if (!document.hidden && inView(fig)) tick(); }, 900);
   const orr = H.$('.orrery');
-  const idle = () => orr.classList.toggle('idle', !inView(orr));
+  const idle = () => { orr.classList.toggle('idle', !inView(orr)); fig.parentElement.classList.toggle('idle', !inView(fig)); };
   addEventListener('scroll', idle, { passive: true }); idle();
 })();
 </script>

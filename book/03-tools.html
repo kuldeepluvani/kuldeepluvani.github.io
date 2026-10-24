@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-+PZLyBLTVD7lfSQcIt694KfHr4Jd9RHq2PNaIL2u3rE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-/HqtyGFlvwuWsiSoarVqhyZvyQpNkMIHdReVgJCGZ64='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tools for AI Agents: MCP, Sandboxes, Skills and Hooks · The Harness</title>
@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/site.css?v=10">
+<link rel="stylesheet" href="../assets/site.css?v=11">
 <style>
   /* ACI ablation board (aci-) and tool bill (bill-) */
   .aci-top { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -109,7 +109,7 @@
 
   <div class="ch-body">
     <article class="prose">
-      <p class="lede">In a 2024 ablation, give GPT-4 Turbo a plain shell and point it at SWE-bench Lite: it resolves 11.0% of the issues. Keep the model and the tasks fixed, replace the shell with a purpose-built interface, and it resolves 18.0%. That is seven points, a 64% relative gain, and not one weight changed.<sup class="cite"><a href="#r1">1</a></sup> This chapter is about that interface: the tools an agent holds, the machine it runs them on, and why both deserve as much engineering as the prompt.</p>
+      <p class="lede">Give GPT-4 Turbo a plain shell and point it at SWE-bench Lite, as a 2024 ablation did: it resolves 11.0% of the issues. Keep the model and the tasks fixed, replace the shell with a purpose-built interface, and it resolves 18.0%. That is seven points, a 64% relative gain, and not one weight changed.<sup class="cite"><a href="#r1">1</a></sup> This chapter is about that interface: the tools an agent holds, the machine it runs them on, and why both deserve as much engineering as the prompt.</p>
 
       <h2 id="s-1">The interface is a variable</h2>
       <p>The Princeton team behind SWE-agent named the thing they built an agent-computer interface, by deliberate analogy with the IDE. Humans got better at software when editors learned to jump to definitions and underline errors. Models are no different, except that their editor has to be designed for a reader that sees text, not pixels.<sup class="cite"><a href="#r1">1</a></sup></p>
@@ -199,7 +199,7 @@ get_stock_price  "Returns the most recent trade price, in USD,
       <h2 id="s-3">The tool-count cliff</h2>
       <p>More tools do not mean a more capable agent. Anthropic lists bloated tool sets with ambiguous decision points among the most common failure modes and recommends a minimal viable set.<sup class="cite"><a href="#r7">7</a></sup> The measurements agree. With a large MCP tool pool dumped into the prompt, RAG-MCP found tool-selection accuracy of 13.62%; retrieving a shortlist first raised it to 43.13% and more than halved prompt tokens.<sup class="cite"><a href="#r8">8</a></sup></p>
       <p>A production routing study with 110 agents and 584 tools saw F1 on under-specified requests fall 16 to 23 points as the catalog grew from 10 agents to 110. Even with perfect retrieval the ceiling dropped about 10 points, a confusion gap that no shortlist can close; embedding shortlists won back 10 to 11 points.<sup class="cite"><a href="#r9">9</a></sup> On edge devices, pruning the tool list improved function calling and cut execution time by up to 70% and power by up to 40%.<sup class="cite"><a href="#r10">10</a></sup></p>
-      <p>Manus adds a constraint from the serving side: do not add or remove tools mid-task. Definitions sit near the front of the context, so changing them invalidates the KV cache and leaves earlier calls pointing at tools that no longer exist. Their fix is to keep the list stable and mask token logits instead, helped by consistent name prefixes such as <code>browser_</code> and <code>shell_</code> so a whole group can be allowed or masked at once. Mask, don't remove.<sup class="cite"><a href="#r11">11</a></sup> Most hosted APIs give you no logit access. There the same idea becomes a stable tool list plus a per-turn restriction: <code>tool_choice</code> to force or forbid calls, or an allowed-tools list enforced by the harness. On the Claude API, changing <code>tool_choice</code> invalidates cached message blocks, but tool definitions and the system prompt stay cached.<sup class="cite"><a href="#r12">12</a></sup></p>
+      <p>Manus adds a constraint from the serving side: do not add or remove tools mid-task, because changing the definitions near the front of the context invalidates the KV cache. Mask, don't remove (<a href="02-context.html#s-6">Chapter 2</a> covers the cache economics).<sup class="cite"><a href="#r11">11</a></sup> Most hosted APIs give you no logit access. There the same idea becomes a stable tool list plus a per-turn restriction: <code>tool_choice: none</code> to forbid calls on a turn, or an allowed-tools list enforced by the harness. Forcing a call (<code>any</code> or a named <code>tool</code>) is not an option on the newest Claude models, which reject it with a 400. On the Claude API, changing <code>tool_choice</code> invalidates cached message blocks, but tool definitions and the system prompt stay cached.<sup class="cite"><a href="#r12">12</a></sup></p>
 
       <h2 id="s-4">MCP: the standard and its bill</h2>
       <p>The Model Context Protocol uses JSON-RPC 2.0 messages. The current revision (schema 2026-07-28) makes every request stateless and self-contained, with capabilities negotiated per request. Servers offer tools, resources and prompts; clients may offer elicitation, a server-initiated request for more information from the user. Long-running asynchronous tasks live in opt-in extensions. Earlier revisions, such as 2025-06-18, ran over stateful connections and had clients also offer sampling and roots; much published MCP material still describes that design. The spec takes inspiration from the Language Server Protocol, and the payoff is the same: write an integration once and every compliant client can use it.<sup class="cite"><a href="#r13">13</a></sup></p>
@@ -229,32 +229,39 @@ get_stock_price  "Returns the most recent trade price, in USD,
       <p>The sandbox also changes what you can permit. Claude Code pairs permission allowlists with OS-level filesystem and network restrictions so the agent can work with fewer interruptions inside a known boundary.<sup class="cite"><a href="#r21">21</a></sup> In your own loop the equivalent is a dispatcher that runs every tool inside the sandbox and widens permissions only for what the sandbox already contains. The wall is what makes autonomy affordable.</p>
 
       <h2 id="s-6">Once there's a disk, use it</h2>
-      <p>A sandbox comes with a filesystem, and a filesystem is memory the context window cannot match. Anthropic recommends holding lightweight identifiers such as paths, stored queries and links, then loading the content just in time, because recall degrades as the window fills.<sup class="cite"><a href="#r7">7</a></sup> Manus treats the file system as unlimited, persistent, structured memory and compresses only restorably: drop the page but keep the URL, drop the document but keep the path. The economics push hard in that direction. Their input-to-output ratio runs about 100:1, and cached input costs $0.30 per million tokens against $3 uncached.<sup class="cite"><a href="#r11">11</a></sup></p>
+      <p>A sandbox comes with a filesystem, and a filesystem is memory the context window cannot match. Anthropic recommends holding lightweight identifiers such as paths, stored queries and links, then loading the content just in time, because recall degrades as the window fills.<sup class="cite"><a href="#r7">7</a></sup> Manus treats the file system as unlimited, persistent, structured memory and compresses only restorably: drop the page but keep the URL, drop the document but keep the path.<sup class="cite"><a href="#r11">11</a></sup></p>
       <p>Skills apply the same idea to instructions. A skill is a folder with a <code>SKILL.md</code>: a YAML name and description, a body, and optional files. Only the name and description sit in the system prompt at startup; the body loads when the task matches; linked files load only when needed. Anthropic compares writing one to assembling an onboarding guide for a new hire.<sup class="cite"><a href="#r22">22</a></sup> The always-loaded file, <code>CLAUDE.md</code>, should hold only what applies to every session. The docs are blunt about the alternative: “Bloated CLAUDE.md files cause Claude to ignore your actual instructions!”<sup class="cite"><a href="#r21">21</a></sup></p>
 
       <h2 id="s-7">Deterministic edges, universal tool</h2>
       <p>Everything so far shapes what the model is likely to do. Hooks decide what must happen. In Claude Code they are shell commands, HTTP endpoints, MCP tools, prompts or subagents that fire on lifecycle events such as <code>PreToolUse</code>, <code>PostToolUse</code> and <code>Stop</code>. Exit 0 proceeds. Exit 2 blocks: a <code>PreToolUse</code> hook stops the call, a <code>Stop</code> hook keeps the agent working, and a <code>PostToolUse</code> hook can only report, because the tool already ran. JSON output can allow, deny or ask, inject context, or rewrite a tool's input before it runs or its result after.<sup class="cite"><a href="#r23">23</a></sup> In your own loop the generic form is a pre-dispatch interceptor: plain code that sees every tool call before it runs and can refuse it. The docs draw the line cleanly: instructions in <code>CLAUDE.md</code> are advisory, while hooks “are deterministic and guarantee the action happens.”<sup class="cite"><a href="#r21">21</a></sup></p>
 
-      <div class="note"><b>Field note</b>If a rule must hold every time with zero exceptions (formatting, blocking writes to secrets, running the tests before stopping), it belongs in a hook, not a prompt. Use a <code>Stop</code> hook that exits 2 on a failing check as your quality gate.</div>
+      <div class="note"><b>Field note</b>If a rule must hold every time (formatting, running the tests before stopping), it belongs in a hook, not a prompt; use a <code>Stop</code> hook that exits 2 on a failing check as your quality gate. For secrets a hook is not enough on its own: pair it with a sandbox filesystem rule.</div>
 
-      <p><b>Copy this:</b> a minimal <code>PreToolUse</code> hook that refuses edits to <code>.env</code> files and anything under <code>secrets/</code>, checked against the current hooks reference.<sup class="cite"><a href="#r23">23</a></sup></p>
-<pre><code>// .claude/settings.json
-{ "hooks": { "PreToolUse": [ { "matcher": "Edit|Write",
+      <p><b>Copy this:</b> a minimal, best-effort <code>PreToolUse</code> hook that refuses writes to <code>.env</code> and <code>.envrc</code> files (templates such as <code>.env.example</code> pass) and to anything under <code>secrets/</code>, checked against the current hooks reference.<sup class="cite"><a href="#r23">23</a></sup> Two files. First, <code>.claude/settings.json</code>:</p>
+<pre><code>{ "hooks": { "PreToolUse": [ { "matcher": "Edit|Write|NotebookEdit|Bash",
   "hooks": [ { "type": "command",
-    "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/no-secrets.sh" } ] } ] } }
-
-#!/bin/bash
-# .claude/hooks/no-secrets.sh  (chmod +x; needs jq)
-f=$(jq -r '.tool_input.file_path // empty')
-case "$f" in
-  *.env|*.env.*|*/secrets/*|secrets/*)
-    jq -n --arg f "$f" '{hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: ("Protected path: " + $f + ". Ask the user.")}}' ;;
-  *) exit 0 ;;  # no decision: normal permission flow
-esac</code></pre>
-      <p>Silent exit 0 defers to the normal permission flow; exit 2 would also block, with stderr as the reason. In another harness or your own loop, the same ten lines are a check in the tool dispatcher that runs before the write and returns the refusal to the model as the tool result.</p>
+    "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/no-secrets.sh" } ] } ] } }</code></pre>
+      <p>Then the script it points at:</p>
+<pre><code>#!/bin/bash
+# .claude/hooks/no-secrets.sh  (chmod +x; needs jq). Best-effort string matching.
+set -f; shopt -s nocasematch   # no globbing of command words; SECRETS/ == secrets/
+in=$(cat)
+protected() { case "$1" in
+  *.env.example|*.env.sample|*.env.template) return 1 ;;   # templates are fine
+  *.env|*.env.*|*.envrc|secrets/*|*/secrets/*) return 0 ;;
+  *) return 1 ;; esac; }
+deny() { jq -n --arg r "$1" '{hookSpecificOutput: {hookEventName: "PreToolUse",
+  permissionDecision: "deny", permissionDecisionReason: ($r + ". Ask the user.")}}'; exit 0; }
+if [[ $(jq -r .tool_name &lt;&lt;&lt;"$in") == Bash ]]; then
+  cmd=$(jq -r '.tool_input.command // empty' &lt;&lt;&lt;"$in")
+  case "$cmd" in *'&gt;'*|*tee\ *|*cp\ *|*mv\ *|*'sed -i'*|*dd\ *) ;; *) exit 0 ;; esac
+  for t in ${cmd//[&gt;;|&amp;()]/ }; do t=${t#of=}; protected "${t//[\"\']/}" &amp;&amp; deny "Shell write may touch $t"; done
+else
+  f=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' &lt;&lt;&lt;"$in")
+  protected "$f" &amp;&amp; deny "Protected path: $f"
+fi
+exit 0  # no decision: normal permission flow</code></pre>
+      <p>Silent exit 0 defers to the normal permission flow; exit 2 would also block, with stderr as the reason. The Bash branch only guesses at write targets from the command string, so <code>python -c "open('.env','w')"</code> walks past it, the same weakness as the <code>Bash(curl *)</code> rule in Chapter 4. The guarantee is the sandbox: list the paths under <code>sandbox.filesystem.denyWrite</code> and the operating system refuses the write whatever the command looks like (<a href="04-guardrails.html#s-5">Chapter 4</a>). In another harness or your own loop, the hook is a check in the tool dispatcher that runs before the write and returns the refusal to the model as the tool result.</p>
 
       <div class="note case"><b>From my harness · ClaudeGotchi</b>I built a small wellness plugin, ClaudeGotchi, to test how far this goes. All of its logic runs in bash hooks with near-zero token cost, and its state lives in SQLite behind a status-line creature. The model hears about it only when I need to stop. That is the useful pattern: anything deterministic belongs in a hook, outside the token budget, and should reach the model only when the model has to act on it.</div>
 
@@ -314,7 +321,7 @@ esac</code></pre>
 
 <footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
 
-<script src="../assets/site.js?v=10"></script>
+<script src="../assets/site.js?v=11"></script>
 <script>
 (() => {
   const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -389,13 +396,12 @@ esac</code></pre>
   }
   ['pointerdown', 'keydown', 'focusin'].forEach(ev => inst.addEventListener(ev, touch, true));
   if (RM) H.$('#aci-auto').remove();
-  // hint: payoff once the reader has seen the 30-line viewer and then flipped to shell only
-  const hint = H.$('#aci-hint');
-  let saw30 = false;
+  // hint tracks the state: payoff while the reader (not the auto-demo) sits on 30-line viewer + shell only, the prompt otherwise
+  const hint = H.$('#aci-hint'), HINT_TRY = hint.innerHTML;
   function hintStep() {
-    if (!touched || hint.classList.contains('done')) return;
-    if (state.viewer === '30' && !state.shell) saw30 = true;
-    if (saw30 && state.shell) { hint.classList.add('done'); hint.textContent = 'Same model, same tasks: 18.0 → 14.3 → 11.0. The interface alone moved 7 points.'; }
+    const aha = touched && state.viewer === '30' && state.shell;
+    hint.classList.toggle('done', aha);
+    if (aha) hint.textContent = 'Same model, same tasks: 18.0 → 14.3 → 11.0. The interface alone moved 7 points.'; else hint.innerHTML = HINT_TRY;
   }
 
   // build the segmented switches

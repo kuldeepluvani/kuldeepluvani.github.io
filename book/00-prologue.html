@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9P/5Vp9Vs8AdrK6p6+ovbQtUaHsafb0n3EsRDvjPF9I='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-WvuFGmyVTK1kzafyalNaPwwpvsrk19CAXDYJ0VQDvE8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Agent = Model + Harness: What Harness Engineering Is · The Harness</title>
@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/site.css?v=10">
+<link rel="stylesheet" href="../assets/site.css?v=11">
 <style>
   /* HARNESS SWAP BENCH (hsb-) and history timeline (tl-) */
   .hsb-panel { padding: 18px 0; border-bottom: 1px dashed var(--rule); }
@@ -53,8 +53,6 @@
   .hsb-meter .lbl { grid-column: 1 / -1; font: 12px/1.3 var(--mono); color: var(--text-dim); }
   .hsb-meter .num { font: 600 18px/1 var(--sans); color: #fff; font-variant-numeric: tabular-nums; min-width: 4.5ch; text-align: right; }
   .hsb-toggle { white-space: normal; text-align: left; line-height: 1.35; }
-  .hsb-toggle::before { content: "OFF"; display: inline-block; margin-right: 10px; color: var(--text-faint); }
-  .hsb-toggle[aria-pressed="true"]::before { content: "ON"; color: var(--cyan); }
   /* context-window strip: schematic of a 20,480-token window; old tool results compress when the knob is on */
   .hsb-ctx { display: flex; gap: 3px; height: 34px; margin: 14px 0 6px; font: 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
   .hsb-ctx .seg { flex: 3 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; border-radius: 3px; border: 1px solid var(--rule-hi); color: var(--text-dim); background: var(--panel-2); transition: flex-grow .7s cubic-bezier(.2,.8,.2,1), background .4s, color .4s; }
@@ -227,7 +225,7 @@
       <div class="note"><b>Field note</b>Before you read a leaderboard, find the harness column. If there isn't one, you are comparing two systems, not two models. When you evaluate a model for your own work, hold the harness fixed and say which one you used.</div>
 
       <h2 id="s-2">Naming the thing</h2>
-      <p>Vivek Trivedy of LangChain wrote it as an equation in March 2026: “Agent = Model + Harness.” His gloss is short: “If you're not the model, you're the harness.”<sup class="cite"><a href="#r8">8</a></sup> Three weeks later Birgitta Böckeler of Thoughtworks took up the equation, linking to his post, and split the harness into concentric layers.<sup class="cite"><a href="#r9">9</a></sup> The inner harness is what the vendor ships: system prompt, retrieval, orchestration. The outer harness is what you add: instruction files, MCP servers, scripts.</p>
+      <p>Vivek Trivedy of LangChain wrote it as an equation in March 2026: “Agent = Model + Harness.” His gloss is short: “If you're not the model, you're the harness.”<sup class="cite"><a href="#r8">8</a></sup> Three weeks later Birgitta Böckeler of Thoughtworks took up the equation, linking to his post, and split the harness into concentric layers.<sup class="cite"><a href="#r9">9</a></sup> The inner harness is what the vendor ships, such as the system prompt and the code retrieval mechanism. The outer harness is what you add: instruction files, MCP servers, scripts.</p>
       <p>The practice had been described a month before the equation. In February 2026 Mitchell Hashimoto wrote about it as a habit rather than a formula, fixed either in an AGENTS.md file or in a real tool like a screenshot script or a filtered test runner. He did not claim the term. He wrote that he did not know of an industry-accepted name and had “grown to calling this ‘harness engineering.’”<sup class="cite"><a href="#r10">10</a></sup></p>
 
       <blockquote class="pull">“Anytime you find an agent makes a mistake, you take the time to engineer a solution such that the agent never makes that mistake again.”<cite>— Mitchell Hashimoto (2026)</cite></blockquote>
@@ -257,13 +255,13 @@
       <h2 id="s-5">Why the money cares</h2>
       <p>Most agent and generative AI projects fail to pay off, and the reasons named are about integration, not intelligence.</p>
       <p>Gartner predicted in June 2025 that more than 40% of agentic AI projects will be cancelled by the end of 2027, citing cost, unclear value and weak risk controls.<sup class="cite"><a href="#r24">24</a></sup> Gartner analyst Verma described most current projects as early experiments "mostly driven by hype." In a poll of 3,412 respondents, 19% had made significant agent investments, 42% conservative ones and 31% were waiting. Gartner counted only about 130 genuine agent vendors among thousands claiming the label, and called the rest "agent washing."<sup class="cite"><a href="#r24">24</a></sup></p>
-      <p>A separate study measures a different population. MIT NANDA's August 2025 report found about 95% of enterprise generative AI pilots delivered little to no measurable P&amp;L impact, based on 150 interviews, 350 surveys and 300 public deployments.<sup class="cite"><a href="#r25">25</a></sup> That figure covers generative AI pilots broadly, not agents, so it should not be quoted as an agent failure rate. Its diagnosis is the useful part: the cause was a "learning gap" and poor integration into workflows, not model quality. Tools bought from specialized vendors, and partnerships, succeeded about 67% of the time; internal builds succeeded only a third as often.<sup class="cite"><a href="#r25">25</a></sup></p>
+      <p>A separate study measures a different population. MIT NANDA's July 2025 report, as Fortune headlined it, found about 95% of enterprise generative AI pilots delivered little to no measurable P&amp;L impact.<sup class="cite"><a href="#r25">25</a></sup> The report rests on 52 organization interviews, 153 surveyed leaders and a review of 300+ public initiatives.<sup class="cite"><a href="#r26">n1</a></sup> That figure covers generative AI pilots broadly, not agents, so it should not be quoted as an agent failure rate. Its diagnosis is the useful part: the cause was a "learning gap" and poor integration into workflows, not model quality. Purchased tools and external partnerships reached deployment about 67% of the time, internally built tools about 33%: “twice the success rate.” The authors call the rates self-reported and say the correlation “does not necessarily prove causation.”<sup class="cite"><a href="#r26">n1</a></sup></p>
       <p>For a budget owner that last figure reads like an argument against building anything, and so against this book. The report does not split the harness, but the split resolves it: buy the inner harness, own the outer one. The vendor's loop, sandbox and tracing are products, and rebuilding them is a poor use of a team. Your context, tools, permission policy and eval suite encode your own workflows, and no vendor can ship those. <a href="06-operating.html#s-1">Part 06</a> covers where to draw that line and how to staff and govern it.</p>
       <p>Read together, both reports point at the layer this book is about. The harness is the integration: what the system remembers, what it is allowed to touch, how it checks its own work. It is also where the cost goes. Anthropic's planner, generator and evaluator setup cost about $200 and six hours against $9 and twenty minutes for a solo agent, for output it called dramatically better.<sup class="cite"><a href="#r22">22</a></sup> That spend buys the harness, not a better model.</p>
 
       <h3 id="s-5-fde">The people who build the outer harness</h3>
-      <p>If integration is where projects die, someone has to do the integrating. The industry's answer is a job title Palantir pioneered in the early 2010s: the <strong>forward deployed engineer</strong>.<sup class="cite"><a href="#r26">26</a></sup> Palantir's own description of the role is blunt. Its job is to “ensure the solutions we build actually work,” and in a world of demo-ware to deliver “tangible outcomes.”<sup class="cite"><a href="#r27">27</a></sup> The model labs now hire for the same seat. OpenAI's FDEs “lead complex end-to-end deployments of frontier models in production” and are measured on “eval-driven feedback that changes product and model roadmaps.”<sup class="cite"><a href="#r28">28</a></sup> Anthropic's embed with customers to deliver “MCP servers, sub-agents, and agent skills.”<sup class="cite"><a href="#r29">29</a></sup> Read in this book's terms, that is a job description for building the outer harness by hand: the customer's context, tools, guardrails and evals. Reported FDE job postings grew more than 800% between January and September 2025.<sup class="cite"><a href="#r26">26</a></sup></p>
-      <p>The leverage runs in both directions. The customer gets a harness fitted to their data and workflows. The vendor gets something no benchmark provides: field failures, which become evals and repeatable patterns, and those flow back into the inner harness everyone else uses.<sup class="cite"><a href="#r29">29</a></sup> Investors have called the trade “margin for moat,” accepting services-heavy margins today to become the system of record tomorrow.<sup class="cite"><a href="#r30">30</a></sup> Critics, including Palantir veterans, warn that most copies of the role reproduce its form without its function, and that it degrades into consulting with a new title when customer fixes never reach the product.<sup class="cite"><a href="#r31">31</a></sup><sup class="cite"><a href="#r32">32</a></sup></p>
+      <p>If integration is where projects die, someone has to do the integrating. The industry's answer is a job title Palantir pioneered in the early 2010s, the <strong>forward deployed engineer</strong>, and reported FDE job postings grew more than 800% between January and September 2025.<sup class="cite"><a href="#r27">27</a></sup> The model labs now hire for the seat. OpenAI's FDEs “lead complex end-to-end deployments of frontier models in production” and are measured on “eval-driven feedback that changes product and model roadmaps.”<sup class="cite"><a href="#r28">28</a></sup> Anthropic's embed with customers to deliver “MCP servers, sub-agents, and agent skills.”<sup class="cite"><a href="#r29">29</a></sup> In this book's terms, that is building the outer harness by hand.</p>
+      <p>The vendor gets back what no benchmark provides: field failures, which become evals and patterns that flow into the inner harness everyone else uses.<sup class="cite"><a href="#r29">29</a></sup> Critics, including Palantir veterans, warn that the role degrades into consulting with a new title when customer fixes never reach the product.<sup class="cite"><a href="#r30">30</a></sup> <a href="06-operating.html#s-2">Part 06</a> covers who owns this work inside your own organization.</p>
       <div class="note"><b>Hint · forward deployed engineering</b>The test that separates an FDE from a consultant is the one this book applies to every harness fix: does the lesson from the field become a reusable artifact, such as an eval, a tool, a skill or a guardrail, or does it die in one customer's repo? Every bespoke harness an FDE builds is a draft of the next product feature.</div>
 
       <h2 id="s-6">Built to be deleted</h2>
@@ -272,13 +270,14 @@
       <blockquote class="pull">“Every component in a harness encodes an assumption about what the model can't do on its own, and those assumptions are worth stress testing…”<cite>— Prithvi Rajasekaran, Anthropic (2026)</cite></blockquote>
 
       <p>The examples are concrete. Agents asked to grade their own output tend to praise it even when it is mediocre, so Anthropic split the evaluator from the generator.<sup class="cite"><a href="#r22">22</a></sup> Long-running agents lose state across context resets, declare victory early and leave broken environments behind, so the fix was an initializer agent, a feature list, a progress file and a fixed startup routine.<sup class="cite"><a href="#r21">21</a></sup> Each of those is scaffolding around a known gap. When the gap closes, the scaffolding should go. The catch, in Rajasekaran's words, is that the space of interesting harness combinations "doesn't shrink as models improve. Instead, it moves."<sup class="cite"><a href="#r22">22</a></sup></p>
-      <p>That is the frame for the rest of this book. A harness has five subsystems, each built around a different model limitation, and each gets a chapter:</p>
+      <p>That is the frame for the rest of this book, which has seven parts: this prologue, five chapters for the harness's five subsystems, each built around a different model limitation, and Part 06 on operating them:</p>
       <ol>
         <li><a href="01-loop.html">The Loop</a>: how the agent decides, acts and knows when to stop.</li>
         <li><a href="02-context.html">Context</a>: what the model sees, and what you leave out.</li>
         <li><a href="03-tools.html">Tools &amp; Environment</a>: the interface the model acts through.</li>
         <li><a href="04-guardrails.html">Guardrails &amp; Trust</a>: what it is allowed to do, enforced rather than requested.</li>
         <li><a href="05-evals.html">Evals &amp; Evolution</a>: how you know the harness helps, and when to remove a piece.</li>
+        <li><a href="06-operating.html">Operating the Harness</a> (Part 06): who owns, funds, governs and measures it, for program owners.</li>
       </ol>
       <p>Start with the loop. Everything else hangs off it.</p>
 
@@ -309,13 +308,11 @@
         <li id="r23">Anthropic, “Effective context engineering for AI agents,” Anthropic Engineering, Sep 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
         <li id="r24">RCR Wireless, “Gartner: more than 40% of agentic AI projects will fail by 2027” (secondary; Gartner press release, Jun 2025), RCR Wireless, Jun 2025. <a href="https://www.rcrwireless.com/20250627/business/agentic-ai-gartner">rcrwireless.com/20250627/business/agentic-ai-gartner</a></li>
         <li id="r25">Fortune, “MIT report: 95% of generative AI pilots at companies are failing” (secondary; MIT NANDA, The GenAI Divide), Fortune, Aug 2025. <a href="https://fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots-at-companies-failing-cfo/">fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots</a></li>
-        <li id="r26">Fast Company, “Postings for this AI job are up 800%” (secondary; reports Financial Times / Indeed data), November 2025. <a href="https://www.fastcompany.com/91435680/postings-for-this-ai-job-are-up-800">fastcompany.com/91435680</a></li>
-        <li id="r27">Palantir, “Careers: Echos, Deltas, and Devs,” palantir.com, accessed October 2026. <a href="https://www.palantir.com/careers/">palantir.com/careers</a></li>
+        <li id="r26">Challapally, Pease, Raskar (MIT NANDA), “The GenAI Divide: State of AI in Business 2025,” MIT NANDA, July 2025. <a href="https://mlq.ai/media/quarterly_decks/v0.1_State_of_AI_in_Business_2025_Report.pdf">mlq.ai/media/quarterly_decks/…State_of_AI_in_Business_2025…</a></li>
+        <li id="r27">Fast Company, “Postings for this AI job are up 800%” (secondary; reports Financial Times / Indeed data), November 2025. <a href="https://www.fastcompany.com/91435680/postings-for-this-ai-job-are-up-800">fastcompany.com/91435680</a></li>
         <li id="r28">OpenAI, “Forward Deployed Engineer (FDE),” OpenAI Careers, accessed October 2026. <a href="https://openai.com/careers/forward-deployed-engineer-(fde)-sf-san-francisco/">openai.com/careers/forward-deployed-engineer</a></li>
         <li id="r29">Anthropic, “Forward Deployed Engineer, Applied AI,” job posting (Greenhouse), accessed October 2026. <a href="https://job-boards.greenhouse.io/anthropic/jobs/5391021008">job-boards.greenhouse.io/anthropic/jobs/5391021008</a></li>
-        <li id="r30">Joe Schmidt, “Trading Margin for Moat: Why the Forward Deployed Engineer Is the Hottest Job in Startups,” a16z, June 2025. <a href="https://a16z.com/services-led-growth/">a16z.com/services-led-growth</a></li>
-        <li id="r31">Ted Mabrey, “Sorry, that isn’t an FDE,” Substack, September 2024. <a href="https://tedmabrey.substack.com/p/sorry-that-isnt-an-fde">tedmabrey.substack.com/p/sorry-that-isnt-an-fde</a></li>
-        <li id="r32">KDnuggets, “Forward Deployed Engineer: AI’s Hottest New Career, or Consulting With a Better Title?” (secondary roundup), 2026. <a href="https://www.kdnuggets.com/forward-deployed-engineer-ais-hottest-new-career-or-consulting-with-a-better-title">kdnuggets.com/forward-deployed-engineer…</a></li>
+        <li id="r30">Ted Mabrey, “Sorry, that isn’t an FDE,” Substack, September 2024. <a href="https://tedmabrey.substack.com/p/sorry-that-isnt-an-fde">tedmabrey.substack.com/p/sorry-that-isnt-an-fde</a></li>
       </ol>
       </details>
 
@@ -341,7 +338,7 @@
 
 <footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
 
-<script src="../assets/site.js?v=10"></script>
+<script src="../assets/site.js?v=11"></script>
 <script>
 (() => {
   const NS = 'http://www.w3.org/2000/svg';
@@ -414,10 +411,17 @@
   const gapB = el('line', { y1: ROWY[1], y2: GY, class: 'hsb-gap' }, gapG);
   const gapH = el('line', { y1: GY, y2: GY, class: 'hsb-gap' }, gapG);
   const gapT = el('text', { y: GY - 5, 'text-anchor': 'middle', class: 'hsb-gap-txt' }, gapG);
-  const readout = H.$('#hsb-delta'), sigEl = H.$('#hsb-sigma');
+  const readout = H.$('#hsb-delta'), sigEl = H.$('#hsb-sigma'), inst = H.$('#inst'), hint = H.$('#hsb-hint');
   let curDelta = 0, curModel = -1;
+  // hint tracks the state: payoff while the reader (not the attract loop) is on Gemini, the prompt otherwise
+  const HINT_TRY = hint.textContent;
+  const syncHint = () => {
+    const aha = curModel === 2 && !attract;
+    hint.classList.toggle('done', aha);
+    hint.textContent = aha ? `Gemini CLI, the vendor's own harness, trails Terminus 2 by ${delta(MODELS[2]).toFixed(1)} points on the same weights.` : HINT_TRY;
+  };
   const showModel = idx => {
-    if (idx === curModel) return;
+    if (idx === curModel) { syncHint(); return; }
     curModel = idx;
     const m = MODELS[idx];
     const runs = [...m.runs].sort((a, b) => b[1] - a[1]);
@@ -433,7 +437,7 @@
     readout.textContent = to.toFixed(1) + ' pts';
     readout.className = 'readout' + (to >= 8 ? ' fail' : to >= 5 ? ' bad' : '');
     sigEl.textContent = `${m.name}: best minus worst harness, same weights · ≈${sigmas(m).toFixed(1)}σ apart`;
-    if (idx === 2 && !attract && !hint.classList.contains('done')) { hint.classList.add('done'); hint.textContent = `Gemini CLI, the vendor's own harness, trails Terminus 2 by ${to.toFixed(1)} points on the same weights.`; }
+    syncHint();
     tween1(700, p => {
       rows.forEach((r, i) => {
         const [, v, e] = runs[i];
@@ -457,7 +461,6 @@
     });
   };
   // attract loop: cycle models until the reader touches anything; pause while off-screen or in a hidden tab
-  const inst = H.$('#inst'), hint = H.$('#hsb-hint');
   let attract = !still, timer = 0, visible = false;
   const loop = () => { clearTimeout(timer); if (attract && visible && !document.hidden) timer = setTimeout(() => { showModel((curModel + 1) % MODELS.length); loop(); }, 2800); };
   readout.setAttribute('aria-live', attract ? 'off' : 'polite'); // no announcements while the attract loop cycles

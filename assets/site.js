@@ -43,10 +43,11 @@ document.documentElement.classList.add('js');
     const i = CHAPTERS.findIndex(c => c[0] === here);
     const menu = document.createElement('details');
     menu.className = 'chmenu';
-    menu.innerHTML = `<summary aria-label="Chapters">${String(i).padStart(2, '0')} / ${String(CHAPTERS.length - 1).padStart(2, '0')} ▾</summary><ol>` +
+    menu.innerHTML = `<summary title="Jump to a chapter">${String(i).padStart(2, '0')} / ${String(CHAPTERS.length - 1).padStart(2, '0')} ▾</summary><ol>` +
       CHAPTERS.map(([f, t], k) => `<li><a href="${f}.html"${k === i ? ' aria-current="page"' : ''}><span>${String(k).padStart(2, '0')}</span>${t}</a></li>`).join('') + '</ol>';
     nav.prepend(menu);
     document.addEventListener('click', e => { if (!menu.contains(e.target)) menu.open = false; });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && menu.open) { menu.open = false; menu.querySelector('summary').focus(); } });
   }
   const rail = document.querySelector('.rail ol'), hero = document.querySelector('.ch-hero');
   if (rail && hero) {

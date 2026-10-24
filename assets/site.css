@@ -250,3 +250,19 @@ pre code { white-space: pre; }
   .instrument > header { flex-wrap: wrap; row-gap: 6px; line-height: 1.4; }
   .instrument > header .tag { margin-left: 15px; flex-basis: 100%; }
 }
+
+/* anchor jumps land below the sticky header */
+html { scroll-padding-top: 76px; }
+/* chapter switcher on phones: full-width sheet instead of overflowing the left edge */
+@media (max-width: 640px) {
+  .chmenu ol { position: fixed; left: 16px; right: 16px; top: 58px; min-width: 0; }
+}
+/* touch targets: checkboxes and inline citation links */
+@media (pointer: coarse) {
+  input[type="checkbox"] { min-width: 24px; min-height: 24px; }
+  sup.cite a { display: inline-block; min-width: 24px; min-height: 24px; line-height: 24px; text-align: center; }
+}
+
+/* long inline tokens (flags, attribute names, URLs) must wrap on phones */
+.prose { overflow-wrap: break-word; }
+:not(pre) > code { overflow-wrap: anywhere; }
