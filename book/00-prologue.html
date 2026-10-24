@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-0Hjnl8iguwUPGtd5q29xRNiZ2XOwcv+uBHtcgn6Ay9w='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent = Model + Harness: What Harness Engineering Is · The Harness</title>
+<meta name="description" content="The same model weights score differently depending on the software wrapped around them. That software is the harness, and this chapter names it, traces its history, and explains why it decides whether agents ship.">
+<link rel="canonical" href="https://kuldeepluvani.github.io/book/00-prologue.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/site.css?v=8">
+<style>
+  /* HARNESS SWAP BENCH (hsb-) and history timeline (tl-) */
+  .hsb-panel { padding: 18px 0; border-bottom: 1px dashed var(--rule); }
+  .hsb-panel:first-child { padding-top: 0; }
+  .hsb-panel:last-child { border-bottom: 0; padding-bottom: 0; }
+  .hsb-step { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); margin: 0 0 12px; }
+  .hsb-head { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
+  .hsb-sub { font: 12px/1.4 var(--mono); color: var(--text-faint); margin-top: 6px; }
+  .hsb-hint { font: 12px/1.4 var(--mono); color: var(--amber); margin: 8px 0 0; }
+  .hsb-hint::before { content: "▸ "; }
+  .hsb-svg { width: 100%; height: auto; display: block; }
+  .hsb-svg text { font-family: var(--mono); }
+  .hsb-axis { stroke: var(--rule-hi); stroke-width: 1; }
+  .hsb-grid { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 4; }
+  .hsb-tick { fill: var(--text-faint); font-size: 12px; }
+  .hsb-name { fill: var(--text-dim); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+  .hsb-val { fill: #fff; font-size: 13px; font-weight: 600; font-family: var(--sans); }
+  .hsb-whisk { stroke: #fff; stroke-width: 1.5; }
+  .hsb-band { fill: #fff; opacity: .18; animation: hsb-shimmer 1.8s ease-in-out infinite; }
+  .hsb-best { fill: var(--cyan); filter: drop-shadow(0 0 6px rgba(62,230,255,.45)); }
+  .hsb-worst { fill: var(--amber); filter: drop-shadow(0 0 6px rgba(255,179,71,.35)); }
+  .hsb-gap { stroke: var(--red); stroke-width: 1.5; }
+  .hsb-gap-txt { fill: var(--red); font-size: 13px; font-weight: 600; font-family: var(--sans); }
+  .hsb-lead { stroke: var(--rule-hi); stroke-width: 1.2; stroke-dasharray: 3 5; fill: none; }
+  .hsb-lead.best { stroke: var(--cyan-dim); } .hsb-lead.worst { stroke: var(--amber); opacity: .55; }
+  /* the model core: fixed, glowing; the shell around it is the harness and gets swapped */
+  .hsb-core { fill: var(--void); stroke: var(--cyan); stroke-width: 1.5; filter: drop-shadow(0 0 14px rgba(62,230,255,.55)); cursor: pointer; }
+  .hsb-core-txt { fill: #fff; font-size: 12px; font-weight: 600; text-anchor: middle; pointer-events: none; }
+  .hsb-core-sub { fill: var(--cyan); font-size: 8px; letter-spacing: .18em; text-anchor: middle; pointer-events: none; }
+  .hsb-shell { fill: none; stroke: var(--text-dim); stroke-width: 1.5; stroke-dasharray: 10 6 2 6; transform-box: fill-box; transform-origin: center; animation: hsb-spin 14s linear infinite; }
+  .hsb-shell.swap { animation: hsb-swap .7s ease-out, hsb-spin 14s linear infinite; }
+  .hsb-shell-lbl { fill: var(--text-faint); font-size: 8px; letter-spacing: .18em; text-anchor: middle; }
+  @keyframes hsb-spin { to { transform: rotate(360deg); } }
+  @keyframes hsb-swap { 0% { opacity: 0; stroke-width: 6; } 100% { opacity: 1; stroke-width: 1.5; } }
+  @keyframes hsb-shimmer { 50% { opacity: .5; } }
+  .hsb-meter { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; margin: 10px 0; }
+  .hsb-meter .lbl { grid-column: 1 / -1; font: 12px/1.3 var(--mono); color: var(--text-dim); }
+  .hsb-meter .num { font: 600 18px/1 var(--sans); color: #fff; font-variant-numeric: tabular-nums; min-width: 4.5ch; text-align: right; }
+  .hsb-toggle { white-space: normal; text-align: left; line-height: 1.35; }
+  .hsb-toggle::before { content: "OFF"; display: inline-block; margin-right: 10px; color: var(--text-faint); }
+  .hsb-toggle[aria-pressed="true"]::before { content: "ON"; color: var(--cyan); }
+  /* context-window strip: schematic of a 20,480-token window; old tool results compress when the knob is on */
+  .hsb-ctx { display: flex; gap: 3px; height: 34px; margin: 14px 0 6px; font: 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+  .hsb-ctx .seg { flex: 3 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; border-radius: 3px; border: 1px solid var(--rule-hi); color: var(--text-dim); background: var(--panel-2); transition: flex-grow .7s cubic-bezier(.2,.8,.2,1), background .4s, color .4s; }
+  .hsb-ctx .sys { flex-grow: 1.4; color: var(--violet); border-color: rgba(168,139,255,.4); }
+  .hsb-ctx .old { background: rgba(255,179,71,.1); border-color: rgba(255,179,71,.4); color: var(--amber); }
+  .hsb-ctx .free { flex-grow: .6; border-style: dashed; color: var(--text-faint); }
+  .hsb-ctx.on .old { flex-grow: .55; color: transparent; background: rgba(255,179,71,.04); }
+  .hsb-ctx.on .free { flex-grow: 8; color: var(--green); border-color: rgba(107,227,160,.5); background: rgba(107,227,160,.07); }
+  .hsb-ctx .free::after { content: "no room left"; }
+  .hsb-ctx.on .free::after { content: "room to keep working"; }
+  .hsb-split { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; }
+  .hsb-split > .meters { flex: 1 1 200px; min-width: 0; }
+  .hsb-dots { flex: 0 0 118px; width: 118px; height: 118px; display: block; }
+  .hsb-dots rect { fill: var(--rule-hi); transition: fill .25s; }
+  .hsb-dots rect.lit { fill: var(--green); }
+  /* panel 3: two scale bars slam into place with overshoot */
+  .hsb-scale { display: flex; justify-content: space-between; font: 10px/1 var(--mono); color: var(--text-faint); margin: 0 0 4px; }
+  .hsb-slam .bar > span { transition: width .9s cubic-bezier(.2,1.5,.4,1); }
+  .hsb-slam .bar { transition: box-shadow .4s; }
+  .hsb-slam.hit .bar { box-shadow: 0 0 16px rgba(62,230,255,.25); }
+  .hsb-bar.violet > span { background: linear-gradient(90deg, #5d4a9e, var(--violet)); }
+  @media (max-width: 420px) { .hsb-ctx .seg { font-size: 0; } .hsb-ctx .free::after { font-size: 9px; } }
+
+  .tl-fig { margin: 2.2em 0; padding: 16px 16px 8px; border: 1px solid var(--rule); border-radius: 10px; background: var(--panel); }
+  .tl-fig svg { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; }
+  .tl-fig svg text { font-family: var(--mono); }
+  .tl-fig figcaption { font: 13px/1.5 var(--mono); color: var(--text-faint); border-top: 1px solid var(--rule); margin-top: 10px; padding-top: 10px; }
+  .tl-spine { stroke: var(--cyan-dim); stroke-width: 2; stroke-dasharray: 560; stroke-dashoffset: 0; }
+  .tl-date { fill: var(--text-faint); font-size: 12px; }
+  .tl-ev { fill: var(--text); font-size: 13px; }
+  .tl-num { fill: var(--cyan); font-size: 12px; }
+  .tl-hot .tl-num { fill: #fff; font-weight: 600; }
+  .tl-dot { fill: var(--void); stroke: var(--cyan); stroke-width: 2; }
+  .tl-row.tl-hot .tl-dot { fill: var(--cyan); filter: drop-shadow(0 0 6px rgba(62,230,255,.6)); }
+  .tl-halo { fill: none; stroke: var(--cyan); stroke-width: 1; opacity: 0; }
+  .tl-spark { fill: var(--cyan); filter: drop-shadow(0 0 8px var(--cyan)); opacity: 0; }
+  .js .tl-fig .tl-spine { stroke-dashoffset: 560; transition: stroke-dashoffset 1.6s ease; }
+  .js .tl-fig .tl-row { opacity: 0; transition: opacity .5s ease; }
+  .js .tl-fig.seen .tl-spine { stroke-dashoffset: 0; }
+  .js .tl-fig.seen .tl-row { opacity: 1; }
+  .js .tl-fig.seen .tl-spark { animation: tl-run 1.6s ease forwards; }
+  .js .tl-fig.seen .tl-hot .tl-halo { animation: tl-halo 2.6s ease-out 1.6s infinite; }
+  @keyframes tl-run { 0% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; } 100% { opacity: 0; transform: translateY(440px); } }
+  @keyframes tl-halo { 0% { opacity: .8; r: 5px; } 100% { opacity: 0; r: 16px; } }
+</style>
+</head>
+<body>
+<header class="hud">
+  <a class="mark" href="../index.html"><i></i>KULDEEP LUVANI</a>
+  <nav>
+    <a href="../index.html#book">The Harness</a>
+    <a class="opt" href="../index.html#built">Portfolio</a>
+  </nav>
+  <div class="hud-meter"></div>
+</header>
+
+<main class="wrap">
+  <section class="ch-hero">
+    <div class="num" aria-hidden="true">00</div>
+    <p class="eyebrow">The Harness · Chapter 0</p>
+    <h1>Agent = Model + Harness</h1>
+    <p class="dek">The same weights score differently depending on what wraps them. That wrapper has a name, a short history, and a large share of the blame when agent projects fail.</p>
+    <div class="ch-meta"><span>~9 MIN READ</span><span>1 LIVE INSTRUMENT</span></div>
+  </section>
+
+  <div class="ch-body">
+    <article class="prose">
+      <p class="lede">Run Claude Fable 5 inside Claude Code and it solves 83.8% of Terminal-Bench 2.1. Run the identical weights inside Terminus 2 and it solves 80.4%. Gemini 3 Pro goes the other way: 73.9% in Terminus 2, 65.8% in Gemini CLI, its own vendor's tool.<sup class="cite"><a href="#r1">1</a></sup> Nobody retrained anything between those runs. The model file is the same. What changed is the software around it, and that software is the subject of this book.</p>
+
+      <h2 id="s-1">Same weights, different scores</h2>
+      <p>The gap is real, it repeats across benchmarks, and in controlled studies it is larger than the gap between models.</p>
+      <p>Leaderboard rows are the weakest evidence, so start there. The Terminal-Bench differences are 3 to 8 points with error bars around 1.2 points: real, but modest.<sup class="cite"><a href="#r1">1</a></sup> Older numbers point the same way. Anthropic reported Claude 3.7 Sonnet at 63.7% on SWE-bench Verified in a plain setup and 70.3% once it added parallel attempts, regression-test filtering and a ranking model.<sup class="cite"><a href="#r2">2</a></sup> An aggregator tracking SWE-bench Pro shows Claude Opus 4.5 at 45.89% under a SWE-agent scaffold and 51.80% under Auggie CLI.<sup class="cite"><a href="#r3">3</a></sup></p>
+
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead><tr><th>Model (held constant)</th><th>Benchmark</th><th>Harness</th><th>Score</th></tr></thead>
+          <tbody>
+            <tr><td>Claude 3.7 Sonnet</td><td>SWE-bench Verified</td><td>Plain</td><td class="n">63.7%</td></tr>
+            <tr><td>Claude 3.7 Sonnet</td><td>SWE-bench Verified</td><td>Custom scaffold + parallel compute</td><td class="n">70.3%</td></tr>
+            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>SWE-agent (Scale SEAL)</td><td class="n">45.89%</td></tr>
+            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>Claude Code</td><td class="n">49.75%</td></tr>
+            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>Cursor</td><td class="n">50.21%</td></tr>
+            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>Auggie CLI</td><td class="n">51.80%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The controlled studies are where the case gets strong. Sydney Lewis froze a model and changed one harness behavior: how old tool results get truncated as the context window fills. On 169 tight-window SWE-bench Verified tasks, the fail-to-pass rate went from 28% to 49% and complete solutions from 43 to 72.<sup class="cite"><a href="#r4">4</a></sup> An audit of 254 SWE-bench submissions found a within-model scaffold effect of 29.8 points against a model effect of only 8.8 points across the top 30, where no adjacent pair could be separated at α=0.05.<sup class="cite"><a href="#r5">5</a></sup> On GAIA, scaffold choice alone moved one model's accuracy by up to 28 points.<sup class="cite"><a href="#r6">6</a></sup> Zhang and colleagues call this the Binding Constraint Thesis: harness variance can exceed model variance, sometimes enough to reverse model rankings.<sup class="cite"><a href="#r7">7</a></sup></p>
+
+      <section class="instrument" id="inst" aria-label="Harness swap bench">
+        <header>Harness swap bench<span class="tag">data: [1] [4] [5]</span></header>
+        <div class="body">
+          <div class="hsb-panel">
+            <p class="hsb-step">01 · Pick a model. Swap its harness. The weights never move.</p>
+            <div class="hsb-head">
+              <div class="row" role="group" aria-label="Model">
+                <button class="chip" type="button" data-model="0" aria-pressed="true">Claude Fable 5</button>
+                <button class="chip" type="button" data-model="1" aria-pressed="false">GPT-5.5</button>
+                <button class="chip" type="button" data-model="2" aria-pressed="false">Gemini 3 Pro</button>
+              </div>
+              <div>
+                <div class="readout" id="hsb-delta" aria-live="polite">3.4 pts</div>
+                <div class="hsb-sub" id="hsb-sigma">best minus worst harness · same weights</div>
+              </div>
+            </div>
+            <svg class="hsb-svg" id="hsb-chart" viewBox="0 0 600 190" role="img" aria-label="Terminal-Bench 2.1 score by harness for the selected model; a fixed model core feeds two harness shells and the two bars they produce"></svg>
+            <p class="hsb-hint" id="hsb-hint">Try Gemini 3 Pro: its own vendor's CLI is its worst harness, 8 points down.</p>
+          </div>
+
+          <div class="hsb-panel">
+            <p class="hsb-step">02 · Freeze the model. Flip one harness knob.</p>
+            <button class="chip hsb-toggle" type="button" id="hsb-trunc" aria-pressed="false">Truncate old tool results as the window fills</button>
+            <div class="hsb-ctx" id="hsb-ctx" aria-hidden="true">
+              <span class="seg sys">system</span>
+              <span class="seg old">tool result</span>
+              <span class="seg old">tool result</span>
+              <span class="seg old">tool result</span>
+              <span class="seg old">tool result</span>
+              <span class="seg">latest</span>
+              <span class="seg free"></span>
+            </div>
+            <div class="hsb-split">
+              <div class="meters">
+                <div class="hsb-meter">
+                  <span class="lbl">Fail-to-pass fraction</span>
+                  <div class="bar"><span id="hsb-f2p-bar" style="width:28%"></span></div>
+                  <span class="num" id="hsb-f2p" aria-live="polite">28%</span>
+                </div>
+                <div class="hsb-meter">
+                  <span class="lbl">Complete solutions (of 169 tasks)</span>
+                  <div class="bar green"><span id="hsb-sol-bar" style="width:25.4%"></span></div>
+                  <span class="num" id="hsb-sol">43</span>
+                </div>
+              </div>
+              <svg class="hsb-dots" id="hsb-dots" viewBox="0 0 104 104" role="img" aria-label="169 tasks as a 13 by 13 grid; lit cells are complete solutions"></svg>
+            </div>
+          </div>
+
+          <div class="hsb-panel hsb-slam" id="hsb-p3">
+            <p class="hsb-step">03 · Which lever is bigger? (254 SWE-bench submissions)</p>
+            <div class="hsb-head">
+              <div><div class="readout" id="hsb-ratio-big" aria-live="polite">0.0×</div><div class="hsb-sub" id="hsb-ratio">scaffold range vs model range</div></div>
+            </div>
+            <div class="hsb-scale" aria-hidden="true"><span>0</span><span>10</span><span>20</span><span>30 pts</span></div>
+            <div class="hsb-meter">
+              <span class="lbl">Scaffold effect range, same model</span>
+              <div class="bar"><span id="hsb-scaf" style="width:0%"></span></div>
+              <span class="num">29.8</span>
+            </div>
+            <div class="hsb-meter">
+              <span class="lbl">Model effect range, top 30</span>
+              <div class="bar hsb-bar violet"><span id="hsb-mod" style="width:0%"></span></div>
+              <span class="num">8.8</span>
+            </div>
+          </div>
+        </div>
+        <div class="caption">Panel 1: Terminal-Bench 2.1 leaderboard rows, shimmering bands and whiskers are ±1σ as published <a href="#r1">[1]</a>; the axis starts at 60, which exaggerates bar length but not the point gap. The core-and-shell drawing is a schematic, not data. The σ-separation figure is computed here (errors combined in quadrature). Panel 2: Lewis, tight-window SWE-bench Verified, 20,480-token window <a href="#r4">[4]</a>; the context strip is an illustration of the mechanism, only the two counters are measured. Panel 3: Liu et al. audit, bars scaled to 30 pts <a href="#r5">[5]</a>. Notice that the smallest harness gap in panel 1 still clears both error bars.</div>
+      </section>
+
+      <div class="note"><b>Field note</b>Before you read a leaderboard, find the harness column. If there isn't one, you are comparing two systems, not two models. When you evaluate a model for your own work, hold the harness fixed and say which one you used.</div>
+
+      <h2 id="s-2">Naming the thing</h2>
+      <p>Birgitta Böckeler put it as an equation: Agent = Model + Harness, where the harness is everything except the model.<sup class="cite"><a href="#r8">8</a></sup> She splits it into concentric layers. The inner harness is what the vendor ships: system prompt, retrieval, orchestration. The outer harness is what you add: instruction files, MCP servers, scripts.</p>
+      <p>The practice got its name two months earlier. Mitchell Hashimoto described it as a habit rather than a formula, fixed either in an AGENTS.md file or in a real tool like a screenshot script or a filtered test runner.<sup class="cite"><a href="#r9">9</a></sup></p>
+
+      <blockquote class="pull">“Anytime you find an agent makes a mistake, you take the time to engineer a solution such that the agent never makes that mistake again.”<cite>— Mitchell Hashimoto (2026)</cite></blockquote>
+
+      <p>Credit is messier than either post suggests. Hashimoto never writes the equation. The encyclopedia entry credits it to Böckeler, notes that the UK AI Security Institute voiced a similar idea in 2023, and lists "agent scaffolding" as the older synonym.<sup class="cite"><a href="#r10">10</a></sup> The components it names are the ones this book covers: tool dispatch, memory and state, a sandbox, context management, guardrails.</p>
+      <p>Vendors and researchers now define it the same way. OpenAI calls the harness "the layer between your application and the model," responsible for conversation state, tool use, approval policy, failure handling and progress reporting.<sup class="cite"><a href="#r11">11</a></sup> A source-code study of 11 production coding harnesses found seven subsystems and 29 recurring patterns.<sup class="cite"><a href="#r12">12</a></sup> OpenAI also ran the extreme version: a product of roughly a million lines, built in about five months with no hand-written source, where engineers steered through pull requests and CI.<sup class="cite"><a href="#r13">13</a></sup> Reporting on it, Martin Fowler summed up the scope: "Harness includes context engineering, architectural constraints, and garbage collection."<sup class="cite"><a href="#r13">13</a></sup></p>
+
+      <h2 id="s-3">A short history of the loop</h2>
+      <p>Every harness still runs the same loop from 2022. What changed was everything around it.</p>
+      <p>ReAct gave the loop its shape: reason, act, observe the result, repeat. Interleaving thought with tool calls beat prior methods by 34 points on ALFWorld and 10 on WebShop.<sup class="cite"><a href="#r14">14</a></sup> In 2023 AutoGPT took that loop and let it run unattended. It showed the appetite was enormous; the repository sits at 187.7k stars.<sup class="cite"><a href="#r15">15</a></sup> It also showed that a loop with no verification and no environment design is a demo, not a worker.</p>
+      <p>The next step moved the effort from the prompt to the interface. In March 2024 Devin shipped a shell, an editor and a browser inside a sandbox and posted 13.86% on SWE-bench against a prior best of 1.96%. Cognition noted that even when handed the exact files to edit, the best earlier models resolved only 4.80%.<sup class="cite"><a href="#r16">16</a></sup> Two months later SWE-agent named the lever. Its authors coined "agent-computer interface" and reached 12.5% pass@1 by redesigning the commands and feedback the model sees, not the model.<sup class="cite"><a href="#r17">17</a></sup></p>
+      <p>Anthropic's late-2024 guidance turned that into design rules: separate workflows (predefined code paths) from agents (models directing their own process), shape tools so mistakes are hard to make, and start with direct API calls before reaching for a framework.<sup class="cite"><a href="#r18">18</a></sup> Production systems took the advice. None of the 11 harnesses in the source-code study imports a general-purpose agent framework.<sup class="cite"><a href="#r12">12</a></sup> Then the harness became the product. Claude Code ships with instruction files, hooks and verification loops as first-class features,<sup class="cite"><a href="#r19">19</a></sup> and OpenAI now pitches Codex as an open harness that others build on.<sup class="cite"><a href="#r11">11</a></sup></p>
+
+      <figure class="tl-fig rise" aria-label="Timeline of agent harness milestones, 2022 to 2026">
+        <svg viewBox="0 0 400 500" id="tl-svg" role="img" aria-label="Timeline: ReAct 2022 through arXiv harness-variance papers in 2026"></svg>
+        <figcaption>Eleven steps from loop to discipline. Filled dots mark the moments the interface or harness, not the model, moved the number. Sources: <a href="#r14">[14]</a> <a href="#r15">[15]</a> <a href="#r16">[16]</a> <a href="#r17">[17]</a> <a href="#r18">[18]</a> <a href="#r2">[2]</a> <a href="#r20">[20]</a> <a href="#r9">[9]</a> <a href="#r13">[13]</a> <a href="#r21">[21]</a> <a href="#r8">[8]</a> <a href="#r5">[5]</a> <a href="#r6">[6]</a>.</figcaption>
+      </figure>
+
+      <h2 id="s-4">Prompt, context, harness</h2>
+      <p>Each discipline in this lineage widened what the engineer controls, and the last step crossed from advice to enforcement.</p>
+      <p>Prompt engineering tuned words. Context engineering, in Anthropic's framing, is its "natural progression": the question becomes what configuration of context is most likely to produce the behavior you want, given that a model has a finite attention budget to spend across every token in the window.<sup class="cite"><a href="#r22">22</a></sup></p>
+      <p>Harness engineering is about what sits outside the window: tools, hooks, evaluators, resets, sandboxes. The Claude Code documentation draws the line that matters most. It calls the context window "the most important resource to manage," treats instruction files like CLAUDE.md as advisory, and describes hooks as "deterministic and guarantee the action happens."<sup class="cite"><a href="#r19">19</a></sup> An instruction asks the model to behave. A hook makes the behavior happen whether the model complies or not. That gap between advisory and deterministic is the hinge between context engineering and harness engineering.</p>
+      <p>Böckeler's test for a good outer harness follows from it: raise the odds the agent gets it right the first time, and give it feedback loops to correct itself before a human ever reviews the work.<sup class="cite"><a href="#r8">8</a></sup></p>
+
+      <div class="note"><b>Field note</b>If the agent breaks the same instruction twice, stop rewording it. Move the rule out of the instruction file and into something that runs: a hook, a test, a linter, or a tool that rejects the bad input.</div>
+
+      <h2 id="s-5">Why the money cares</h2>
+      <p>Most agent and generative AI projects fail to pay off, and the reasons named are about integration, not intelligence.</p>
+      <p>Gartner predicted in June 2025 that more than 40% of agentic AI projects will be cancelled by the end of 2027, citing cost, unclear value and weak risk controls.<sup class="cite"><a href="#r23">23</a></sup> Gartner analyst Verma described most current projects as early experiments "mostly driven by hype." In a poll of 3,412 respondents, 19% had made significant agent investments, 42% conservative ones and 31% were waiting. Gartner counted only about 130 genuine agent vendors among thousands claiming the label, and called the rest "agent washing."<sup class="cite"><a href="#r23">23</a></sup></p>
+      <p>A separate study measures a different population. MIT NANDA's August 2025 report found about 95% of enterprise generative AI pilots showed no measurable P&amp;L impact, based on 150 interviews, 350 surveys and 300 public deployments.<sup class="cite"><a href="#r24">24</a></sup> That figure covers generative AI pilots broadly, not agents, so it should not be quoted as an agent failure rate. Its diagnosis is the useful part: the cause was a "learning gap" and poor integration into workflows, not model quality. Bought tools succeeded about 67% of the time; internal builds about 33%.<sup class="cite"><a href="#r24">24</a></sup></p>
+      <p>Read together, both reports point at the layer this book is about. The harness is the integration: what the system remembers, what it is allowed to touch, how it checks its own work. It is also where the cost goes. Anthropic's planner, generator and evaluator setup cost about $200 and six hours against $9 and twenty minutes for a solo agent, for output it called dramatically better.<sup class="cite"><a href="#r21">21</a></sup> That spend buys the harness, not a better model.</p>
+
+      <h3 id="s-5-fde">The people who build the outer harness</h3>
+      <p>If integration is where projects die, someone has to do the integrating. The industry's answer is a job title Palantir pioneered in the early 2010s: the <strong>forward deployed engineer</strong>.<sup class="cite"><a href="#r25">25</a></sup> Palantir's own description of the role is blunt. Its job is to “ensure the solutions we build actually work,” and in a world of demo-ware to deliver “tangible outcomes.”<sup class="cite"><a href="#r26">26</a></sup> The model labs now hire for the same seat. OpenAI's FDEs “lead complex end-to-end deployments of frontier models in production” and are measured on “eval-driven feedback that changes product and model roadmaps.”<sup class="cite"><a href="#r27">27</a></sup> Anthropic's embed with customers to deliver “MCP servers, sub-agents, and agent skills.”<sup class="cite"><a href="#r28">28</a></sup> Read in this book's terms, that is a job description for building the outer harness by hand: the customer's context, tools, guardrails and evals. Reported FDE job postings grew more than 800% between January and September 2025.<sup class="cite"><a href="#r25">25</a></sup></p>
+      <p>The leverage runs in both directions. The customer gets a harness fitted to their data and workflows. The vendor gets something no benchmark provides: field failures, which become evals and repeatable patterns, and those flow back into the inner harness everyone else uses.<sup class="cite"><a href="#r28">28</a></sup> Investors have called the trade “margin for moat,” accepting services-heavy margins today to become the system of record tomorrow.<sup class="cite"><a href="#r29">29</a></sup> Critics, including Palantir veterans, warn that most copies of the role reproduce its form without its function, and that it degrades into consulting with a new title when customer fixes never reach the product.<sup class="cite"><a href="#r30">30</a></sup><sup class="cite"><a href="#r31">31</a></sup></p>
+      <div class="note"><b>Hint · forward deployed engineering</b>The test that separates an FDE from a consultant is the one this book applies to every harness fix: does the lesson from the field become a reusable artifact, such as an eval, a tool, a skill or a guardrail, or does it die in one customer's repo? Every bespoke harness an FDE builds is a draft of the next product feature.</div>
+
+      <h2 id="s-6">Built to be deleted</h2>
+      <p>Every piece of a harness is a bet against a specific model weakness, which is why good harnesses are designed to shrink.</p>
+
+      <blockquote class="pull">“Every component in a harness encodes an assumption about what the model can't do on its own, and those assumptions are worth stress testing.”<cite>— Prithvi Rajasekaran, Anthropic (2026)</cite></blockquote>
+
+      <p>The examples are concrete. Agents asked to grade their own output tend to praise it even when it is mediocre, so Anthropic split the evaluator from the generator.<sup class="cite"><a href="#r21">21</a></sup> Long-running agents lose state across context resets, declare victory early and leave broken environments behind, so the fix was an initializer agent, a feature list, a progress file and a fixed startup routine.<sup class="cite"><a href="#r20">20</a></sup> Each of those is scaffolding around a known gap. When the gap closes, the scaffolding should go. The catch, in Rajasekaran's words, is that the space of useful harness designs "doesn't shrink as models improve. Instead, it moves."<sup class="cite"><a href="#r21">21</a></sup></p>
+      <p>That is the frame for the rest of this book. A harness has five subsystems, each built around a different model limitation, and each gets a chapter:</p>
+      <ol>
+        <li><a href="01-loop.html">The Loop</a>: how the agent decides, acts and knows when to stop.</li>
+        <li><a href="02-context.html">Context</a>: what the model sees, and what you leave out.</li>
+        <li><a href="03-tools.html">Tools &amp; Environment</a>: the interface the model acts through.</li>
+        <li><a href="04-guardrails.html">Guardrails &amp; Trust</a>: what it is allowed to do, enforced rather than requested.</li>
+        <li><a href="05-evals.html">Evals &amp; Evolution</a>: how you know the harness helps, and when to remove a piece.</li>
+      </ol>
+      <p>Start with the loop. Everything else hangs off it.</p>
+
+      <details class="refbox" id="s-refs"><summary>References (31)</summary>
+      <ol class="refs">
+        <li id="r1">Snorkel AI, “Terminal-Bench 2.1 leaderboard,” Snorkel AI, accessed Oct 2026. <a href="https://snorkel.ai/leaderboard/terminal-bench-2-1/">snorkel.ai/leaderboard/terminal-bench-2-1</a></li>
+        <li id="r2">Anthropic, “Claude 3.7 Sonnet and Claude Code,” Anthropic, Feb 2025. <a href="https://www.anthropic.com/news/claude-3-7-sonnet">anthropic.com/news/claude-3-7-sonnet</a></li>
+        <li id="r3">Future AGI, “Coding Agent Harness Benchmarks” (secondary aggregator), Future AGI, checked Oct 2026. <a href="https://futureagi.com/blog/coding-agent-harness-benchmark/">futureagi.com/blog/coding-agent-harness-benchmark</a></li>
+        <li id="r4">Sydney Lewis, “Same Model, Different Harness: Different Coding-Agent Results,” arXiv, Aug 2026. <a href="https://arxiv.org/abs/2608.26218">arxiv.org/abs/2608.26218</a></li>
+        <li id="r5">Liu, Liu, Sun, Luo, Guo, “Coding Agents Have Converged,” arXiv, Sep 2026. <a href="https://arxiv.org/abs/2609.17394">arxiv.org/abs/2609.17394</a></li>
+        <li id="r6">Jason Starace, “Scaffold Effects on GAIA: A Controlled Comparison,” arXiv, Jun 2026. <a href="https://arxiv.org/abs/2606.08529">arxiv.org/abs/2606.08529</a></li>
+        <li id="r7">Zhang, Wang, Ge, Xu, Hamm, Reddy, “Stop Comparing LLM Agents Without Disclosing the Harness,” arXiv, May 2026. <a href="https://arxiv.org/abs/2605.23950">arxiv.org/abs/2605.23950</a></li>
+        <li id="r8">Birgitta Böckeler, “Harness Engineering for Coding Agent Users,” martinfowler.com / Thoughtworks, Apr 2026. <a href="https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html">martinfowler.com/articles/exploring-gen-ai/harness-engineering</a></li>
+        <li id="r9">Mitchell Hashimoto, “My AI Adoption Journey,” mitchellh.com, Feb 2026. <a href="https://mitchellh.com/writing/my-ai-adoption-journey">mitchellh.com/writing/my-ai-adoption-journey</a></li>
+        <li id="r10">Wikipedia, “Agent harness,” Wikipedia, accessed Oct 2026. <a href="https://en.wikipedia.org/wiki/Agent_harness">en.wikipedia.org/wiki/Agent_harness</a></li>
+        <li id="r11">OpenAI, “Codex as a platform: build on the open agent harness,” OpenAI Developers, Aug 2026. <a href="https://developers.openai.com/blog/codex-as-a-platform">developers.openai.com/blog/codex-as-a-platform</a></li>
+        <li id="r12">Barbaste, Darrigol, Vu, Wiltberger, “Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents,” arXiv, Jul 2026. <a href="https://arxiv.org/abs/2609.00006">arxiv.org/abs/2609.00006</a></li>
+        <li id="r13">InfoQ, “OpenAI Introduces Harness Engineering” (secondary; primary at openai.com/index/harness-engineering), InfoQ, Feb 2026. <a href="https://www.infoq.com/news/2026/02/openai-harness-engineering-codex/">infoq.com/news/2026/02/openai-harness-engineering-codex</a></li>
+        <li id="r14">Yao et al., “ReAct: Synergizing Reasoning and Acting in Language Models,” arXiv, Oct 2022. <a href="https://arxiv.org/abs/2210.03629">arxiv.org/abs/2210.03629</a></li>
+        <li id="r15">Significant-Gravitas, “AutoGPT,” GitHub, accessed Oct 2026. <a href="https://github.com/Significant-Gravitas/AutoGPT">github.com/Significant-Gravitas/AutoGPT</a></li>
+        <li id="r16">Cognition, “Introducing Devin,” Cognition, Mar 2024. <a href="https://cognition.com/blog/introducing-devin">cognition.com/blog/introducing-devin</a></li>
+        <li id="r17">Yang, Jimenez, Wettig, Lieret, Yao, Narasimhan, Press, “SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering,” arXiv, May 2024. <a href="https://arxiv.org/abs/2405.15793">arxiv.org/abs/2405.15793</a></li>
+        <li id="r18">Anthropic, “Building effective agents,” Anthropic Engineering, Dec 2024. <a href="https://www.anthropic.com/engineering/building-effective-agents">anthropic.com/engineering/building-effective-agents</a></li>
+        <li id="r19">Anthropic, “Best practices for Claude Code,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
+        <li id="r20">Anthropic, “Effective harnesses for long-running agents,” Anthropic Engineering, Nov 2025. <a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">anthropic.com/engineering/effective-harnesses-for-long-running-agents</a></li>
+        <li id="r21">Prithvi Rajasekaran, “Harness design for long-running apps,” Anthropic Engineering, Mar 2026. <a href="https://www.anthropic.com/engineering/harness-design-long-running-apps">anthropic.com/engineering/harness-design-long-running-apps</a></li>
+        <li id="r22">Anthropic, “Effective context engineering for AI agents,” Anthropic Engineering, Sep 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
+        <li id="r23">RCR Wireless, “Gartner: more than 40% of agentic AI projects will fail by 2027” (secondary; Gartner press release, Jun 2025), RCR Wireless, Jun 2025. <a href="https://www.rcrwireless.com/20250627/business/agentic-ai-gartner">rcrwireless.com/20250627/business/agentic-ai-gartner</a></li>
+        <li id="r24">Fortune, “MIT report: 95% of generative AI pilots at companies are failing” (secondary; MIT NANDA, The GenAI Divide), Fortune, Aug 2025. <a href="https://fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots-at-companies-failing-cfo/">fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots</a></li>
+        <li id="r25">Fast Company, “Postings for this AI job are up 800%” (secondary; reports Financial Times / Indeed data), November 2025. <a href="https://www.fastcompany.com/91435680/postings-for-this-ai-job-are-up-800">fastcompany.com/91435680</a></li>
+        <li id="r26">Palantir, “Careers: Echos, Deltas, and Devs,” palantir.com, accessed October 2026. <a href="https://www.palantir.com/careers/">palantir.com/careers</a></li>
+        <li id="r27">OpenAI, “Forward Deployed Engineer (FDE),” OpenAI Careers, accessed October 2026. <a href="https://openai.com/careers/forward-deployed-engineer-(fde)-sf-san-francisco/">openai.com/careers/forward-deployed-engineer</a></li>
+        <li id="r28">Anthropic, “Forward Deployed Engineer, Applied AI,” job posting (Greenhouse), accessed October 2026. <a href="https://job-boards.greenhouse.io/anthropic/jobs/5391021008">job-boards.greenhouse.io/anthropic/jobs/5391021008</a></li>
+        <li id="r29">Joe Schmidt, “Trading Margin for Moat: Why the Forward Deployed Engineer Is the Hottest Job in Startups,” a16z, June 2025. <a href="https://a16z.com/services-led-growth/">a16z.com/services-led-growth</a></li>
+        <li id="r30">Ted Mabrey, “Sorry, that isn’t an FDE,” Substack, September 2024. <a href="https://tedmabrey.substack.com/p/sorry-that-isnt-an-fde">tedmabrey.substack.com/p/sorry-that-isnt-an-fde</a></li>
+        <li id="r31">KDnuggets, “Forward Deployed Engineer: AI’s Hottest New Career, or Consulting With a Better Title?” (secondary roundup), 2026. <a href="https://www.kdnuggets.com/forward-deployed-engineer-ais-hottest-new-career-or-consulting-with-a-better-title">kdnuggets.com/forward-deployed-engineer…</a></li>
+      </ol>
+      </details>
+
+      <nav class="pager">
+        <a class="prev" href="../index.html#book"><small>← Previous</small><span>Contents</span></a>
+        <a class="next" href="01-loop.html"><small>Next →</small><span>The Loop</span></a>
+      </nav>
+    </article>
+
+    <aside class="rail" aria-label="On this page">
+      <div class="label">On this page</div>
+      <ol>
+        <li><a href="#s-1">Same weights, different scores</a></li>
+        <li><a href="#s-2">Naming the thing</a></li>
+        <li><a href="#s-3">A short history of the loop</a></li>
+        <li><a href="#s-4">Prompt, context, harness</a></li>
+        <li><a href="#s-5">Why the money cares</a></li>
+        <li><a href="#s-6">Built to be deleted</a></li>
+      </ol>
+    </aside>
+  </div>
+</main>
+
+<footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
+
+<script src="../assets/site.js?v=8"></script>
+<script>
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  // Tween 0..1 over ms with ease-out; jumps straight to the end under reduced motion.
+  const tween = (ms, fn) => {
+    if (still) { fn(1); return; }
+    const t0 = performance.now();
+    const step = now => { const p = Math.min(1, (now - t0) / ms); fn(1 - Math.pow(1 - p, 3)); if (p < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  };
+
+  // ---------- Panel 1: Terminal-Bench 2.1, Table A [1] ----------
+  const MODELS = [
+    { name: 'Claude Fable 5', core: ['Claude', 'Fable 5'], runs: [['Claude Code', 83.8, 1.2], ['Terminus 2', 80.4, 1.2]] },
+    { name: 'GPT-5.5',        core: ['GPT-5.5'],           runs: [['Codex CLI', 83.1, 1.1],   ['Terminus 2', 78.0, 1.2]] },
+    { name: 'Gemini 3 Pro',   core: ['Gemini', '3 Pro'],   runs: [['Terminus 2', 73.9, 1.3],  ['Gemini CLI', 65.8, 1.4]] },
+  ];
+  const delta = m => Math.max(...m.runs.map(r => r[1])) - Math.min(...m.runs.map(r => r[1]));
+  const sigmas = m => delta(m) / Math.hypot(m.runs[0][2], m.runs[1][2]);
+  H.check(Math.abs(delta(MODELS[0]) - 3.4) < 1e-9, 'Fable delta 3.4');
+  H.check(Math.abs(delta(MODELS[1]) - 5.1) < 1e-9, 'GPT-5.5 delta 5.1');
+  H.check(Math.abs(delta(MODELS[2]) - 8.1) < 1e-9, 'Gemini delta 8.1');
+  H.check(MODELS.every(m => delta(m) > m.runs[0][2] + m.runs[1][2]), 'every gap clears both error bars');
+  H.check(Math.abs(sigmas(MODELS[0]) - 2.0) < 0.05, 'Fable ~2.0 sigma');
+
+  const svg = H.$('#hsb-chart');
+  const X0 = 200, X1 = 580, LO = 60, HI = 90, ROWY = [22, 104], BH = 28;
+  const sx = v => X0 + (v - LO) / (HI - LO) * (X1 - X0);
+  H.check(sx(60) === X0 && sx(90) === X1, 'axis maps 60..90 onto plot');
+  [60, 70, 80, 90].forEach(v => {
+    el('line', { x1: sx(v), x2: sx(v), y1: 8, y2: 164, class: 'hsb-grid' }, svg);
+    el('text', { x: sx(v), y: 182, 'text-anchor': 'middle', class: 'hsb-tick' }, svg).textContent = v + '%';
+  });
+  el('line', { x1: X0, x2: X0, y1: 8, y2: 164, class: 'hsb-axis' }, svg);
+  // model core (fixed) + harness shell (swapped) + two leads into the two harness bars
+  const CX = 72, CY = 88;
+  el('path', { d: `M ${CX + 46} 74 C 160 74 160 ${ROWY[0] + BH / 2} ${X0} ${ROWY[0] + BH / 2}`, class: 'hsb-lead best' }, svg);
+  el('path', { d: `M ${CX + 46} 102 C 160 102 160 ${ROWY[1] + BH / 2} ${X0} ${ROWY[1] + BH / 2}`, class: 'hsb-lead worst' }, svg);
+  const shell = el('circle', { cx: CX, cy: CY, r: 46, class: 'hsb-shell' }, svg);
+  el('text', { x: CX, y: CY + 62, class: 'hsb-shell-lbl' }, svg).textContent = 'HARNESS';
+  el('text', { x: CX, y: 14, class: 'hsb-shell-lbl' }, svg).textContent = 'MODEL';
+  const core = el('circle', { cx: CX, cy: CY, r: 30, class: 'hsb-core' }, svg);
+  const coreT = [el('text', { x: CX, y: CY - 3, class: 'hsb-core-txt' }, svg), el('text', { x: CX, y: CY + 8, class: 'hsb-core-txt' }, svg)];
+  el('text', { x: CX, y: CY + 21, class: 'hsb-core-sub' }, svg).textContent = 'WEIGHTS';
+  const rows = ROWY.map(y => {
+    const g = el('g', {}, svg);
+    const name = el('text', { x: X0, y: y - 7, class: 'hsb-name' }, g);
+    const rect = el('rect', { x: X0, y, height: BH, width: 0, rx: 3 }, g);
+    const band = el('rect', { y, height: BH, width: 0, class: 'hsb-band' }, g);
+    const wl = el('line', { y1: y + BH / 2, y2: y + BH / 2, class: 'hsb-whisk' }, g);
+    const wa = el('line', { y1: y + 7, y2: y + BH - 7, class: 'hsb-whisk' }, g);
+    const wb = el('line', { y1: y + 7, y2: y + BH - 7, class: 'hsb-whisk' }, g);
+    const val = el('text', { y: y + BH / 2 + 5, class: 'hsb-val' }, g);
+    return { name, rect, band, wl, wa, wb, val, cur: LO };
+  });
+  // gap bracket: drops from the best bar, rises from the worst bar, meets between the rows
+  const GY = 80;
+  const gapA = el('line', { y1: ROWY[0] + BH, y2: GY, class: 'hsb-gap' }, svg);
+  const gapB = el('line', { y1: ROWY[1], y2: GY, class: 'hsb-gap' }, svg);
+  const gapH = el('line', { y1: GY, y2: GY, class: 'hsb-gap' }, svg);
+  const gapT = el('text', { y: GY - 5, 'text-anchor': 'middle', class: 'hsb-gap-txt' }, svg);
+  const readout = H.$('#hsb-delta'), sigEl = H.$('#hsb-sigma');
+  let curDelta = 0, curModel = -1;
+  const showModel = idx => {
+    if (idx === curModel) return;
+    curModel = idx;
+    const m = MODELS[idx];
+    const runs = [...m.runs].sort((a, b) => b[1] - a[1]);
+    const from = rows.map(r => r.cur), fromD = curDelta, to = delta(m);
+    rows.forEach((r, i) => {
+      r.name.textContent = runs[i][0] + (i ? '  ·  worst harness' : '  ·  best harness');
+      r.rect.setAttribute('class', i === 0 ? 'hsb-best' : 'hsb-worst');
+    });
+    coreT[0].textContent = m.core[0]; coreT[1].textContent = m.core[1] || '';
+    if (!m.core[1]) { coreT[0].setAttribute('y', CY + 3); } else { coreT[0].setAttribute('y', CY - 3); }
+    shell.classList.remove('swap'); void shell.getBoundingClientRect(); shell.classList.add('swap');
+    H.$$('[data-model]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.model === idx));
+    tween(700, p => {
+      rows.forEach((r, i) => {
+        const [, v, e] = runs[i];
+        const cv = from[i] + (v - from[i]) * p;
+        r.cur = cv;
+        r.rect.setAttribute('width', Math.max(0, sx(cv) - X0));
+        r.band.setAttribute('x', sx(cv - e)); r.band.setAttribute('width', sx(cv + e) - sx(cv - e));
+        r.wl.setAttribute('x1', sx(cv - e)); r.wl.setAttribute('x2', sx(cv + e));
+        r.wa.setAttribute('x1', sx(cv - e)); r.wa.setAttribute('x2', sx(cv - e));
+        r.wb.setAttribute('x1', sx(cv + e)); r.wb.setAttribute('x2', sx(cv + e));
+        r.val.setAttribute('x', sx(cv + e) + 6);
+        r.val.textContent = cv.toFixed(1) + ' ±' + e.toFixed(1);
+      });
+      const xb = sx(rows[0].cur), xw = sx(rows[1].cur);
+      gapA.setAttribute('x1', xb); gapA.setAttribute('x2', xb);
+      gapB.setAttribute('x1', xw); gapB.setAttribute('x2', xw);
+      gapH.setAttribute('x1', xw); gapH.setAttribute('x2', xb);
+      gapT.setAttribute('x', (xb + xw) / 2);
+      curDelta = fromD + (to - fromD) * p;
+      gapT.textContent = 'Δ ' + curDelta.toFixed(1);
+      readout.textContent = curDelta.toFixed(1) + ' pts';
+    });
+    readout.className = 'readout' + (to >= 8 ? ' fail' : to >= 5 ? ' bad' : '');
+    sigEl.textContent = `${m.name}: best minus worst harness, same weights · ≈${sigmas(m).toFixed(1)}σ apart`;
+  };
+  H.$$('[data-model]').forEach(b => b.addEventListener('click', () => showModel(+b.dataset.model)));
+  core.addEventListener('click', () => showModel((curModel + 1) % MODELS.length));
+  showModel(0);
+
+  // attract loop: cycle models until the reader touches anything, pause while off-screen
+  const inst = H.$('#inst');
+  let attract = !still, timer = 0, visible = false;
+  const loop = () => { clearTimeout(timer); if (attract && visible) timer = setTimeout(() => { showModel((curModel + 1) % MODELS.length); loop(); }, 2800); };
+  readout.setAttribute('aria-live', attract ? 'off' : 'polite'); // no announcements while the attract loop cycles
+  const stop = () => { attract = false; clearTimeout(timer); readout.setAttribute('aria-live', 'polite'); };
+  ['pointerdown', 'keydown', 'focusin'].forEach(t => inst.addEventListener(t, stop, { once: true }));
+  new IntersectionObserver(es => { visible = es.some(e => e.isIntersecting); loop(); }, { threshold: 0.25 }).observe(inst);
+
+  // ---------- Panel 2: Lewis 2026, Table C [4] ----------
+  const TASKS = 169, OFF = { f2p: 28, sol: 43 }, ON = { f2p: 49, sol: 72 };
+  H.check(ON.f2p - OFF.f2p === 21, 'fail-to-pass gain 21 pts');
+  H.check(ON.sol <= TASKS && Math.abs(OFF.sol / TASKS * 100 - 25.4) < 0.05, 'complete solutions 43/169 = 25.4%');
+  const dots = H.$('#hsb-dots'), SIDE = 13;
+  H.check(SIDE * SIDE === TASKS, '169 tasks fill a 13x13 grid');
+  const cells = Array.from({ length: TASKS }, (_, i) => el('rect', { x: (i % SIDE) * 8, y: Math.floor(i / SIDE) * 8, width: 6, height: 6, rx: 1, class: i < OFF.sol ? 'lit' : '' }, dots));
+  const tog = H.$('#hsb-trunc'), f2pN = H.$('#hsb-f2p'), solN = H.$('#hsb-sol'), ctx = H.$('#hsb-ctx');
+  tog.addEventListener('click', () => {
+    const on = tog.getAttribute('aria-pressed') !== 'true';
+    tog.setAttribute('aria-pressed', on);
+    ctx.classList.toggle('on', on);
+    const a = on ? OFF : ON, b = on ? ON : OFF;
+    H.$('#hsb-f2p-bar').style.width = b.f2p + '%';
+    H.$('#hsb-sol-bar').style.width = (b.sol / TASKS * 100) + '%';
+    tween(900, p => {
+      f2pN.textContent = Math.round(a.f2p + (b.f2p - a.f2p) * p) + '%';
+      const n = Math.round(a.sol + (b.sol - a.sol) * p);
+      solN.textContent = n;
+      cells.forEach((c, i) => c.classList.toggle('lit', i < n));
+    });
+  });
+
+  // ---------- Panel 3: Liu et al. 2026, Table D [5] ----------
+  const SCAF = 29.8, MOD = 8.8, SCALE = 30;
+  const ratio = SCAF / MOD;
+  H.check(Math.abs(ratio - 3.39) < 0.01, 'scaffold/model ratio ~3.4x');
+  H.$('#hsb-ratio').textContent = `scaffold range is ${ratio.toFixed(1)}× the model range`;
+  const p3 = H.$('#hsb-p3'), ratioBig = H.$('#hsb-ratio-big');
+  const fill = () => {
+    H.$('#hsb-scaf').style.width = (SCAF / SCALE * 100) + '%'; H.$('#hsb-mod').style.width = (MOD / SCALE * 100) + '%';
+    tween(900, p => { ratioBig.textContent = (ratio * p).toFixed(1) + '×'; });
+    setTimeout(() => p3.classList.add('hit'), still ? 0 : 800);
+  };
+  const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { fill(); io.disconnect(); } }, { threshold: 0.3 });
+  io.observe(p3);
+
+  // ---------- Timeline, Table G ----------
+  const TL = [
+    ['2022-10', 'ReAct: reason → act → observe', '+34 pts ALFWorld, +10 WebShop', 0],
+    ['2023', 'AutoGPT runs the loop unattended', '187.7k GitHub stars today', 0],
+    ['2024-03', 'Devin: shell + editor + browser', '13.86% SWE-bench vs 1.96% prior', 1],
+    ['2024-05', 'SWE-agent coins the ACI', '12.5% pass@1 from interface design', 1],
+    ['2024-12', '“Building effective agents”', 'workflows vs agents; start simple', 0],
+    ['2025-02', 'Claude 3.7 Sonnet scaffold', '63.7% → 70.3%, same weights', 1],
+    ['2025-11', 'Long-running agent harness', 'initializer + progress file', 0],
+    ['2026-02', 'Hashimoto; OpenAI ~1M-line build', '“harness engineering” named', 0],
+    ['2026-03', 'Planner / generator / evaluator', '$9 solo vs $200 full harness', 0],
+    ['2026-04', 'Böckeler: Agent = Model + Harness', 'inner vs outer harness', 0],
+    ['2026-05→09', 'arXiv harness-variance papers', '28–30 pt scaffold swings', 1],
+  ];
+  const tl = H.$('#tl-svg'), STEP = 44, TOP = 18;
+  el('line', { x1: 98, x2: 98, y1: TOP, y2: TOP + STEP * (TL.length - 1), class: 'tl-spine' }, tl);
+  TL.forEach(([d, ev, num, hot], i) => {
+    const y = TOP + i * STEP;
+    const g = el('g', { class: 'tl-row' + (hot ? ' tl-hot' : ''), style: `transition-delay:${(i * 0.12).toFixed(2)}s` }, tl);
+    el('text', { x: 86, y: y + 4, 'text-anchor': 'end', class: 'tl-date' }, g).textContent = d;
+    if (hot) el('circle', { cx: 98, cy: y, r: 5, class: 'tl-halo' }, g);
+    el('circle', { cx: 98, cy: y, r: 5, class: 'tl-dot' }, g);
+    el('text', { x: 112, y: y + 5, class: 'tl-ev' }, g).textContent = ev;
+    el('text', { x: 112, y: y + 21, class: 'tl-num' }, g).textContent = num;
+  });
+  // a spark runs the spine once when the figure scrolls in (CSS tl-run covers STEP*10 = 440 user units)
+  el('circle', { cx: 98, cy: TOP, r: 4, class: 'tl-spark' }, tl);
+  H.check(TL.length === 11, 'timeline has 11 rows from Table G');
+  H.check(STEP * (TL.length - 1) === 440, 'spark travel matches spine length');
+})();
+</script>
+</body>
+</html>

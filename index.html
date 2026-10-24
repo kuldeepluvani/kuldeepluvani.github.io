@@ -1,711 +1,427 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kuldeep Luvani — Software Engineer</title>
-  <meta name="description" content="Software Engineer building AI-powered developer tools, knowledge systems, and automation platforms.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      overflow: hidden;
-      height: 100vh;
-      cursor: default;
-      transition: background 0.4s ease, color 0.4s ease;
-    }
-    body.light { background: #f5f5fa; color: #1a1a2e; }
-    body.dark  { background: #06060c; color: #e4e4ef; }
-
-    canvas { display: block; position: fixed; top: 0; left: 0; z-index: 0; }
-
-    /* Theme toggle */
-    .theme-toggle {
-      position: fixed; top: 1.2rem; right: 1.2rem; z-index: 20;
-      width: 44px; height: 44px; border-radius: 50%;
-      border: 1.5px solid; display: flex; align-items: center;
-      justify-content: center; cursor: pointer; font-size: 1.1rem;
-      transition: all 0.3s ease; background: transparent;
-    }
-    .light .theme-toggle { border-color: #ccc; color: #555; }
-    .light .theme-toggle:hover { border-color: #0891b2; color: #0891b2; background: rgba(8,145,178,0.08); }
-    .dark .theme-toggle { border-color: #333; color: #888; }
-    .dark .theme-toggle:hover { border-color: #19C0DA; color: #19C0DA; background: rgba(25,192,218,0.1); }
-
-    /* Bubble overlay */
-    .bubble-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 10; display: none; align-items: center; justify-content: center;
-      backdrop-filter: blur(8px);
-      opacity: 0; transition: opacity 0.3s ease;
-    }
-    .light .bubble-overlay { background: rgba(245,245,250,0.85); }
-    .dark  .bubble-overlay { background: rgba(6,6,12,0.85); }
-    .bubble-overlay.active { display: flex; opacity: 1; }
-
-    .bubble {
-      max-width: 560px; width: 90%; padding: 2.5rem;
-      border: 1px solid var(--node-color, #0891b2);
-      border-radius: 20px; position: relative;
-      box-shadow: 0 0 60px rgba(var(--node-rgb, 8,145,178), 0.15);
-      transform: scale(0.7); opacity: 0;
-      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
-    }
-    .light .bubble { background: rgba(255,255,255,0.95); }
-    .dark  .bubble { background: radial-gradient(ellipse at top left, #151525, #0d0d18); }
-    .bubble-overlay.active .bubble { transform: scale(1); opacity: 1; }
-
-    .bubble-close {
-      position: absolute; top: 1rem; right: 1.2rem; background: none;
-      border: none; font-size: 1.5rem; cursor: pointer; transition: color 0.2s;
-    }
-    .light .bubble-close { color: #aaa; }
-    .light .bubble-close:hover { color: #333; }
-    .dark  .bubble-close { color: #666; }
-    .dark  .bubble-close:hover { color: #fff; }
-
-    .bubble-icon {
-      width: 56px; height: 56px; border-radius: 14px; display: flex;
-      align-items: center; justify-content: center; font-size: 1.5rem;
-      margin-bottom: 1rem;
-      background: rgba(var(--node-rgb, 8,145,178), 0.12);
-      border: 1px solid rgba(var(--node-rgb, 8,145,178), 0.25);
-    }
-    .bubble h2 {
-      font-size: 1.6rem; font-weight: 700; margin-bottom: 0.2rem;
-      color: var(--node-color, #0891b2);
-    }
-    .bubble .subtitle {
-      font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
-      margin-bottom: 1rem;
-    }
-    .light .bubble .subtitle { color: #888; }
-    .dark  .bubble .subtitle { color: #8888a0; }
-    .bubble p { font-size: 0.95rem; line-height: 1.7; margin-bottom: 1.2rem; }
-    .light .bubble p { color: #555; }
-    .dark  .bubble p { color: #aaaabc; }
-    .bubble .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem; }
-    .bubble .tag {
-      font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
-      padding: 0.25rem 0.55rem; border-radius: 4px;
-      background: rgba(var(--node-rgb, 8,145,178), 0.1);
-      color: var(--node-color, #0891b2);
-    }
-    .bubble .link {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      color: var(--node-color, #0891b2); text-decoration: none;
-      font-size: 0.9rem; font-weight: 500; transition: opacity 0.2s;
-    }
-    .bubble .link:hover { opacity: 0.7; }
-    .bubble .link svg { width: 16px; height: 16px; fill: currentColor; }
-
-    /* Hint */
-    .hint {
-      position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
-      z-index: 5; font-size: 0.75rem;
-      font-family: 'JetBrains Mono', monospace;
-      animation: pulse 3s ease-in-out infinite;
-    }
-    .light .hint { color: #aaa; }
-    .dark  .hint { color: #555; }
-    @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
-  </style>
-</head>
-<body class="light">
-
-<button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">&#9790;</button>
-
-<canvas id="graph"></canvas>
-
-<div class="hint">click a node to explore</div>
-
-<div class="bubble-overlay" id="bubbleOverlay">
-  <div class="bubble" id="bubbleContent">
-    <button class="bubble-close" id="bubbleClose">&times;</button>
-    <div class="bubble-icon" id="bubbleIcon"></div>
-    <h2 id="bubbleName"></h2>
-    <div class="subtitle" id="bubbleSubtitle"></div>
-    <p id="bubbleDesc"></p>
-    <div class="tags" id="bubbleTags"></div>
-    <a class="link" id="bubbleLink" href="#" target="_blank">
-      <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12 24 5.37 18.63 0 12 0z"/></svg>
-      <span>View on GitHub</span>
-    </a>
-  </div>
-</div>
-
-<script>
-// ===================== Theme =====================
-let isDark = false;
-const theme = {
-  get bg()       { return isDark ? '#06060c' : '#f5f5fa'; },
-  get grid()     { return isDark ? 'rgba(25,192,218,0.025)' : 'rgba(8,145,178,0.06)'; },
-  get dotAlpha() { return isDark ? 0.3 : 0.45; },
-  get edgeMul()  { return isDark ? 1 : 1.8; },
-  get nodeFill() { return isDark ? 0.2 : 0.25; },
-  get nodeBorder(){ return isDark ? 0.6 : 0.75; },
-  get labelAlpha(){ return isDark ? 0.7 : 0.85; },
-  get typingColor(){ return isDark ? 'rgba(25,192,218,0.45)' : 'rgba(8,145,178,0.6)'; },
-  get accent()   { return isDark ? '#19C0DA' : '#0891b2'; },
-  get accentRGB(){ return isDark ? '25,192,218' : '8,145,178'; }
-};
-
-const toggleBtn = document.getElementById('themeToggle');
-toggleBtn.addEventListener('click', () => {
-  isDark = !isDark;
-  document.body.className = isDark ? 'dark' : 'light';
-  toggleBtn.innerHTML = isDark ? '&#9788;' : '&#9790;';
-  // Update center node color
-  if (nodes.length) {
-    nodes[0].color = theme.accent;
-    nodes[0].rgb = theme.accentRGB;
-  }
-  localStorage.setItem('theme', isDark ? 'dark' : 'light');
-});
-
-// Restore saved preference
-if (localStorage.getItem('theme') === 'dark') {
-  isDark = true;
-  document.body.className = 'dark';
-  toggleBtn.innerHTML = '&#9788;';
-}
-
-// ===================== Canvas =====================
-const canvas = document.getElementById('graph');
-const ctx = canvas.getContext('2d');
-let W, H, dpr, mouseX = -1000, mouseY = -1000;
-let orbitR, miniOrbitR, socialOrbitR, S = 1;
-let _nodes;
-
-function resize() {
-  dpr = window.devicePixelRatio || 1;
-  W = window.innerWidth; H = window.innerHeight;
-  canvas.width = W * dpr; canvas.height = H * dpr;
-  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const scale = Math.min(W, H) / 800;
-  S = Math.max(0.6, Math.min(1.6, scale));
-  orbitR = Math.min(W, H) * 0.22;
-  miniOrbitR = Math.min(W, H) * 0.35;
-  socialOrbitR = Math.min(W, H) * 0.46;
-  if (_nodes && _nodes.length) {
-    _nodes[0].r = 60 * S; // center
-    const pEnd = 1 + 4; // projects indices 1-4
-    const mEnd = pEnd + 3; // mini indices 5-7
-    const sEnd = mEnd + 5; // socials indices 8-12
-    for (let i = 1; i < pEnd; i++) if (_nodes[i]) _nodes[i].r = 42 * S;
-    for (let i = pEnd; i < mEnd; i++) if (_nodes[i]) _nodes[i].r = 30 * S;
-    for (let i = mEnd; i < sEnd; i++) if (_nodes[i]) _nodes[i].r = 26 * S;
-  }
-}
-window.addEventListener('resize', resize);
-resize();
-
-// ===================== Data =====================
-const projects = [
-  {
-    id: 'claim', name: 'CLAIM', subtitle: 'Claude AI Memory', icon: '\u{1F9E0}',
-    color: '#0891b2', darkColor: '#19C0DA', rgb: '8,145,178', darkRgb: '25,192,218',
-    desc: 'Single-file, self-bootstrapping memory system for Claude Code. Multi-vault Obsidian integration with autonomous capture, software engineering triggers, and semantic routing. Memory shapes behavior. Vaults store knowledge.',
-    tags: ['claude-code-plugin','obsidian','multi-vault','autonomous-capture','self-bootstrapping','POSIX'],
-    url: 'https://github.com/kuldeepluvani/claim'
-  },
-  {
-    id: 'claudegotchi', name: 'Claudegotchi', subtitle: 'Developer Wellness Plugin', icon: '\u{1F436}',
-    color: '#059669', darkColor: '#34d399', rgb: '5,150,105', darkRgb: '52,211,153',
-    desc: 'Tamagotchi-style wellness tracking for Claude Code. Monitors session duration, velocity, and frustration. Rewards healthy habits through a virtual creature with HP, XP, coins, and evolution stages. Multi-session isolation with per-session state.',
-    tags: ['claude-code-plugin','wellness','gamification','multi-session','dashboard','sqlite'],
-    url: 'https://github.com/kuldeepluvani/ClaudeGotchi'
-  },
-  {
-    id: 'mycelium', name: 'Mycelium', subtitle: 'Self-Enriching Knowledge Engine', icon: '\u{1F344}',
-    color: '#7c3aed', darkColor: '#a78bfa', rgb: '124,58,237', darkRgb: '167,139,250',
-    desc: 'A living knowledge network that learns while you sleep and thinks while you work. Ingests Markdown vaults and Git repos, builds a knowledge graph, auto-discovers specialist AI agents from data clusters, and answers through a hierarchical multi-agent cortex.',
-    tags: ['knowledge-graph','multi-agent','NATS JetStream','FAISS','FastAPI','NetworkX'],
-    url: 'https://github.com/kuldeepluvani/mycelium'
-  },
-  {
-    id: 'gittimemachine', name: 'GitTimeMachine', subtitle: "Like Apple's Time Machine, but for Git", icon: '\u{231B}',
-    color: '#d97706', darkColor: '#fbbf24', rgb: '217,119,6', darkRgb: '251,191,36',
-    desc: "Like Apple's Time Machine, but for Git. Visual time-travel through your repository history. Browse, compare, and restore any file from any point in time with an intuitive timeline interface.",
-    tags: ['git','version-control','time-machine','cli','developer-tools'],
-    url: 'https://github.com/kuldeepluvani/GitTimeMachine'
-  }
-];
-
-// Mini projects — smaller orbit between projects and socials
-const miniProjects = [
-  {
-    id: 'braincore', name: 'BrainCore', subtitle: 'Your Digital Brain, Always in Sync', icon: '\u{1F4A1}',
-    color: '#0d9488', darkColor: '#2dd4bf', rgb: '13,148,136', darkRgb: '45,212,191',
-    desc: 'Your digital brain, always in sync. A personal knowledge base powered by vector search and Gemini embeddings. Ingest documents, search semantically, and retrieve contextual answers from your own data.',
-    tags: ['vector-search','supabase','gemini','embeddings','docker','python'],
-    url: 'https://github.com/aircuboid/BrainCore'
-  },
-  {
-    id: 'braincast', name: 'BrainCast', subtitle: 'Podcast Intelligence Platform', icon: '\u{1F399}',
-    color: '#9333ea', darkColor: '#c084fc', rgb: '147,51,234', darkRgb: '192,132,252',
-    desc: 'Podcast intelligence platform with YouTube integration, transcript analysis, and AI-powered content predictions. Flask backend with PostgreSQL, React frontend, Docker-composed.',
-    tags: ['flask','react','postgres','docker','youtube-api','predictions'],
-    url: 'https://github.com/aircuboid/BrainCast'
-  },
-  {
-    id: 'cocostory', name: 'cocostory', subtitle: "Interactive Children's Story Generator", icon: '\u{1F4DA}',
-    color: '#e11d48', darkColor: '#fb7185', rgb: '225,29,72', darkRgb: '251,113,133',
-    desc: "Interactive children's story generator powered by Google Gemini. Creates personalized, illustrated stories with AI-generated narratives. Built with Python, FastAPI, and Google Analytics.",
-    tags: ['gemini','fastapi','storytelling','ai-generation','python'],
-    url: 'https://github.com/aircuboid/cocostory'
-  }
-];
-
-const socials = [
-  { id: 'github', label: 'GH', name: 'GitHub', color: '#555', darkColor: '#8b949e', rgb: '85,85,85', darkRgb: '139,148,158', url: 'https://github.com/kuldeepluvani' },
-  { id: 'linkedin', label: 'LI', name: 'LinkedIn', color: '#0a66c2', darkColor: '#3b82f6', rgb: '10,102,194', darkRgb: '59,130,246', url: 'https://www.linkedin.com/in/kuldeep-luvani-28a93336/' },
-  { id: 'email', label: '@', name: 'Email', color: '#db2777', darkColor: '#f472b6', rgb: '219,39,119', darkRgb: '244,114,182', url: 'mailto:kuldeepluvani@gmail.com' },
-  { id: 'resume', label: 'CV', name: 'Resume', color: '#ea580c', darkColor: '#fb923c', rgb: '234,88,12', darkRgb: '251,146,60', url: 'Kuldeep Luvani Resume.pdf' },
-  { id: 'blog', label: 'B', name: 'Blog', color: '#2563eb', darkColor: '#60a5fa', rgb: '37,99,235', darkRgb: '96,165,250', url: 'https://pythonhighschool.wordpress.com/' },
-];
-
-function getColor(item) { return isDark ? item.darkColor : item.color; }
-function getRgb(item) { return isDark ? item.darkRgb : item.rgb; }
-
-// ===================== Nodes =====================
-const nodes = [];
-_nodes = nodes;
-const edges = [];
-
-// Center (index 0)
-nodes.push({
-  x: W/2, y: H/2, vx: 0, vy: 0,
-  r: 60 * S, color: theme.accent, rgb: theme.accentRGB,
-  label: 'KL', sublabel: 'Kuldeep Luvani',
-  type: 'center', data: null, glow: 0
-});
-
-// Projects (indices 1-4)
-const pStep = (Math.PI * 2) / projects.length;
-projects.forEach((p, i) => {
-  const a = pStep * i - Math.PI / 2;
-  nodes.push({
-    x: W/2 + Math.cos(a) * orbitR, y: H/2 + Math.sin(a) * orbitR,
-    vx: 0, vy: 0, r: 42 * S,
-    color: getColor(p), rgb: getRgb(p),
-    label: p.icon, sublabel: p.name,
-    type: 'project', data: p, glow: 0
-  });
-  edges.push({ a: 0, b: nodes.length - 1, type: 'project' });
-});
-
-// Mini projects (indices 5-7) — smaller orbit
-const mStep = (Math.PI * 2) / miniProjects.length;
-miniProjects.forEach((p, i) => {
-  const a = mStep * i + Math.PI / 6;
-  nodes.push({
-    x: W/2 + Math.cos(a) * miniOrbitR, y: H/2 + Math.sin(a) * miniOrbitR,
-    vx: 0, vy: 0, r: 30 * S,
-    color: getColor(p), rgb: getRgb(p),
-    label: p.icon, sublabel: p.name,
-    type: 'mini', data: p, glow: 0
-  });
-  edges.push({ a: 0, b: nodes.length - 1, type: 'mini' });
-});
-
-// Socials (indices 8-12)
-const sStep = (Math.PI * 2) / socials.length;
-socials.forEach((s, i) => {
-  const a = sStep * i + Math.PI / 5;
-  nodes.push({
-    x: W/2 + Math.cos(a) * socialOrbitR, y: H/2 + Math.sin(a) * socialOrbitR,
-    vx: 0, vy: 0, r: 26 * S,
-    color: getColor(s), rgb: getRgb(s),
-    label: s.label, sublabel: s.name,
-    type: 'social', data: s, glow: 0
-  });
-  edges.push({ a: 0, b: nodes.length - 1, type: 'social' });
-});
-
-// Inter-project edges
-for (let i = 1; i <= projects.length; i++)
-  for (let j = i + 1; j <= projects.length; j++)
-    edges.push({ a: i, b: j, type: 'inter' });
-
-// Ambient dots — high density like particles.js
-const dotCount = Math.round(Math.max(50, (W * H) / 12000)); // scale with screen
-for (let i = 0; i < dotCount; i++) {
-  nodes.push({
-    x: Math.random() * W, y: Math.random() * H,
-    vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
-    r: 2 + Math.random() * 3, color: theme.accent, rgb: theme.accentRGB,
-    label: null, sublabel: null, type: 'dot', data: null, glow: 0
-  });
-}
-
-const dotStart = 1 + projects.length + miniProjects.length + socials.length;
-// No static dot edges — we draw dynamic proximity edges each frame (particles.js style)
-
-// Click ripple effects
-const ripples = [];
-
-// ===================== Physics =====================
-function physics() {
-  const cx = W / 2, cy = H / 2;
-  nodes.forEach((n, i) => {
-    if (n.type === 'dot') {
-      n.x += n.vx; n.y += n.vy;
-      if (n.x < -20) n.x = W + 20; if (n.x > W + 20) n.x = -20;
-      if (n.y < -20) n.y = H + 20; if (n.y > H + 20) n.y = -20;
-      return;
-    }
-    if (n.type === 'center') {
-      n.vx += (cx - n.x) * 0.003;
-      n.vy += (cy - n.y) * 0.003;
-    }
-    if (n.type === 'project' || n.type === 'mini' || n.type === 'social') {
-      const targetR = n.type === 'project' ? orbitR : (n.type === 'mini' ? miniOrbitR : socialOrbitR);
-      const dx = n.x - nodes[0].x, dy = n.y - nodes[0].y;
-      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-      n.vx -= (dx / dist) * (dist - targetR) * 0.004;
-      n.vy -= (dy / dist) * (dist - targetR) * 0.004;
-      const angle = Math.atan2(dy, dx);
-      const speed = n.type === 'social' ? 0.005 : (n.type === 'mini' ? 0.006 : 0.008);
-      n.vx += Math.cos(angle + Math.PI/2) * speed;
-      n.vy += Math.sin(angle + Math.PI/2) * speed;
-    }
-    // Mouse attraction
-    if (n.type !== 'dot') {
-      const mdx = mouseX - n.x, mdy = mouseY - n.y;
-      const mdist = Math.sqrt(mdx*mdx + mdy*mdy) || 1;
-      if (mdist < 200 && mdist > n.r) {
-        const str = (1 - mdist / 200) * 0.15;
-        n.vx += (mdx / mdist) * str;
-        n.vy += (mdy / mdist) * str;
-      }
-    }
-    // Repulsion
-    nodes.forEach((o, j) => {
-      if (i === j || o.type === 'dot') return;
-      const dx = n.x - o.x, dy = n.y - o.y;
-      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-      const minD = n.r + o.r + 30;
-      if (dist < minD) {
-        const f = (minD - dist) * 0.008;
-        n.vx += (dx / dist) * f;
-        n.vy += (dy / dist) * f;
-      }
-    });
-    n.vx *= 0.92; n.vy *= 0.92;
-    n.x += n.vx; n.y += n.vy;
-    n.x = Math.max(n.r + 10, Math.min(W - n.r - 10, n.x));
-    n.y = Math.max(n.r + 10, Math.min(H - n.r - 10, n.y));
-  });
-}
-
-// ===================== Interaction =====================
-let hoveredNode = null;
-canvas.addEventListener('mousemove', e => {
-  mouseX = e.clientX; mouseY = e.clientY;
-  hoveredNode = null; canvas.style.cursor = 'default';
-  nodes.forEach(n => {
-    if (n.type === 'dot') return;
-    const d = Math.sqrt((e.clientX-n.x)**2 + (e.clientY-n.y)**2);
-    if (d < n.r + 15) {
-      hoveredNode = n;
-      if (n.type === 'project' || n.type === 'mini' || n.type === 'social') canvas.style.cursor = 'pointer';
-    }
-  });
-});
-
-canvas.addEventListener('click', e => {
-  let clicked = false;
-  nodes.forEach(n => {
-    const d = Math.sqrt((e.clientX-n.x)**2 + (e.clientY-n.y)**2);
-    if (d > n.r + 15) return;
-    clicked = true;
-    // Spawn ripple effect
-    ripples.push({ x: n.x, y: n.y, r: n.r, maxR: n.r + 80, rgb: n.rgb, alpha: 0.6, speed: 3 });
-    if (n.type === 'project' || n.type === 'mini') setTimeout(() => openBubble(n.data), 200); // slight delay for ripple
-    if (n.type === 'social') setTimeout(() => window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank'), 150);
-  });
-  // Click on empty space — small ambient ripple
-  if (!clicked) {
-    ripples.push({ x: e.clientX, y: e.clientY, r: 0, maxR: 60, rgb: theme.accentRGB, alpha: 0.3, speed: 2 });
-  }
-});
-
-canvas.addEventListener('touchstart', e => {
-  const t = e.touches[0]; mouseX = t.clientX; mouseY = t.clientY;
-  nodes.forEach(n => {
-    const d = Math.sqrt((t.clientX-n.x)**2 + (t.clientY-n.y)**2);
-    if (d > n.r + 20) return;
-    if (n.type === 'project' || n.type === 'mini') openBubble(n.data);
-    if (n.type === 'social') window.open(n.data.url, n.data.url.startsWith('mailto') ? '_self' : '_blank');
-  });
-});
-
-// ===================== Bubble =====================
-const overlay = document.getElementById('bubbleOverlay');
-const bubbleEl = document.getElementById('bubbleContent');
-
-function openBubble(p) {
-  const c = getColor(p), r = getRgb(p);
-  bubbleEl.style.setProperty('--node-color', c);
-  bubbleEl.style.setProperty('--node-rgb', r);
-  document.getElementById('bubbleIcon').textContent = p.icon;
-  document.getElementById('bubbleName').textContent = p.name;
-  document.getElementById('bubbleSubtitle').textContent = p.subtitle;
-  document.getElementById('bubbleDesc').textContent = p.desc;
-  document.getElementById('bubbleTags').innerHTML = p.tags.map(t => `<span class="tag">${t}</span>`).join('');
-  document.getElementById('bubbleLink').href = p.url;
-  overlay.classList.add('active');
-}
-
-function closeBubble() { overlay.classList.remove('active'); }
-document.getElementById('bubbleClose').addEventListener('click', closeBubble);
-overlay.addEventListener('click', e => { if (e.target === overlay) closeBubble(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBubble(); });
-
-// ===================== Background Image =====================
-const bgImg = new Image();
-bgImg.src = 'background.jpg';
-
-// ===================== Draw =====================
-let time = 0;
-
-function updateNodeColors() {
-  nodes[0].color = theme.accent;
-  nodes[0].rgb = theme.accentRGB;
-  for (let i = 1; i <= projects.length; i++) {
-    nodes[i].color = getColor(projects[i-1]);
-    nodes[i].rgb = getRgb(projects[i-1]);
-  }
-  for (let i = 0; i < miniProjects.length; i++) {
-    const ni = 1 + projects.length + i;
-    nodes[ni].color = getColor(miniProjects[i]);
-    nodes[ni].rgb = getRgb(miniProjects[i]);
-  }
-  for (let i = 0; i < socials.length; i++) {
-    const ni = 1 + projects.length + miniProjects.length + i;
-    nodes[ni].color = getColor(socials[i]);
-    nodes[ni].rgb = getRgb(socials[i]);
-  }
-  for (let i = dotStart; i < nodes.length; i++) {
-    nodes[i].color = theme.accent;
-    nodes[i].rgb = theme.accentRGB;
-  }
-}
-
-function draw() {
-  time += 0.008;
-  updateNodeColors();
-
-  // Background
-  if (bgImg && bgImg.complete) {
-    // Draw background image, cover the canvas
-    const iw = bgImg.width, ih = bgImg.height;
-    const scale = Math.max(W / iw, H / ih);
-    const sw = iw * scale, sh = ih * scale;
-    ctx.drawImage(bgImg, (W - sw) / 2, (H - sh) / 2, sw, sh);
-    // Dark overlay so nodes are readable
-    ctx.fillStyle = isDark ? 'rgba(6,6,12,0.55)' : 'rgba(245,245,250,0.6)';
-    ctx.fillRect(0, 0, W, H);
-  } else {
-    ctx.fillStyle = theme.bg;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  // Grid
-  ctx.strokeStyle = theme.grid;
-  ctx.lineWidth = 0.5;
-  const gs = 60;
-  for (let x = 0; x < W; x += gs) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y < H; y += gs) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-
-  const eMul = theme.edgeMul;
-  const linkDist = 150; // dot-to-dot link distance
-  const grabDist = 180; // mouse grab distance
-
-  // Dynamic dot proximity edges (particles.js style — recomputed each frame)
-  for (let i = dotStart; i < nodes.length; i++) {
-    const a = nodes[i];
-    // Dot-to-dot connections
-    for (let j = i + 1; j < nodes.length; j++) {
-      const b = nodes[j];
-      const dx = a.x - b.x, dy = a.y - b.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < linkDist) {
-        const alpha = (1 - dist / linkDist) * 0.25 * eMul;
-        ctx.strokeStyle = `rgba(${theme.accentRGB},${alpha})`;
-        ctx.lineWidth = 0.6;
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-      }
-    }
-    // Mouse grab — bright lines from cursor to nearby dots
-    if (mouseX > 0) {
-      const mdx = a.x - mouseX, mdy = a.y - mouseY;
-      const mdist = Math.sqrt(mdx*mdx + mdy*mdy);
-      if (mdist < grabDist) {
-        const alpha = (1 - mdist / grabDist) * 0.4 * eMul;
-        ctx.strokeStyle = `rgba(${theme.accentRGB},${alpha})`;
-        ctx.lineWidth = 0.8;
-        ctx.beginPath(); ctx.moveTo(mouseX, mouseY); ctx.lineTo(a.x, a.y); ctx.stroke();
-      }
-    }
-  }
-
-  // Structural edges (project, social, inter)
-  edges.forEach(e => {
-    const a = nodes[e.a], b = nodes[e.b];
-    const dx = a.x - b.x, dy = a.y - b.y;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-
-    if (e.type === 'mini') {
-      const alpha = Math.max(0, 1 - dist / (miniOrbitR * 2)) * 0.15 * eMul;
-      ctx.strokeStyle = `rgba(${b.rgb || a.rgb},${alpha})`;
-      ctx.lineWidth = 1;
-    } else if (e.type === 'social') {
-      const alpha = Math.max(0, 1 - dist / (socialOrbitR * 2)) * 0.12 * eMul;
-      ctx.strokeStyle = `rgba(${b.rgb || a.rgb},${alpha})`;
-      ctx.lineWidth = 0.8;
-    } else if (e.type === 'inter') {
-      const alpha = Math.max(0, 1 - dist / (orbitR * 3)) * 0.06 * eMul;
-      if (alpha <= 0) return;
-      ctx.strokeStyle = `rgba(${isDark ? '100,100,140' : '120,120,160'},${alpha})`;
-      ctx.lineWidth = 0.5;
-      ctx.setLineDash([4, 6]);
-    } else {
-      const pulse = (Math.sin(time * 2.5 + e.b) + 1) / 2;
-      const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-      const baseA = (isDark ? 0.15 : 0.2);
-      const peakA = (isDark ? 0.4 : 0.5);
-      grad.addColorStop(0, `rgba(${a.rgb},${baseA})`);
-      grad.addColorStop(pulse, `rgba(${b.rgb},${peakA})`);
-      grad.addColorStop(1, `rgba(${b.rgb},${baseA})`);
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = 1.5;
-    }
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-    ctx.setLineDash([]);
-  });
-
-  // Nodes
-  const nFill = theme.nodeFill;
-  const nBorder = theme.nodeBorder;
-  const lAlpha = theme.labelAlpha;
-
-  nodes.forEach(n => {
-    const isHovered = n === hoveredNode;
-    n.glow += ((isHovered ? 1 : 0) - n.glow) * 0.1;
-
-    if (n.type === 'dot') {
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${n.rgb},${theme.dotAlpha + Math.sin(time * 1.5 + n.x) * 0.04})`;
-      ctx.fill();
-      return;
-    }
-
-    const r = n.r + n.glow * 5;
-
-    // Glow
-    const glowR = r + (n.type === 'social' ? 12 : 20) + n.glow * 12;
-    const grad = ctx.createRadialGradient(n.x, n.y, r * 0.5, n.x, n.y, glowR);
-    const ga = n.type === 'center' ? 0.1 : (n.type === 'social' ? 0.06 : 0.08);
-    grad.addColorStop(0, `rgba(${n.rgb},${ga + n.glow * 0.15})`);
-    grad.addColorStop(1, `rgba(${n.rgb},0)`);
-    ctx.beginPath(); ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
-    ctx.fillStyle = grad; ctx.fill();
-
-    // Circle
-    ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${n.rgb},${nFill})`;
-    ctx.fill();
-    ctx.strokeStyle = `rgba(${n.rgb},${nBorder + n.glow * 0.3})`;
-    ctx.lineWidth = n.type === 'social' ? 1 : 1.5 + n.glow;
-    ctx.stroke();
-
-    // Spinning arc
-    if (n.type === 'project' || n.type === 'mini') {
-      ctx.beginPath();
-      const arcS = time * 1.5 + nodes.indexOf(n) * 1.2;
-      ctx.arc(n.x, n.y, r + 4, arcS, arcS + Math.PI * 0.5);
-      ctx.strokeStyle = `rgba(${n.rgb},${0.25 + n.glow * 0.3})`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    // Label
-    if (n.label) {
-      if (n.type === 'center') ctx.font = `700 ${Math.round(28 * S)}px Inter`;
-      else if (n.type === 'social') ctx.font = `600 ${Math.round(12 * S)}px "JetBrains Mono", monospace`;
-      else if (n.type === 'mini') ctx.font = `${Math.round(20 * S)}px sans-serif`;
-      else ctx.font = `${Math.round(26 * S)}px sans-serif`;
-      ctx.fillStyle = n.color;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(n.label, n.x, n.y);
-    }
-
-    // Sublabel
-    if (n.sublabel) {
-      const fs = n.type === 'center' ? Math.round(15 * S) : (n.type === 'social' ? Math.round(10 * S) : (n.type === 'mini' ? Math.round(10 * S) : Math.round(12 * S)));
-      ctx.font = `${n.type === 'center' ? '400' : '500'} ${fs}px Inter`;
-      ctx.fillStyle = `rgba(${n.rgb},${lAlpha + n.glow * 0.3})`;
-      ctx.textAlign = 'center';
-      ctx.fillText(n.sublabel, n.x, n.y + r + (n.type === 'social' ? 14 : 18));
-    }
-  });
-
-  // Ripple effects
-  for (let i = ripples.length - 1; i >= 0; i--) {
-    const rp = ripples[i];
-    rp.r += rp.speed;
-    rp.alpha -= 0.015;
-    if (rp.alpha <= 0 || rp.r >= rp.maxR) { ripples.splice(i, 1); continue; }
-    ctx.beginPath();
-    ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${rp.rgb},${rp.alpha})`;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    // Second ring for depth
-    if (rp.r > 15) {
-      ctx.beginPath();
-      ctx.arc(rp.x, rp.y, rp.r * 0.6, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(${rp.rgb},${rp.alpha * 0.4})`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-  }
-
-  // Typing
-  const typingY = nodes[0].y + nodes[0].r + 40;
-  ctx.font = `400 ${Math.round(14 * S)}px "JetBrains Mono", monospace`;
-  ctx.fillStyle = theme.typingColor;
-  ctx.textAlign = 'center';
-  const phrase = typingPhrases[tpIdx];
-  ctx.fillText(phrase.substring(0, tcIdx) + (Math.floor(time * 4) % 2 === 0 ? '|' : ''), nodes[0].x, typingY);
-
-  physics();
-  requestAnimationFrame(draw);
-}
-
-// Typing
-const typingPhrases = [
-  'building AI-powered developer tools',
-  'knowledge systems that think while you work',
-  'memory that persists across sessions',
-  'wellness-first developer experience'
-];
-let tpIdx = 0, tcIdx = 0, tDel = false, tPause = 0;
-setInterval(() => {
-  if (tPause > 0) { tPause--; return; }
-  if (tDel) { tcIdx--; if (tcIdx <= 0) { tDel = false; tpIdx = (tpIdx + 1) % typingPhrases.length; tPause = 8; } }
-  else { tcIdx++; if (tcIdx > typingPhrases[tpIdx].length) { tDel = true; tPause = 40; } }
-}, 50);
-
-draw();
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-T90tr/ERrkLQpTJRgO88JYh/rJEZrbWfvr+sNczeOi8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Harness — Harness Engineering for AI Agents · Kuldeep Luvani</title>
+<meta name="description" content="A free field manual on harness engineering: how the loop, context engineering, tools, guardrails and evals around the model make AI agents and agentic AI work in production. Coding agents like Claude Code and Codex as case studies.">
+<link rel="canonical" href="https://kuldeepluvani.github.io/">
+<meta property="og:type" content="book">
+<meta property="og:url" content="https://kuldeepluvani.github.io/">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Book","name":"The Harness: a field manual for harness engineering","alternateName":"Harness Engineering for AI Agents","author":{"@type":"Person","name":"Kuldeep Luvani","jobTitle":"Software Engineer","url":"https://kuldeepluvani.github.io/","sameAs":["https://github.com/kuldeepluvani","https://www.linkedin.com/in/kuldeep-luvani-28a93336/"]},"url":"https://kuldeepluvani.github.io/","inLanguage":"en","isAccessibleForFree":true,"datePublished":"2026-10","about":["harness engineering","AI agents","agentic AI","context engineering","agent harness","Claude Code","AI agent security","LLM evaluation"],"hasPart":[
+{"@type":"Chapter","position":0,"name":"Agent = Model + Harness","url":"https://kuldeepluvani.github.io/book/00-prologue.html"},
+{"@type":"Chapter","position":1,"name":"The Loop","url":"https://kuldeepluvani.github.io/book/01-loop.html"},
+{"@type":"Chapter","position":2,"name":"Context","url":"https://kuldeepluvani.github.io/book/02-context.html"},
+{"@type":"Chapter","position":3,"name":"Tools & Environment","url":"https://kuldeepluvani.github.io/book/03-tools.html"},
+{"@type":"Chapter","position":4,"name":"Guardrails & Trust","url":"https://kuldeepluvani.github.io/book/04-guardrails.html"},
+{"@type":"Chapter","position":5,"name":"Evals & Evolution","url":"https://kuldeepluvani.github.io/book/05-evals.html"}]}
 </script>
+<meta property="og:title" content="The Harness — a field manual for AI harness engineering">
+<meta property="og:description" content="Agent = Model + Harness. Six parts, six live instruments. By Kuldeep Luvani.">
+<meta name="theme-color" content="#05070a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css?v=8">
+<style>
+  /* ---- hero ---- */
+  .hero { min-height: calc(100svh - 50px); display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; gap: 40px; padding-top: 40px; padding-bottom: 64px; }
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 32px; } .orrery { order: -1; max-width: 340px; margin: 0 auto; } }
+  .boot { font: 13px/1.75 var(--mono); color: var(--text-faint); min-height: 9.5em; margin-bottom: 18px; }
+  .boot .ok { color: var(--green); }
+  .boot .k { color: var(--cyan); }
+  .boot .caret { display: inline-block; width: .6em; height: 1.05em; vertical-align: -2px; background: var(--cyan); animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .hero h1 { font-size: clamp(54px, 9vw, 116px); line-height: .92; margin: 0 0 22px; letter-spacing: -.045em; }
+  .hero h1 em { font-style: normal; background: linear-gradient(100deg, var(--cyan) 10%, var(--violet) 90%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .equation { font: 500 clamp(15px, 1.8vw, 19px)/1.2 var(--mono); color: var(--text-dim); letter-spacing: .06em; margin-bottom: 22px; }
+  .equation b { color: #fff; font-weight: 600; }
+  .equation .h { color: var(--cyan); text-shadow: var(--glow); }
+  .byline { font: 500 13px/1.5 var(--mono); color: var(--text-faint); letter-spacing: .06em; margin: -8px 0 22px; }
+  .byline a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--rule-hi); }
+  .byline a:hover { color: var(--cyan); border-color: var(--cyan); }
+  .hero .dek { font-size: clamp(18px, 2vw, 21px); color: var(--text-dim); max-width: 34em; margin-bottom: 30px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .cta a { font: 500 14px/1 var(--mono); padding: 15px 20px; border-radius: 8px; text-decoration: none; letter-spacing: .03em; transition: transform .15s, box-shadow .15s, border-color .15s; }
+  .cta .go { background: var(--cyan); color: #00161b; box-shadow: 0 0 32px rgba(62,230,255,.35); }
+  .cta .go:hover { transform: translateY(-1px); box-shadow: 0 0 44px rgba(62,230,255,.55); }
+  .cta .alt { border: 1px solid var(--rule-hi); color: var(--text); }
+  .cta .alt:hover { border-color: var(--cyan-dim); }
+  .stats { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 40px; font: 12px/1.3 var(--mono); color: var(--text-faint); letter-spacing: .08em; text-transform: uppercase; }
+  .stats b { display: block; font: 600 28px/1 var(--sans); color: #fff; letter-spacing: -.02em; margin-bottom: 6px; }
 
+  /* orrery: the model at the centre, harness subsystems in orbit */
+  .orrery { width: 100%; aspect-ratio: 1; position: relative; }
+  .orrery svg { width: 100%; height: 100%; overflow: visible; }
+  .orrery .ring { fill: none; stroke: var(--rule-hi); stroke-width: 1; }
+  .orrery .ring.dash { stroke-dasharray: 2 6; }
+  .orrery .spin { transform-origin: 300px 300px; animation: spin var(--t, 60s) linear infinite; }
+  .orrery .spin.rev { animation-direction: reverse; }
+  .orrery:hover .spin, .orrery:focus-within .spin { animation-play-state: paused; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .orrery .node { cursor: pointer; }
+  .orrery .node circle { fill: var(--panel); stroke: var(--cyan-dim); stroke-width: 1.2; transition: stroke .2s, fill .2s; }
+  .orrery .node:hover circle, .orrery .node:focus circle { stroke: var(--cyan); fill: #0e2530; }
+  .orrery .node text { fill: var(--text); font: 500 13px var(--mono); letter-spacing: .06em; pointer-events: none; }
+  .orrery .node .n { fill: var(--cyan); font-size: 11px; }
+  .orrery .core { fill: url(#coreGrad); }
+  .orrery .core-label { fill: #fff; font: 600 20px var(--sans); letter-spacing: .14em; }
+  .orrery .core-sub { fill: var(--text-faint); font: 500 10px var(--mono); letter-spacing: .2em; }
+  .orrery .pulse { fill: none; stroke: var(--cyan); stroke-width: 1; opacity: 0; animation: ping 4s ease-out infinite; transform-origin: 300px 300px; }
+  @keyframes ping { 0% { transform: scale(.35); opacity: .7; } 100% { transform: scale(1.45); opacity: 0; } }
+
+  /* ---- section heads ---- */
+  .sec { padding-top: 96px; padding-bottom: 24px; }
+  .sec-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: end; margin-bottom: 40px; }
+  .sec-head h2 { margin: 10px 0 0; font-size: clamp(32px, 4.6vw, 54px); }
+  .sec-head p { color: var(--text-dim); margin: 0; }
+  @media (max-width: 800px) { .sec-head { grid-template-columns: 1fr; gap: 14px; } }
+
+  /* ---- contents grid ---- */
+  .toc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+  @media (max-width: 960px) { .toc { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .toc { grid-template-columns: 1fr; } }
+  .toc a { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 28px 26px 26px; background: var(--void); text-decoration: none; color: var(--text); min-height: 260px; transition: background .25s; overflow: hidden; }
+  .toc a::after { content: ""; position: absolute; inset: auto -40% -60% auto; width: 80%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(62,230,255,.14), transparent 70%); opacity: 0; transition: opacity .3s; }
+  .toc a:hover { background: var(--panel); }
+  .toc a:hover::after { opacity: 1; }
+  .toc .no { font: 600 13px/1 var(--mono); color: var(--cyan); letter-spacing: .14em; }
+  .toc h3 { margin: 0; font-size: 25px; }
+  .toc p { margin: 0; font-size: 16px; color: var(--text-dim); line-height: 1.55; }
+  .toc .inst { margin-top: auto; font: 500 11.5px/1.3 var(--mono); color: var(--text-faint); letter-spacing: .1em; text-transform: uppercase; display: flex; gap: 8px; align-items: center; }
+  .toc .inst::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+  /* ---- built ---- */
+  .built { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+  .card { grid-column: span 2; position: relative; padding: 24px; background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; display: flex; flex-direction: column; gap: 10px; transition: border-color .2s, transform .2s; }
+  .card:hover { border-color: var(--rule-hi); transform: translateY(-2px); }
+  .card.wide { grid-column: span 3; }
+  @media (max-width: 960px) { .card, .card.wide { grid-column: span 3; } }
+  @media (max-width: 640px) { .card, .card.wide { grid-column: span 6; } }
+  .card h3 { margin: 0; font-size: 21px; }
+  .card .sub { font: 500 12px/1.4 var(--mono); color: var(--cyan); letter-spacing: .04em; }
+  .card p { margin: 0; font-size: 15.5px; line-height: 1.55; color: var(--text-dim); }
+  .card .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 8px; }
+  .card .tags a, .card .tags span { font: 500 11px/1 var(--mono); padding: 6px 8px; border-radius: 4px; border: 1px solid var(--rule-hi); color: var(--text-dim); text-decoration: none; letter-spacing: .04em; }
+  .card .tags a:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+  .card .tags .ch { color: var(--violet); border-color: rgba(168,139,255,.35); }
+
+  /* mycelium feature */
+  .myc { grid-column: span 6; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 36px; padding: 32px; background: radial-gradient(ellipse at 100% 0%, rgba(168,139,255,.08), transparent 60%), var(--panel); }
+  @media (max-width: 900px) { .myc { grid-template-columns: 1fr; padding: 24px; } }
+  .myc h3 { font-size: 30px; }
+  .myc ol { margin: 6px 0 0; padding-left: 1.2em; color: var(--text-dim); font-size: 15.5px; line-height: 1.55; }
+  .myc ol li { margin-bottom: 8px; }
+  .myc ol b { color: var(--text); font-weight: 600; }
+  .myc-fig { border: 1px solid var(--rule); border-radius: 10px; background: var(--void); padding: 10px; }
+  .myc-fig svg { width: 100%; height: auto; display: block; }
+  .myc-fig text { font: 500 11px var(--mono); fill: var(--text-dim); letter-spacing: .04em; }
+  .myc-fig .stage rect { fill: var(--panel-2); stroke: var(--rule-hi); }
+  .myc-fig .stage.on rect { stroke: var(--violet); fill: #171329; }
+  .myc-fig .stage.on text { fill: #fff; }
+  .myc-fig .edge { stroke: var(--rule-hi); stroke-width: 1; }
+  .myc-fig .gnode { transition: r .4s, fill .4s; }
+  .myc-fig .flow { stroke: var(--violet); stroke-width: 1.5; stroke-dasharray: 4 6; animation: flow 1.2s linear infinite; fill: none; }
+  @keyframes flow { to { stroke-dashoffset: -20; } }
+
+  /* earlier work log */
+  .log { margin-top: 28px; border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; font: 13px/1.5 var(--mono); }
+  .log header { padding: 12px 16px; border-bottom: 1px solid var(--rule); color: var(--text-faint); letter-spacing: .12em; font-size: 11.5px; text-transform: uppercase; display: flex; justify-content: space-between; }
+  .log ul { list-style: none; margin: 0; padding: 6px 0; }
+  .log li { display: grid; grid-template-columns: 70px 90px minmax(0, 1fr); gap: 12px; padding: 7px 16px; }
+  .log li:hover { background: var(--panel); }
+  .log .h { color: var(--amber); }
+  .log .y { color: var(--text-faint); }
+  .log a { color: var(--text); text-decoration: none; }
+  .log a:hover { color: var(--cyan); }
+  @media (max-width: 560px) { .log li { grid-template-columns: 54px minmax(0, 1fr); } .log .h { display: none; } }
+
+  /* about */
+  .about { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 48px; align-items: start; padding-bottom: 96px; }
+  @media (max-width: 860px) { .about { grid-template-columns: 1fr; } }
+  .contact { display: grid; gap: 10px; }
+  .contact a { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; border: 1px solid var(--rule); border-radius: 10px; text-decoration: none; color: var(--text); font: 500 14px/1 var(--mono); background: var(--panel); transition: border-color .2s; }
+  .contact a span { color: var(--text-faint); font-size: 12px; }
+  .contact a:hover { border-color: var(--cyan-dim); color: var(--cyan); }
+</style>
+</head>
+<body>
+<header class="hud">
+  <a class="mark" href="#top"><i></i>KULDEEP LUVANI</a>
+  <nav>
+    <a href="#book">The Harness</a>
+    <a href="#built">Portfolio</a>
+    <a class="opt" href="#about">About</a>
+  </nav>
+  <div class="hud-meter"></div>
+</header>
+
+<main id="top">
+  <section class="wrap hero">
+    <div>
+      <div class="boot" id="boot" aria-hidden="true"></div>
+      <h1>The <em>Harness</em></h1>
+      <p class="equation"><b>AGENT</b> = <b>MODEL</b> + <span class="h">HARNESS</span></p>
+      <p class="byline">A field manual by <a href="#about">Kuldeep Luvani</a> · Software Engineer · <a href="#built">see my portfolio ↓</a></p>
+      <p class="dek">A free field manual for the engineering around the model: the loop, the context, the tools, the guardrails and the evals that decide whether an agent ships. Every chapter has a live instrument you can operate.</p>
+      <div class="cta">
+        <a class="go" href="book/00-prologue.html">Begin reading →</a>
+        <a class="alt" href="#built">What I've built</a>
+      </div>
+      <div class="stats">
+        <div><b>6</b>parts</div>
+
+        <div><b>6</b>live instruments</div>
+        <div><b>0</b>paywalls</div>
+      </div>
+    </div>
+
+    <div class="orrery" aria-label="The model at the centre, with the five harness subsystems in orbit. Each subsystem links to its chapter.">
+      <svg viewBox="0 0 600 600" role="img">
+        <defs>
+          <radialGradient id="coreGrad">
+            <stop offset="0%" stop-color="#3ee6ff" stop-opacity=".55"/>
+            <stop offset="45%" stop-color="#1b8fa3" stop-opacity=".25"/>
+            <stop offset="100%" stop-color="#05070a" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle class="ring dash" cx="300" cy="300" r="108"/>
+        <circle class="ring" cx="300" cy="300" r="158"/>
+        <circle class="ring dash" cx="300" cy="300" r="262"/>
+        <circle class="pulse" cx="300" cy="300" r="200"/>
+        <circle class="pulse" cx="300" cy="300" r="200" style="animation-delay:2s"/>
+        <circle class="core" cx="300" cy="300" r="96"/>
+        <circle cx="300" cy="300" r="44" fill="#071a20" stroke="#3ee6ff" stroke-width="1.2"/>
+        <text class="core-label" x="300" y="306" text-anchor="middle">MODEL</text>
+        <text class="core-sub" x="300" y="372" text-anchor="middle">EVERYTHING ELSE IS HARNESS</text>
+        <g id="orbits"></g>
+      </svg>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="book">
+    <div class="sec-head rise">
+      <div>
+        <p class="eyebrow">Contents · Harness engineering</p>
+        <h2>Six parts. One system.</h2>
+      </div>
+      <p>The same model can score 30 points apart depending on what wraps it. The harness is that wrapping, and this book takes it apart one subsystem at a time.</p>
+    </div>
+    <div class="toc rise" id="toc"></div>
+  </section>
+
+  <section class="wrap sec" id="built">
+    <div class="sec-head rise">
+      <div>
+        <p class="eyebrow">Portfolio · field work</p>
+        <h2>Harnesses I've built</h2>
+      </div>
+      <p>The book is the theory. These projects are where I tested it, mostly personal tools built around coding agents. Each one is tagged with the chapter it puts into practice.</p>
+    </div>
+
+    <div class="built">
+      <article class="card myc rise">
+        <div>
+          <p class="sub">MYCELIUM · SELF-ENRICHING KNOWLEDGE ENGINE</p>
+          <h3>A knowledge network that grows its own specialists</h3>
+          <p style="margin:10px 0 14px">Most memory systems store what you give them and hope retrieval finds it later. Mycelium works the other way round. It reads a body of notes and code, decides what is true, and organizes itself around what it has learned. Concretely:</p>
+          <ol>
+            <li><b>Perceive in layers.</b> Each source passes through a pipeline: a cheap structural parse, then a deep extraction of entities, relationships and claims.</li>
+            <li><b>Argue before believing.</b> A separate adversarial pass challenges every extracted claim, and a consistency check tests it against what the graph already holds. Only reconciled facts get in, each with a confidence score.</li>
+            <li><b>Remember like a living thing.</b> Facts carry provenance and decay over time unless new evidence reinforces them, and duplicates are merged at three levels of similarity.</li>
+            <li><b>Grow specialists from structure.</b> Community detection finds dense clusters in the graph, and each cluster becomes a specialist agent that knows its region deeply.</li>
+            <li><b>Route through a cortex.</b> A second tier of meta-agents supervises the specialists and decides which ones to consult for a question.</li>
+          </ol>
+          <div class="tags" style="margin-top:16px">
+            <span class="ch">Ch 2 · Context &amp; memory</span><span class="ch">Ch 5 · Verification</span>
+            <a href="https://github.com/kuldeepluvani/mycelium" target="_blank" rel="noopener">GitHub ↗</a>
+          </div>
+        </div>
+        <div class="myc-fig" aria-label="Diagram: sources flow through five perception stages into a knowledge graph whose clusters become specialist agents, supervised by meta-agents.">
+          <svg viewBox="0 0 520 400" id="mycFig"></svg>
+        </div>
+      </article>
+
+      <article class="card wide rise">
+        <p class="sub">CLAIM · DEVELOPER KNOWLEDGE OS</p>
+        <h3>Memory that writes itself</h3>
+        <p>A single-file, self-bootstrapping memory system for coding agents. Lifecycle hooks capture decisions and discoveries as you work, structure them into an entity graph, and inject a briefing at the start of each session, so every session begins where the last one left off. It stores plain markdown you own.</p>
+        <div class="tags"><span class="ch">Ch 2 · Context</span><span class="ch">Ch 3 · Hooks</span><a href="https://github.com/kuldeepluvani/claim" target="_blank" rel="noopener">GitHub ↗</a></div>
+      </article>
+
+      <article class="card wide rise">
+        <p class="sub">CLAUDEGOTCHI · DEVELOPER WELLNESS PLUGIN</p>
+        <h3>A harness for the human</h3>
+        <p>A Tamagotchi-style companion that lives in the agent's status line and watches session length, velocity and frustration. Its intelligence runs as deterministic shell hooks at near-zero token cost, and the model only hears about it when you actually need to stop.</p>
+        <div class="tags"><span class="ch">Ch 3 · Deterministic hooks</span><a href="https://github.com/kuldeepluvani/ClaudeGotchi" target="_blank" rel="noopener">GitHub ↗</a></div>
+      </article>
+
+      <article class="card rise">
+        <p class="sub">BRAINCORE</p>
+        <h3>Your digital brain, in sync</h3>
+        <p>A personal knowledge base on vector search: ingest documents, search them semantically, and get contextual answers from your own data.</p>
+        <div class="tags"><span class="ch">Ch 2 · Retrieval</span><span>private repo</span></div>
+      </article>
+
+      <article class="card rise">
+        <p class="sub">BRAINCAST</p>
+        <h3>Podcast intelligence</h3>
+        <p>Transcript analysis and AI-assisted content predictions across podcast catalogues, with a full web stack behind it.</p>
+        <div class="tags"><span class="ch">Ch 1 · Pipelines</span><a href="https://github.com/aircuboid/BrainCast" target="_blank" rel="noopener">GitHub ↗</a></div>
+      </article>
+
+      <article class="card rise">
+        <p class="sub">COCOSTORY</p>
+        <h3>Stories for small humans</h3>
+        <p>An interactive children's story generator that creates personalized, illustrated stories with AI-generated narratives.</p>
+        <div class="tags"><span class="ch">Ch 4 · Safe outputs</span><a href="https://github.com/aircuboid/cocostory" target="_blank" rel="noopener">GitHub ↗</a></div>
+      </article>
+    </div>
+
+    <div class="log rise">
+      <header><span>git log --oneline earlier-work/</span><span>2017 →</span></header>
+      <ul>
+        <li><span class="y">2025</span><span class="h">a41c9e2</span><a href="https://github.com/kuldeepluvani/GitTimeMachine" target="_blank" rel="noopener">GitTimeMachine: a self-healing repo that wakes itself up daily through CI</a></li>
+        <li><span class="y">2022</span><span class="h">7d03b1f</span><a href="https://github.com/kuldeepluvani/Distracted-Driver-Detection-using-Keras-VGG16-model" target="_blank" rel="noopener">Distracted-driver detection: transfer learning on VGG16</a></li>
+        <li><span class="y">2017</span><span class="h">c95e0aa</span><a href="https://github.com/kuldeepluvani/Human-Resource-Analysis" target="_blank" rel="noopener">HR attrition analysis: why employees leave</a></li>
+        <li><span class="y">2017</span><span class="h">1f8b6d4</span><a href="https://github.com/kuldeepluvani/Word_Embeddings_using_LDA_and_Word2Vec_gensim_models" target="_blank" rel="noopener">Topic modeling and word embeddings: LDA + Word2Vec</a></li>
+        <li><span class="y">2017</span><span class="h">e2a7730</span><a href="https://github.com/kuldeepluvani/Travelling-Salesmen-problem" target="_blank" rel="noopener">Travelling salesman via a genetic algorithm</a></li>
+        <li><span class="y">2017</span><span class="h">0b4d19c</span><a href="https://github.com/kuldeepluvani/Movie-Recommendation-Engine" target="_blank" rel="noopener">Movie recommendation engine</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="wrap sec" id="about">
+    <div class="about">
+      <div class="rise">
+        <p class="eyebrow">Operator</p>
+        <h2 style="margin-top:10px">Kuldeep Luvani</h2>
+        <p class="dim" style="font-family:var(--mono);font-size:14px;letter-spacing:.06em">SOFTWARE ENGINEER</p>
+        <p>I started in machine learning, with computer vision, NLP and recommender systems, back when the model was the whole product. Now I build the scaffolding around models: memory, hooks, knowledge graphs, and the verification loops that make an agent trustworthy.</p>
+        <p>I wrote <em>The Harness</em> because the most useful knowledge in this field is scattered across papers, engineering posts and incident write-ups. This is my attempt to put it in one place, in order, with the receipts.</p>
+      </div>
+      <div class="contact rise">
+        <a href="https://github.com/kuldeepluvani" target="_blank" rel="noopener">GitHub <span>@kuldeepluvani ↗</span></a>
+        <a href="https://www.linkedin.com/in/kuldeep-luvani-28a93336/" target="_blank" rel="noopener">LinkedIn <span>connect ↗</span></a>
+        <a href="mailto:kuldeepluvani@gmail.com">Email <span>kuldeepluvani@gmail.com</span></a>
+        <a href="https://pythonhighschool.wordpress.com/" target="_blank" rel="noopener">Blog <span>Python High School ↗</span></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot"><div class="wrap"><span>© 2026 Kuldeep Luvani · The Harness is free to read and share with attribution.</span><span><a href="#book">Contents</a> · <a href="book/sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani/kuldeepluvani.github.io">Source code</a></span></div></footer>
+
+<script src="assets/site.js?v=8"></script>
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const CH = [
+    { f: '00-prologue', n: '00', t: 'Agent = Model + Harness', short: 'PROLOGUE', d: 'Identical weights, different scores. Why most of an agent’s performance lives outside the model, and where the term came from.', i: 'Harness swap bench' },
+    { f: '01-loop', n: '01', t: 'The Loop', short: 'LOOP', d: 'Observe, plan, act, verify. Stop conditions, Ralph loops, sub-agents, and how a long-running agent survives the session boundary.', i: 'Loop stepper' },
+    { f: '02-context', n: '02', t: 'Context', short: 'CONTEXT', d: 'The advertised window is not the usable window. Context rot, compaction, memory tiers, and the economics of the KV cache.', i: 'Context rot gauge' },
+    { f: '03-tools', n: '03', t: 'Tools & Environment', short: 'TOOLS', d: 'The agent-computer interface as a design surface: fewer, sharper tools, MCP and its bill, sandboxes, skills and hooks.', i: 'ACI ablation board' },
+    { f: '04-guardrails', n: '04', t: 'Guardrails & Trust', short: 'GUARDRAILS', d: 'The lethal trifecta, real incidents, permission tiers, and why deterministic enforcement beats a sentence in a prompt.', i: 'Trifecta checker' },
+    { f: '05-evals', n: '05', t: 'Evals & Evolution', short: 'EVALS', d: 'pass@k versus pass^k, contamination, graders that lie, and harnesses that improve themselves without regressing.', i: 'Reliability dial' },
+  ];
+
+  // contents grid
+  H.$('#toc').innerHTML = CH.map(c => `
+    <a href="book/${c.f}.html">
+      <span class="no">${c.n === '00' ? 'PROLOGUE' : 'CHAPTER ' + c.n}</span>
+      <h3>${c.t}</h3>
+      <p>${c.d}</p>
+      <span class="inst">Live · ${c.i}</span>
+    </a>`).join('');
+
+  // orrery: five subsystems on two orbits, each a link to its chapter
+  const NS = 'http://www.w3.org/2000/svg';
+  const orbits = H.$('#orbits');
+  const rings = [{ r: 158, t: '80s', rev: false, items: [1, 2, 3] }, { r: 262, t: '120s', rev: true, items: [4, 5] }];
+  rings.forEach(ring => {
+    const g = document.createElementNS(NS, 'g');
+    g.setAttribute('class', 'spin' + (ring.rev ? ' rev' : ''));
+    g.style.setProperty('--t', ring.t);
+    ring.items.forEach((idx, k) => {
+      const a = (k / ring.items.length) * Math.PI * 2 - Math.PI / 2 + (ring.rev ? .6 : 0);
+      const x = 300 + ring.r * Math.cos(a), y = 300 + ring.r * Math.sin(a);
+      const c = CH[idx];
+      const link = document.createElementNS(NS, 'a');
+      link.setAttribute('href', `book/${c.f}.html`);
+      link.setAttribute('class', 'node');
+      link.setAttribute('aria-label', `Chapter ${idx}: ${c.t}`);
+      // counter-rotate the label so text stays upright while the orbit turns
+      link.innerHTML = `<g style="transform-origin:${x}px ${y}px;animation:spin ${ring.t} linear infinite ${ring.rev ? '' : 'reverse'}">
+        <circle cx="${x}" cy="${y}" r="46"/>
+        <text class="n" x="${x}" y="${y - 6}" text-anchor="middle">${c.n}</text>
+        <text x="${x}" y="${y + 12}" text-anchor="middle">${c.short}</text></g>`;
+      g.appendChild(link);
+    });
+    orbits.appendChild(g);
+  });
+
+  // boot sequence
+  const lines = [
+    ['> harness.init()', 'k'],
+    ['  loading loop .......... ', 'ok', 'ok'],
+    ['  loading context ....... ', 'ok', 'ok'],
+    ['  loading tools ......... ', 'ok', 'ok'],
+    ['  loading guardrails .... ', 'ok', 'ok'],
+    ['  loading evals ......... ', 'ok', 'ok'],
+    ['> agent ready. model attached.', 'k'],
+  ];
+  const boot = H.$('#boot');
+  const render = n => boot.innerHTML = lines.slice(0, n).map(([t, cls, tail]) =>
+    tail ? `${t}<span class="${cls}">[${tail}]</span>` : `<span class="${cls}">${t}</span>`).join('<br>') + ' <span class="caret"></span>';
+  if (reduce) render(lines.length);
+  else { let i = 0; render(0); const iv = setInterval(() => { render(++i); if (i >= lines.length) clearInterval(iv); }, 260); }
+
+  // mycelium concept diagram: 5 perception stages → graph → clusters → specialists → meta-agents
+  const fig = H.$('#mycFig');
+  const stages = ['STRUCTURE', 'EXTRACT', 'CHALLENGE', 'CONSISTENCY', 'RECONCILE'];
+  let svg = '';
+  svg += `<text x="12" y="22" fill="var(--text-faint)">NOTES + CODE</text>`;
+  svg += `<path class="flow" d="M70 18 H 92"/>`;
+  stages.forEach((s, i) => {
+    const x = 96 + i * 84;
+    svg += `<g class="stage" data-i="${i}"><rect x="${x}" y="6" width="78" height="26" rx="4"/><text x="${x + 39}" y="23" text-anchor="middle">${s}</text></g>`;
+  });
+  svg += `<path class="flow" d="M490 32 V 60 H 260 V 80"/>`;
+  // graph: deterministic pseudo-random layout in three clusters
+  const seed = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(7);
+  const clusters = [{ cx: 120, cy: 190, c: 'var(--cyan)' }, { cx: 260, cy: 150, c: 'var(--violet)' }, { cx: 395, cy: 200, c: 'var(--green)' }];
+  const nodes = [];
+  clusters.forEach((cl, ci) => { for (let k = 0; k < 9; k++) { const a = seed() * Math.PI * 2, d = 12 + seed() * 46; nodes.push({ x: cl.cx + Math.cos(a) * d, y: cl.cy + Math.sin(a) * d * .8, ci }); } });
+  const edges = [];
+  nodes.forEach((n, i) => nodes.forEach((m, j) => { if (j > i && Math.hypot(n.x - m.x, n.y - m.y) < (n.ci === m.ci ? 38 : 30)) edges.push([n, m]); }));
+  svg += edges.map(([a, b]) => `<line class="edge" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`).join('');
+  svg += nodes.map((n, i) => `<circle class="gnode" data-ci="${n.ci}" cx="${n.x}" cy="${n.y}" r="3.2" fill="var(--text-faint)"/>`).join('');
+  svg += `<text x="12" y="100" fill="var(--text-faint)">KNOWLEDGE GRAPH · confidence · decay · provenance</text>`;
+  // specialists + meta
+  clusters.forEach((cl, i) => {
+    svg += `<path class="flow" d="M${cl.cx} 262 V 300" style="stroke:${cl.c}"/>`;
+    svg += `<g><rect x="${cl.cx - 52}" y="300" width="104" height="26" rx="13" fill="var(--panel-2)" stroke="${cl.c}"/><text x="${cl.cx}" y="317" text-anchor="middle">SPECIALIST ${i + 1}</text></g>`;
+    svg += `<path class="flow" d="M${cl.cx} 326 V 344 H 258"/>`;
+  });
+  svg += `<rect x="168" y="348" width="180" height="30" rx="6" fill="#171329" stroke="var(--violet)"/><text x="258" y="367" text-anchor="middle" fill="#fff">META-AGENT · ROUTER</text>`;
+  fig.innerHTML = svg;
+
+  // animate: stages light up in sequence, then clusters colour in
+  const st = H.$$('.stage', fig), gn = H.$$('.gnode', fig);
+  let step = 0;
+  const tick = () => {
+    st.forEach((s, i) => s.classList.toggle('on', i === step % 7));
+    const lit = step % 7 >= 5;
+    gn.forEach(n => { const cl = clusters[+n.dataset.ci]; n.setAttribute('fill', lit ? cl.c : 'var(--text-faint)'); n.setAttribute('r', lit ? 4.2 : 3.2); });
+    step++;
+  };
+  tick();
+  if (!reduce) setInterval(tick, 900);
+})();
+</script>
 </body>
 </html>

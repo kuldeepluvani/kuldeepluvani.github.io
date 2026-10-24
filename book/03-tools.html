@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LDoeUxFiQd2aAYjORtmv5N4Nbv9zs0ilhJ715E0N8eI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tools for AI Agents: MCP, Sandboxes, Skills and Hooks · The Harness</title>
+<meta name="description" content="The tools an agent holds and the machine it runs them on move success rates as much as a model upgrade. How to design them, how many to give, and where to run them.">
+<link rel="canonical" href="https://kuldeepluvani.github.io/book/03-tools.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/site.css?v=8">
+<style>
+  /* ACI ablation board (aci-) and tool bill (bill-) */
+  .aci-top { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .aci-unit { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint); }
+  .aci-hero { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 20px; align-items: center; }
+  .aci-hero .readout { grid-row: span 2; font-size: clamp(46px, 8vw, 72px); letter-spacing: -.03em; transition: color .3s, text-shadow .3s; }
+  .aci-hero .readout.aci-nm { color: var(--amber); text-shadow: 0 0 24px rgba(255,179,71,.25); }
+  .aci-status { color: var(--text-dim); font-size: 12.5px; min-height: 1.5em; }
+  .aci-status b { font-weight: 600; color: var(--green); }
+  .aci-status b.aci-warn { color: var(--amber); }
+  .aci-status b.aci-base { color: var(--violet); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .aci-chart { margin-top: 12px; width: 100%; height: auto; display: block; overflow: visible; }
+  .aci-chart text { font-family: var(--mono); font-size: 10.5px; fill: var(--text-faint); }
+  .aci-chart text.aci-val { fill: var(--text); font-weight: 600; }
+  .aci-chart .aci-row-l { fill: var(--text-dim); font-size: 9.5px; letter-spacing: .12em; }
+  .aci-chart .aci-dot { cursor: pointer; transition: r .2s, fill .2s, stroke .2s; }
+  .aci-chart .aci-dot:hover { stroke: var(--cyan); }
+  .aci-chart .aci-off .aci-dot { cursor: default; opacity: .35; }
+  .aci-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; align-items: start; }
+  .aci-knobs { display: grid; gap: 10px; transition: opacity .25s; }
+  .aci-knobs.aci-off { opacity: .4; }
+  .aci-knob { display: grid; gap: 5px; }
+  .aci-knob > span { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); }
+  .aci-seg { display: flex; flex-wrap: wrap; gap: 5px; }
+  .aci-seg .chip { padding: 7px 10px; font-size: 12px; }
+  .aci-seg .chip[data-def]::after { content: " ·"; color: var(--text-faint); }
+  .aci-seg .chip:disabled { cursor: not-allowed; }
+  /* the agent's literal view: a mock terminal whose viewer window resizes with the knobs */
+  .aci-term { position: relative; height: 236px; overflow: hidden; background: var(--void); border: 1px solid var(--rule-hi); border-radius: 8px; padding: 26px 12px 10px; font: 11px/1.55 var(--mono); color: var(--text-dim); box-shadow: inset 0 0 40px rgba(62,230,255,.05); }
+  .aci-term::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(62,230,255,.035) 0 1px, transparent 1px 3px); }
+  .aci-term::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 56px; pointer-events: none; background: linear-gradient(180deg, transparent, var(--void)); }
+  .aci-term .t-h { position: absolute; top: 0; left: 0; right: 0; padding: 4px 12px; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); border-bottom: 1px solid var(--rule); background: var(--panel); }
+  .aci-term .t-cmd { color: var(--cyan); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .aci-term .t-cmd::before { content: "$ "; color: var(--text-faint); }
+  .aci-term .t-ok { color: var(--green); }
+  .aci-term .t-warn { color: var(--amber); }
+  .aci-term .t-dim { color: var(--text-faint); }
+  .aci-term .t-win { margin: 3px 0 4px; padding: 3px 6px; border-left: 2px solid var(--cyan-dim); background: rgba(62,230,255,.05); transform-origin: top; animation: t-grow .35s cubic-bezier(.2,.8,.2,1); }
+  .aci-term .t-win.t-nowin { border-left-color: var(--red); background: rgba(255,93,108,.05); }
+  .aci-term .t-win.t-old { border-left-color: var(--rule-hi); background: transparent; opacity: .5; }
+  @keyframes t-grow { from { opacity: 0; transform: scaleY(.6); } }
+  .aci-term .t-l { display: flex; gap: 6px; align-items: center; height: 9px; }
+  .aci-term .t-l i { display: block; height: 4px; border-radius: 2px; background: var(--rule-hi); }
+  .aci-term .t-l b { flex: 0 0 26px; font-weight: 400; color: var(--text-faint); font-size: 9px; }
+  .aci-hint { margin: 12px 0 0; font-size: 12px; color: var(--text-faint); display: flex; gap: 8px; align-items: baseline; }
+  .aci-hint::before { content: "▸"; color: var(--cyan); }
+  .aci-hint kbd { font-size: 11px; padding: 1px 6px; }
+  .aci-hint .aci-auto { color: var(--cyan); animation: pulse 1.6s infinite; }
+  /* tool bill */
+  .bill { margin-top: 22px; border: 1px solid var(--rule); border-radius: 8px; padding: 16px; background: var(--panel-2); }
+  .bill-h { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+  .bill-row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin: 8px 0 2px; }
+  .bill-big { font: 600 clamp(26px, 4vw, 34px)/1 var(--sans); color: var(--cyan); font-variant-numeric: tabular-nums; transition: color .3s, text-shadow .3s; }
+  .bill-big.bill-hot { color: var(--amber); text-shadow: 0 0 20px rgba(255,179,71,.3); }
+  .bill-left { color: var(--text-faint); font-size: 12px; }
+  .bill-win { cursor: ew-resize; touch-action: none; }
+  .bill-win .bill-blk { fill: var(--cyan); opacity: .85; transition: fill .3s; }
+  .bill-win.bill-hot .bill-blk { fill: var(--amber); }
+  .bill-cx { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--rule-hi); }
+  .bill-cx .row { justify-content: space-between; }
+  .bill-cx .bill-h { margin: 0; }
+  .bill-cm { margin-top: 10px; display: grid; grid-template-columns: 76px minmax(0, 1fr) 64px; gap: 6px 10px; align-items: center; font-size: 12px; color: var(--text-dim); }
+  .bill-cm .bar { height: 16px; }
+  .bill-cm .bar > span { transition: width .7s cubic-bezier(.2,.8,.2,1), background .7s; }
+  .bill-cm .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+  .bill-note { margin-top: 8px; font-size: 12px; color: var(--green); min-height: 1.5em; }
+  @media (max-width: 640px) { .aci-split { grid-template-columns: 1fr; } .aci-hero { grid-template-columns: 1fr; gap: 4px; } .aci-hero .readout { grid-row: auto; } .aci-term { height: 200px; } .bill-cm { grid-template-columns: 64px minmax(0, 1fr) 58px; } }
+</style>
+</head>
+<body>
+<header class="hud">
+  <a class="mark" href="../index.html"><i></i>KULDEEP LUVANI</a>
+  <nav>
+    <a href="../index.html#book">The Harness</a>
+    <a class="opt" href="../index.html#built">Portfolio</a>
+  </nav>
+  <div class="hud-meter"></div>
+</header>
+
+<main class="wrap">
+  <section class="ch-hero">
+    <div class="num" aria-hidden="true">03</div>
+    <p class="eyebrow">The Harness · Chapter 3</p>
+    <h1>Tools &amp; Environment</h1>
+    <p class="dek">The agent's hands are a design surface. Change the interface and the same model solves more problems; give it the wrong tools, or too many, and it solves fewer.</p>
+    <div class="ch-meta"><span>~10 MIN READ</span><span>1 LIVE INSTRUMENT</span></div>
+  </section>
+
+  <div class="ch-body">
+    <article class="prose">
+      <p class="lede">Give GPT-4 Turbo a plain shell and point it at SWE-bench Lite: it resolves 11.0% of the issues. Keep the model and the tasks fixed, replace the shell with a purpose-built interface, and it resolves 18.0%. That is seven points, a 64% relative gain, and not one weight changed.<sup class="cite"><a href="#r1">1</a></sup> This chapter is about that interface: the tools an agent holds, the machine it runs them on, and why both deserve as much engineering as the prompt.</p>
+
+      <h2 id="s-1">The interface is a variable</h2>
+      <p>The Princeton team behind SWE-agent named the thing they built an agent-computer interface, by deliberate analogy with the IDE. Humans got better at software when editors learned to jump to definitions and underline errors. Models are no different, except that their editor has to be designed for a reader that sees text, not pixels.<sup class="cite"><a href="#r1">1</a></sup></p>
+      <p>Their four design principles read like a style guide for any tool you will ever hand a model: actions should be simple and easy to understand; they should be compact and efficient; feedback should be informative but concise; and guardrails should stop errors from compounding.<sup class="cite"><a href="#r1">1</a></sup> None of these is about the model. All of them are about you.</p>
+
+      <h2 id="s-2">What a good tool looks like</h2>
+      <p>Anthropic's guidance on writing tools lands in the same place from the other direction.<sup class="cite"><a href="#r2">2</a></sup> Consolidate: one <code>schedule_event</code> beats separate <code>list_users</code>, <code>list_events</code> and <code>create_event</code> calls, and <code>search_logs</code> beats <code>read_logs</code>. Namespace by service and resource, as in <code>asana_projects_search</code>, so similar tools stop colliding. Return high-signal context: a Slack tool answering in a concise format used 72 tokens where the detailed one used 206. Claude Code caps tool results at 25,000 tokens and nudges the agent toward narrower queries when it hits the cap. Prefer names to UUIDs, because agents handle natural-language identifiers far better than opaque ones.<sup class="cite"><a href="#r2">2</a></sup></p>
+
+      <blockquote class="pull">“Tools are a new kind of software reflecting a contract between deterministic systems and non-deterministic agents.”<cite>— Ken Aizawa, Anthropic (2025)</cite></blockquote>
+
+      <p>The cheapest lever is the description. Anthropic's platform docs call detailed descriptions “by far the most important factor in tool performance” and ask for at least three to four sentences per tool.<sup class="cite"><a href="#r3">3</a></sup> Compare:</p>
+<pre>// before
+get_stock_price  "Gets the stock price for a ticker."
+  ticker: string
+
+// after
+get_stock_price  "Returns the most recent trade price, in USD,
+  for one exchange-listed ticker. Use it when the user wants a
+  current quote. It returns no history, volume or fundamentals;
+  call a different tool for those. Fails on unlisted symbols."
+  ticker: string   // uppercase symbol, e.g. "AAPL"</pre>
+      <p>The SWE-agent ablations put numbers on these principles.<sup class="cite"><a href="#r1">1</a></sup> A 100-line file viewer beat both a 30-line window and the whole file, which is pagination by another name. An editor that lints every change beat one that does not, which is a guardrail. Summarized search beat iterative search, which is high-signal returns. And iterative search scored below no search at all: a badly shaped tool costs more than a missing one. Try it.</p>
+
+      <section class="instrument" id="inst" aria-label="ACI ablation board">
+        <header>ACI ablation board<span class="tag">data: SWE-agent [1], GitHub MCP [4]</span></header>
+        <div class="body">
+          <div class="aci-top">
+            <span class="aci-unit">GPT-4 Turbo · SWE-bench Lite · % of issues resolved · dot = paper default</span>
+            <button class="chip warn" id="aci-shell" type="button" aria-pressed="false">Shell only</button>
+          </div>
+          <div class="aci-hero">
+            <div class="readout ok" id="aci-read" aria-live="polite"><span id="aci-readv" aria-hidden="true">18.0%</span><span class="sr" id="aci-reads">18.0%</span></div>
+            <div class="aci-unit" id="aci-unit">resolved</div>
+            <div class="aci-status" id="aci-status"></div>
+          </div>
+          <svg class="aci-chart" id="aci-chart" viewBox="0 0 400 134" role="img" aria-label="Dot chart: every measured single-knob configuration on a 0 to 20 percent scale, one row per knob, with the current configuration marked by a vertical line">
+            <defs>
+              <filter id="aci-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <g id="aci-grid"></g>
+            <g id="aci-rows" aria-hidden="true"></g>
+            <line id="aci-cur" x1="0" x2="0" y1="16" y2="116" stroke="var(--green)" stroke-width="2" filter="url(#aci-glow)"/>
+          </svg>
+          <div class="aci-split">
+            <div class="aci-knobs" id="aci-knobs" role="group" aria-label="Interface knobs"></div>
+            <div class="aci-term" id="aci-term" aria-hidden="true"><div class="t-h">what the model sees · illustration</div><div id="aci-tb"></div></div>
+          </div>
+          <p class="aci-hint" id="aci-hint"><span class="aci-auto" id="aci-auto">auto-demo · touch any control to take over ·</span><span>Try: set Viewer to <kbd>30 lines</kbd>, then flip <kbd>Shell only</kbd>. Same model, same tasks.</span></p>
+
+          <div class="bill" aria-label="Tool bill">
+            <div class="bill-h">Tool bill · definitions loaded before the first user message</div>
+            <label for="bill-n">Tool definitions: <b id="bill-nv">93</b></label>
+            <input type="range" id="bill-n" min="0" max="100" value="93" step="1">
+            <div class="bill-row">
+              <span class="bill-big" id="bill-tok">55,000</span>
+              <span>tokens ·</span>
+              <span id="bill-share">27.5% of a 200K window</span>
+              <span class="bill-left" id="bill-left"></span>
+            </div>
+            <svg class="aci-chart bill-win" id="bill-win" viewBox="0 0 400 66" role="img" aria-label="A 200K context window filling with stacked tool-definition blocks. Drag across it to change the tool count.">
+              <rect x="0" y="4" width="400" height="38" rx="3" fill="var(--void)" stroke="var(--rule)"/>
+              <g id="bill-blocks"></g>
+              <line id="bill-mk" x1="0" x2="0" y1="0" y2="48" stroke="var(--amber)" stroke-dasharray="3 2"/>
+              <text id="bill-mkt" x="0" y="60" fill="var(--amber)">GitHub MCP: 93 tools ≈ 55k</text>
+              <text x="400" y="60" text-anchor="end">200K window</text>
+            </svg>
+            <div class="bill-cx" aria-label="Code-execution pattern comparison">
+              <div class="row"><span class="bill-h">Same workflow, two ways</span><button class="chip" id="bill-code" type="button" aria-pressed="false">Run it as code instead</button></div>
+              <div class="bill-cm">
+                <span id="bill-cml">tool calls</span><div class="bar amber" id="bill-cmb"><span style="width:100%"></span></div><span class="n" id="bill-cmn">150,000</span>
+              </div>
+              <div class="bill-note" id="bill-note" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">Every measured value is a single-knob ablation from the full SWE-agent configuration (18.0%) or the shell-only baseline (11.0%), GPT-4 Turbo on SWE-bench Lite <a href="#r1">[1]</a>. The paper does not test combinations: with two or more knobs changed the board says “not measured” and shows an additive estimate (18.0 plus the sum of single-knob deltas, floored at 0), which is a model, not a result. The terminal pane is an illustration of each interface's shape, not output from the paper. Tool bill: ≈591 tokens per tool, derived as 55,000 / 93 from the GitHub MCP server figure <a href="#r4">[4]</a>; real definitions vary widely in size. Code-execution figure from <a href="#r5">[5]</a>.</div>
+      </section>
+
+      <div class="note"><b>Field note</b>Review tools like public APIs. Every tool gets a description of three or more sentences saying what it returns, when to use it and what it will not do. Default responses to a concise format, paginate anything that can grow, and if two tools are usually called back to back, merge them.</div>
+
+      <h2 id="s-3">The tool-count cliff</h2>
+      <p>More tools do not mean a more capable agent. Anthropic lists bloated tool sets with ambiguous decision points among the most common failure modes and recommends a minimal viable set.<sup class="cite"><a href="#r6">6</a></sup> The measurements agree. With a large MCP tool pool dumped into the prompt, RAG-MCP found tool-selection accuracy of 13.62%; retrieving a shortlist first raised it to 43.13% and more than halved prompt tokens.<sup class="cite"><a href="#r7">7</a></sup></p>
+      <p>A production routing study with 110 agents and 584 tools saw F1 on under-specified requests fall 16 to 23 points as the catalog grew from 10 agents to 110. Even with perfect retrieval the ceiling dropped about 10 points, a confusion gap that no shortlist can close; embedding shortlists won back 10 to 11 points.<sup class="cite"><a href="#r8">8</a></sup> On edge devices, pruning the tool list improved function calling and cut execution time by up to 70% and power by up to 40%.<sup class="cite"><a href="#r9">9</a></sup></p>
+      <p>Manus adds a constraint from the serving side: do not add or remove tools mid-task. Definitions sit near the front of the context, so changing them invalidates the KV cache and leaves earlier calls pointing at tools that no longer exist. Their fix is to keep the list stable and mask token logits instead. Mask, don't remove.<sup class="cite"><a href="#r10">10</a></sup></p>
+
+      <h2 id="s-4">MCP: the standard and its bill</h2>
+      <p>The Model Context Protocol is JSON-RPC 2.0 over stateful connections with capability negotiation. Servers offer tools, resources and prompts; clients offer sampling, roots and elicitation. The spec takes the Language Server Protocol as its model, and the payoff is the same: write an integration once and every compliant client can use it.<sup class="cite"><a href="#r11">11</a></sup></p>
+      <p>The bill arrives before the first question. The GitHub MCP server's 93 tools take roughly 55,000 tokens of definitions, loaded whether or not the task touches GitHub.<sup class="cite"><a href="#r4">4</a></sup> That is over a quarter of a 200K window spent on a menu. Drag the slider above to see how fast a few servers add up.</p>
+      <p>Then there is the attack surface. The spec says it plainly: “Tools represent arbitrary code execution and must be treated with appropriate caution,” and descriptions from untrusted servers are untrusted input.<sup class="cite"><a href="#r11">11</a></sup> Invariant Labs showed why. Hidden instructions in a tool description got Cursor to read <code>~/.cursor/mcp.json</code> and <code>~/.ssh/id_rsa</code> and leak them. A server can change its descriptions after you approve it, and a malicious tool can shadow the behavior of a trusted one on the same client.<sup class="cite"><a href="#r12">12</a></sup></p>
+      <p>Two teams converged on the same answer. Anthropic proposed presenting MCP servers to the agent as a filesystem of code modules: the agent reads only the files it needs and writes code that calls them, so intermediate results stay in the execution environment and sensitive fields can be tokenized before the model sees them. One workflow dropped from 150,000 tokens to 2,000.<sup class="cite"><a href="#r5">5</a></sup> Cloudflare turned MCP schemas into a TypeScript API and ran the generated code in V8 isolates that start in milliseconds, use a few megabytes, and can reach nothing but the bound servers.<sup class="cite"><a href="#r13">13</a></sup></p>
+
+      <blockquote class="pull">“LLMs are better at writing code to call MCP, than at calling MCP directly.”<cite>— Kenton Varda &amp; Sunil Pai, Cloudflare (2025)</cite></blockquote>
+
+      <h2 id="s-5">Code means a sandbox</h2>
+      <p>Once the agent writes and runs code, isolation stops being optional. The question is how thick the wall needs to be, and the answer comes from two numbers: how much you trust the code, and how fast the environment must start.</p>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead><tr><th>Primitive</th><th>Wall</th><th>Trade-off</th></tr></thead>
+          <tbody>
+            <tr><td>Container</td><td>Namespaces on a shared host kernel</td><td>Cheapest; weakest boundary of the set<sup class="cite"><a href="#r14">14</a></sup></td></tr>
+            <tr><td>gVisor</td><td>Userspace kernel (Sentry) intercepts syscalls; Gofer mediates files</td><td>Lower app compatibility, higher per-syscall overhead<sup class="cite"><a href="#r14">14</a></sup></td></tr>
+            <tr><td>Firecracker microVM</td><td>KVM, minimal device model, Jailer drops privileges</td><td>Runs Lambda and Fargate at trillions of requests a month<sup class="cite"><a href="#r15">15</a></sup></td></tr>
+            <tr><td>Hosted microVM</td><td>E2B: Firecracker VM per session</td><td>1h or 24h max runtime; 20 or 100 concurrent, by plan<sup class="cite"><a href="#r16">16</a></sup></td></tr>
+            <tr><td>Hosted sandbox</td><td>Daytona: dedicated kernel, filesystem, network</td><td>Claims under 90 ms to execution<sup class="cite"><a href="#r17">17</a></sup></td></tr>
+            <tr><td>V8 isolate</td><td>No general internet, only bindings</td><td>Milliseconds to start; JS/TS only<sup class="cite"><a href="#r13">13</a></sup></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The sandbox also changes what you can permit. Claude Code pairs permission allowlists with OS-level filesystem and network restrictions so the agent can work with fewer interruptions inside a known boundary.<sup class="cite"><a href="#r18">18</a></sup> The wall is what makes autonomy affordable.</p>
+
+      <h2 id="s-6">Once there's a disk, use it</h2>
+      <p>A sandbox comes with a filesystem, and a filesystem is memory the context window cannot match. Anthropic recommends holding lightweight identifiers such as paths, stored queries and links, then loading the content just in time, because recall degrades as the window fills.<sup class="cite"><a href="#r6">6</a></sup> Manus treats the file system as unlimited, persistent, structured memory and compresses only restorably: drop the page but keep the URL, drop the document but keep the path. The economics push hard in that direction. Their input-to-output ratio runs about 100:1, and cached input costs $0.30 per million tokens against $3 uncached.<sup class="cite"><a href="#r10">10</a></sup></p>
+      <p>Skills apply the same idea to instructions. A skill is a folder with a <code>SKILL.md</code>: a YAML name and description, a body, and optional files. Only the name and description sit in the system prompt at startup; the body loads when the task matches; linked files load only when needed. Anthropic compares writing one to assembling an onboarding guide for a new hire.<sup class="cite"><a href="#r19">19</a></sup> The always-loaded file, <code>CLAUDE.md</code>, should hold only what applies to every session. The docs are blunt about the alternative: “Bloated CLAUDE.md files cause Claude to ignore your actual instructions!”<sup class="cite"><a href="#r18">18</a></sup></p>
+
+      <h2 id="s-7">Deterministic edges, universal tool</h2>
+      <p>Everything so far shapes what the model is likely to do. Hooks decide what must happen. In Claude Code they are shell commands, HTTP endpoints, MCP tools, prompts or subagents that fire on lifecycle events such as <code>PreToolUse</code>, <code>PostToolUse</code> and <code>Stop</code>. Exit 0 proceeds. Exit 2 blocks: a <code>PreToolUse</code> hook stops the call, a <code>Stop</code> hook keeps the agent working, and a <code>PostToolUse</code> hook can only report, because the tool already ran. JSON output can allow, deny or ask, inject context, or rewrite a tool's result.<sup class="cite"><a href="#r20">20</a></sup> The docs draw the line cleanly: instructions in <code>CLAUDE.md</code> are advisory, while hooks “are deterministic and guarantee the action happens.”<sup class="cite"><a href="#r18">18</a></sup></p>
+
+      <div class="note"><b>Field note</b>If a rule must hold every time with zero exceptions (formatting, blocking writes to secrets, running the tests before stopping), it belongs in a hook, not a prompt. Use a <code>Stop</code> hook that exits 2 on a failing check as your quality gate.</div>
+
+      <p>The most general tool remains the shell. Claude Code's docs call CLI tools the most context-efficient way to reach external services and suggest teaching an unfamiliar one with <code>--help</code>. The harness composes the same way: <code>cat error.log | claude -p "explain this error"</code> makes the agent one more filter in a pipeline.<sup class="cite"><a href="#r18">18</a></sup> A CLI call is also reproducible by a human, who can paste the exact command and get the same result.<sup class="cite"><a href="#r4">4</a></sup></p>
+      <p>When no CLI or API exists, computer use is the fallback. Claude 3.5 Sonnet scored 14.9% on OSWorld from screenshots alone and 22.0% with more steps, against 7.8% for the next-best system, and Anthropic called the ability imperfect.<sup class="cite"><a href="#r21">21</a></sup> Screenshots earn their keep as a checker even when text tools do the work: compare the rendered result against the target.<sup class="cite"><a href="#r18">18</a></sup></p>
+      <p>Sandboxes, permission lists and hooks are where trust stops being a hope and becomes a mechanism. Chapter 4 takes that seriously: what to block, what to ask about, and how to let an agent act without letting it act on everything.</p>
+
+      <details class="refbox" id="s-refs"><summary>References (21)</summary>
+      <ol class="refs">
+        <li id="r1">Yang, Jimenez, Wettig, Lieret, Yao, Narasimhan, Press (Princeton), “SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering,” arXiv 2405.15793, May 2024. <a href="https://arxiv.org/abs/2405.15793">arxiv.org/abs/2405.15793</a></li>
+        <li id="r2">Ken Aizawa, “Writing effective tools for agents — with agents,” Anthropic Engineering, September 2025. <a href="https://www.anthropic.com/engineering/writing-tools-for-agents">anthropic.com/engineering/writing-tools-for-agents</a></li>
+        <li id="r3">Anthropic, “Define tools,” Claude Platform Docs. <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools">platform.claude.com/…/define-tools</a></li>
+        <li id="r4">Speakeasy, “MCP vs CLI: a framework for choosing the right tool interface,” Speakeasy, March 2026. <a href="https://www.speakeasy.com/blog/mcp-vs-cli">speakeasy.com/blog/mcp-vs-cli</a></li>
+        <li id="r5">Anthropic, “Code execution with MCP: building more efficient agents,” Anthropic Engineering, November 2025. <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">anthropic.com/engineering/code-execution-with-mcp</a></li>
+        <li id="r6">Anthropic, “Effective context engineering for AI agents,” Anthropic Engineering, September 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
+        <li id="r7">Tiantian Gan, Qiyao Sun, “RAG-MCP: Mitigating Prompt Bloat in LLM Tool Selection via RAG,” arXiv 2505.03275, May 2025. <a href="https://arxiv.org/abs/2505.03275">arxiv.org/abs/2505.03275</a></li>
+        <li id="r8">Kellen Gillespie, Robyn Perry, “Scaling Enterprise Agent Routing: Degradation, Diagnosis, and Recovery,” arXiv 2606.17519, June 2026. <a href="https://arxiv.org/abs/2606.17519">arxiv.org/abs/2606.17519</a></li>
+        <li id="r9">Paramanayakam, Karatzas, Anagnostopoulos, Stamoulis, “Less is More: Optimizing Function Calling for LLM Execution on Edge Devices,” arXiv 2411.15399, November 2024. <a href="https://arxiv.org/abs/2411.15399">arxiv.org/abs/2411.15399</a></li>
+        <li id="r10">Yichao “Peak” Ji, “Context Engineering for AI Agents: Lessons from Building Manus,” Manus, July 2025. <a href="https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus">manus.im/blog/Context-Engineering-…-Manus</a></li>
+        <li id="r11">Model Context Protocol, “Specification (2025-06-18),” modelcontextprotocol.io, June 2025. <a href="https://modelcontextprotocol.io/specification/2025-06-18">modelcontextprotocol.io/specification/2025-06-18</a></li>
+        <li id="r12">Invariant Labs, “MCP Security Notification: Tool Poisoning Attacks,” Invariant Labs, April 2025. <a href="https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks">invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks</a></li>
+        <li id="r13">Kenton Varda, Sunil Pai, “Code Mode: the better way to use MCP,” Cloudflare Blog, September 2025. <a href="https://blog.cloudflare.com/code-mode/">blog.cloudflare.com/code-mode</a></li>
+        <li id="r14">Google, “gVisor documentation,” gvisor.dev. <a href="https://gvisor.dev/docs/">gvisor.dev/docs</a></li>
+        <li id="r15">AWS, “Firecracker,” GitHub; Agache, Brooker, et al., NSDI ’20. <a href="https://github.com/firecracker-microvm/firecracker">github.com/firecracker-microvm/firecracker</a> · <a href="https://www.usenix.org/conference/nsdi20/presentation/agache">usenix.org/…/agache</a></li>
+        <li id="r16">E2B, “E2B documentation,” e2b.dev. <a href="https://e2b.dev/">e2b.dev</a> · <a href="https://docs.e2b.dev/">docs.e2b.dev</a></li>
+        <li id="r17">Daytona, “Daytona documentation,” daytona.io. <a href="https://www.daytona.io/docs/">daytona.io/docs</a></li>
+        <li id="r18">Anthropic, “Claude Code: Best practices,” Claude Code Docs. <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
+        <li id="r19">Anthropic, “Equipping agents for the real world with Agent Skills,” Anthropic Engineering, October 2025. <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">anthropic.com/engineering/equipping-agents-…-agent-skills</a></li>
+        <li id="r20">Anthropic, “Claude Code: Hooks reference,” Claude Code Docs. <a href="https://code.claude.com/docs/en/hooks">code.claude.com/docs/en/hooks</a></li>
+        <li id="r21">Anthropic, “Introducing computer use, a new Claude 3.5 Sonnet,” Anthropic, October 2024. <a href="https://www.anthropic.com/news/3-5-models-and-computer-use">anthropic.com/news/3-5-models-and-computer-use</a></li>
+      </ol>
+      </details>
+
+      <nav class="pager">
+        <a class="prev" href="02-context.html"><small>← Previous</small><span>Context</span></a>
+        <a class="next" href="04-guardrails.html"><small>Next →</small><span>Guardrails &amp; Trust</span></a>
+      </nav>
+    </article>
+
+    <aside class="rail" aria-label="On this page">
+      <div class="label">On this page</div>
+      <ol>
+        <li><a href="#s-1">The interface is a variable</a></li>
+        <li><a href="#s-2">What a good tool looks like</a></li>
+        <li><a href="#s-3">The tool-count cliff</a></li>
+        <li><a href="#s-4">MCP: the standard and its bill</a></li>
+        <li><a href="#s-5">Code means a sandbox</a></li>
+        <li><a href="#s-6">Once there's a disk, use it</a></li>
+        <li><a href="#s-7">Deterministic edges, universal tool</a></li>
+      </ol>
+    </aside>
+  </div>
+</main>
+
+<footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
+
+<script src="../assets/site.js?v=8"></script>
+<script>
+(() => {
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const r1 = v => Math.round(v * 10) / 10;
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, txt) => { const e = document.createElementNS(NS, tag); for (const a in attrs) e.setAttribute(a, attrs[a]); if (txt) e.textContent = txt; return e; };
+  const inst = H.$('#inst');
+  let onScreen = true;
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => { onScreen = es[0].isIntersecting; }, { threshold: .15 }).observe(inst);
+
+  // one eased number tween per key; jumps when motion is reduced or the board is off-screen
+  const tweens = new Map();
+  function tween(key, from, to, dur, fn) {
+    cancelAnimationFrame(tweens.get(key));
+    if (RM || !onScreen || document.hidden || from === to) { fn(to); return; }
+    const t0 = performance.now();
+    const step = now => {
+      const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      fn(from + (to - from) * e);
+      if (p < 1) tweens.set(key, requestAnimationFrame(step));
+    };
+    tweens.set(key, requestAnimationFrame(step));
+  }
+
+  // SWE-agent single-knob ablations, SWE-bench Lite, GPT-4 Turbo, % resolved [1]. First option = paper default.
+  const FULL = 18.0, SHELL = 11.0;
+  const KNOBS = [
+    ['viewer', 'Viewer', [['100', '100 lines', 18.0], ['30', '30 lines', 14.3], ['file', 'Whole file', 12.7]]],
+    ['editor', 'Editor', [['lint', 'With lint', 18.0], ['nolint', 'No lint', 15.0], ['none', 'No editor', 10.3]]],
+    ['search', 'Search', [['sum', 'Summarized', 18.0], ['iter', 'Iterative', 12.0], ['none', 'None', 15.7]]],
+    ['history', 'History', [['col', 'Collapsed', 18.0], ['full', 'Full', 15.0]]],
+  ];
+  const state = { shell: false };
+  KNOBS.forEach(([k, , opts]) => state[k] = opts[0][0]);
+  const valOf = (k, id) => KNOBS.find(x => x[0] === k)[2].find(o => o[0] === id)[2];
+
+  function compute(s) {
+    if (s.shell) return { measured: true, v: SHELL, diff: [] };
+    const diff = KNOBS.filter(([k, , opts]) => s[k] !== opts[0][0]).map(x => x[0]);
+    if (diff.length <= 1) return { measured: true, v: diff.length ? valOf(diff[0], s[diff[0]]) : FULL, diff };
+    // additive estimate: not a paper result
+    const est = Math.max(0, FULL + diff.reduce((a, k) => a + (valOf(k, s[k]) - FULL), 0));
+    return { measured: false, v: r1(est), diff };
+  }
+
+  // self-checks: anchors and single-knob values must reproduce the paper's table
+  const base = Object.fromEntries(KNOBS.map(([k, , o]) => [k, o[0][0]]));
+  H.check(compute(base).v === 18.0 && compute(base).measured, 'default config = 18.0 measured');
+  H.check(compute({ ...base, shell: true }).v === 11.0, 'shell only = 11.0');
+  H.check(r1((FULL - SHELL) / SHELL * 100) === 63.6, 'relative gain ~64%');
+  KNOBS.forEach(([k, , opts]) => opts.forEach(([id, , v]) => {
+    const c = compute({ ...base, [k]: id });
+    H.check(c.measured && c.v === v, 'single knob ' + k + '=' + id + ' -> ' + v);
+  }));
+  H.check(compute({ ...base, viewer: '30', history: 'full' }).v === 11.3 && !compute({ ...base, viewer: '30', history: 'full' }).measured, 'additive estimate 18-3.7-3.0=11.3, flagged unmeasured');
+  H.check(compute({ ...base, viewer: 'file', editor: 'none', search: 'iter', history: 'full' }).v === 0, 'estimate floors at 0');
+
+  // attract loop: cycles through configurations until the reader touches anything inside the board
+  const SEQ = [{ viewer: '30' }, {}, { viewer: 'file' }, {}, { shell: true }, {}, { editor: 'none' }, {}, { search: 'iter' }, {}];
+  let touched = RM, seqI = 0, timer = 0;
+  function attract() {
+    if (touched) return;
+    if (onScreen) { Object.assign(state, base, { shell: false }, SEQ[seqI++ % SEQ.length]); render(); }
+    timer = setTimeout(attract, 1700);
+  }
+  function touch() {
+    if (touched) return;
+    touched = true; clearTimeout(timer);
+    Object.assign(state, base, { shell: false });
+    H.$('#aci-auto').remove();
+    render();
+  }
+  ['pointerdown', 'keydown', 'focusin'].forEach(ev => inst.addEventListener(ev, touch, true));
+  if (RM) H.$('#aci-auto').remove();
+
+  // build the segmented switches
+  const knobsEl = H.$('#aci-knobs');
+  KNOBS.forEach(([k, label, opts]) => {
+    const row = document.createElement('div');
+    row.className = 'aci-knob';
+    row.innerHTML = '<span id="aci-l-' + k + '">' + label + '</span><div class="aci-seg" role="group" aria-labelledby="aci-l-' + k + '"></div>';
+    const seg = row.lastChild;
+    opts.forEach(([id, txt], i) => {
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.textContent = txt;
+      b.dataset.k = k; b.dataset.id = id;
+      if (i === 0) b.dataset.def = '';
+      b.addEventListener('click', () => { state[k] = id; render(); });
+      seg.appendChild(b);
+    });
+    knobsEl.appendChild(row);
+  });
+  const shellBtn = H.$('#aci-shell');
+  shellBtn.addEventListener('click', () => { state.shell = !state.shell; render(); });
+
+  // dot chart: 0..20% across the plot area, one row per knob; dots are clickable mirrors of the chips
+  const PX = 66, PW = 326, X = v => PX + v / 20 * PW, RY = i => 32 + i * 24;
+  H.check(X(0) === PX && X(20) === PX + PW, 'chart x-scale spans the plot area');
+  const chart = H.$('#aci-chart'), grid = H.$('#aci-grid'), rows = H.$('#aci-rows');
+  [0, 5, 10, 15, 20].forEach(t => {
+    grid.appendChild(mk('line', { x1: X(t), x2: X(t), y1: 18, y2: 114, stroke: 'var(--rule)' }));
+    grid.appendChild(mk('text', { x: X(t), y: 130, 'text-anchor': t === 20 ? 'end' : t === 0 ? 'start' : 'middle' }, t + '%'));
+  });
+  grid.appendChild(mk('line', { x1: X(SHELL), x2: X(SHELL), y1: 14, y2: 118, stroke: 'var(--violet)', 'stroke-dasharray': '3 3', opacity: .8 }));
+  grid.appendChild(mk('text', { x: X(SHELL), y: 10, fill: 'var(--violet)', 'text-anchor': 'middle' }, 'shell only 11.0'));
+  grid.appendChild(mk('line', { x1: X(FULL), x2: X(FULL), y1: 14, y2: 118, stroke: 'var(--green)', 'stroke-dasharray': '3 3', opacity: .8 }));
+  grid.appendChild(mk('text', { x: X(FULL), y: 10, fill: 'var(--green)', 'text-anchor': 'middle' }, 'full ACI 18.0'));
+  const colorOf = v => v >= FULL ? 'var(--green)' : v > SHELL ? 'var(--cyan)' : 'var(--red)';
+  KNOBS.forEach(([k, label, opts], i) => {
+    rows.appendChild(mk('text', { x: 0, y: RY(i) + 3.5, class: 'aci-row-l' }, label.toUpperCase()));
+    rows.appendChild(mk('line', { x1: PX, x2: PX + PW, y1: RY(i), y2: RY(i), stroke: 'var(--rule)', opacity: .6 }));
+    opts.forEach(([id, txt, v], j) => {
+      if (j === 0) rows.appendChild(mk('circle', { cx: X(v), cy: RY(i), r: 9, fill: 'none', stroke: 'var(--rule-hi)', 'stroke-dasharray': '2 2' }));
+      const d = mk('circle', { cx: X(v), cy: RY(i), r: 4.5, class: 'aci-dot', 'data-k': k, 'data-id': id, 'stroke-width': 1.5 });
+      d.appendChild(mk('title', {}, label + ': ' + txt + ' — ' + v.toFixed(1) + '%'));
+      d.addEventListener('click', () => { state.shell = false; state[k] = id; render(); });
+      rows.appendChild(d);
+    });
+  });
+
+  // the agent's literal view
+  const tb = H.$('#aci-tb');
+  const line = (cls, txt) => '<div class="' + cls + '">' + txt + '</div>';
+  const bars = (n, start, pre) => { let s = ''; for (let i = 0; i < n; i++) s += '<div class="t-l"><b>' + (pre || '') + (start + i) + '</b><i style="width:' + (28 + (i * 37 + start * 11) % 58) + '%"></i></div>'; return s; };
+  const win = (n, cls, label) => '<div class="t-win ' + cls + '">' + line('t-dim', label) + bars(n, 1) + '</div>';
+  function term(s) {
+    const sh = s.shell;
+    let h = (sh || s.history === 'full')
+      ? '<div class="t-win t-old">' + line('t-dim', '6 earlier observations, kept verbatim') + bars(5, 1) + '</div>'
+      : line('t-dim', '▸ 6 earlier observations collapsed');
+    if (sh) h += line('t-cmd', 'cat src/parser.py') + win(26, 't-nowin', '1,204 lines · whole file · no window');
+    else if (s.viewer === '100') h += line('t-cmd', 'open src/parser.py') + win(10, '', 'lines 1–100 of 1,204 · scroll_down for more');
+    else if (s.viewer === '30') h += line('t-cmd', 'open src/parser.py') + win(3, '', 'lines 1–30 of 1,204 · scroll_down for more');
+    else h += line('t-cmd', 'open src/parser.py') + win(26, 't-nowin', 'lines 1–1,204 · no window');
+    if (sh || s.editor === 'none') h += line('t-cmd', "sed -i '41,43c\\    return parse(s)' src/parser.py") + line('t-warn', '(no feedback)');
+    else h += line('t-cmd', 'edit 41:43') + (s.editor === 'lint' ? line('t-ok', '✓ lint passed · edit applied') : line('t-dim', 'edit applied'));
+    if (sh || s.search === 'none') h += line('t-cmd', 'grep -rn parse_date .') + bars(6, 12, 'L');
+    else if (s.search === 'sum') h += line('t-cmd', 'search_file parse_date') + line('t-ok', '3 matches: L41 L88 L212');
+    else h += line('t-cmd', 'search_file parse_date') + bars(14, 12, 'L');
+    tb.innerHTML = h;
+  }
+
+  const readV = H.$('#aci-readv'), readS = H.$('#aci-reads'), read = H.$('#aci-read');
+  const unit = H.$('#aci-unit'), status = H.$('#aci-status'), cur = H.$('#aci-cur');
+  let shown = FULL, prefix = '';
+  function render() {
+    shellBtn.setAttribute('aria-pressed', state.shell);
+    knobsEl.classList.toggle('aci-off', state.shell);
+    rows.classList.toggle('aci-off', state.shell);
+    H.$$('.aci-seg .chip', knobsEl).forEach(b => {
+      b.setAttribute('aria-pressed', state[b.dataset.k] === b.dataset.id);
+      b.disabled = state.shell;
+    });
+    const c = compute(state);
+    const col = c.measured ? colorOf(c.v) : 'var(--amber)';
+    H.$$('.aci-dot', chart).forEach(d => {
+      const on = !state.shell && state[d.dataset.k] === d.dataset.id;
+      d.setAttribute('r', on ? 6.5 : 4.5);
+      d.setAttribute('fill', on ? (c.measured ? colorOf(valOf(d.dataset.k, d.dataset.id)) : 'var(--amber)') : 'var(--panel)');
+      d.setAttribute('stroke', on ? 'none' : 'var(--rule-hi)');
+    });
+    cur.setAttribute('stroke', col);
+    cur.setAttribute('stroke-dasharray', c.measured ? 'none' : '5 4');
+    read.className = 'readout ' + (c.measured ? (c.v >= FULL ? 'ok' : c.v > SHELL ? 'bad' : 'fail') : 'aci-nm');
+    prefix = c.measured ? '' : '≈';
+    readS.textContent = prefix + H.pct(c.v);
+    unit.textContent = c.measured ? 'resolved' : 'estimate · not measured';
+    const d = r1(c.v - SHELL), pp = (d >= 0 ? '+' : '') + d.toFixed(1) + ' pp vs shell';
+    if (state.shell) status.innerHTML = '<b class="aci-base">measured</b> · shell-only baseline · the knobs are gone';
+    else if (c.measured) status.innerHTML = '<b>measured</b> · ' + (c.diff.length ? 'single-knob ablation' : 'full SWE-agent config') + ' · ' + pp;
+    else status.innerHTML = '<b class="aci-warn">' + c.diff.length + ' knobs changed</b> · additive estimate · model, not a paper result · ' + pp;
+    term(state);
+    tween('aci', shown, c.v, 500, v => {
+      shown = v;
+      readV.textContent = prefix + H.pct(v);
+      cur.setAttribute('x1', X(v)); cur.setAttribute('x2', X(v));
+    });
+  }
+  render();
+  if (!touched) timer = setTimeout(attract, 1400);
+
+  // Tool bill: tokens per definition derived from GitHub MCP, 55,000 tokens / 93 tools [4]
+  const TOK = 55000 / 93, WIN = 200000;
+  H.check(Math.round(93 * TOK) === 55000, 'bill anchor: 93 tools = 55,000 tokens');
+  H.check(Math.round(TOK) === 591, 'tokens per tool ~591');
+  H.check(r1((150000 - 2000) / 150000 * 100) === 98.7, 'code-execution saving 98.7%');
+  H.check(r1(55000 / WIN * 100) === 27.5, 'GitHub MCP = 27.5% of 200K');
+  const n = H.$('#bill-n'), bwin = H.$('#bill-win'), blocks = H.$('#bill-blocks');
+  const mkLine = H.$('#bill-mk'), mkText = H.$('#bill-mkt');
+  mkLine.setAttribute('x1', 55000 / WIN * 400); mkLine.setAttribute('x2', 55000 / WIN * 400);
+  mkText.setAttribute('x', 55000 / WIN * 400 + 4);
+  // one block per definition, two rows, area exactly proportional to its token share of the window
+  const BW = 400 * TOK / WIN, CW = 2 * BW;
+  H.check(Math.abs(100 * BW - 400 * 100 * TOK / WIN) < 1e-9, '100 blocks cover the 100-tool share');
+  const rects = Array.from({ length: 100 }, (_, i) => blocks.appendChild(mk('rect', { x: Math.floor(i / 2) * CW + .3, y: 5 + (i % 2) * 18.5, width: CW - .6, height: 17.5, rx: .8, class: 'bill-blk' })));
+  function bill() {
+    const k = +n.value, tok = Math.round(k * TOK), share = tok / WIN;
+    H.$('#bill-nv').textContent = k;
+    const big = H.$('#bill-tok');
+    big.textContent = tok.toLocaleString('en-US');
+    big.classList.toggle('bill-hot', share >= 0.25);
+    bwin.classList.toggle('bill-hot', share >= 0.25);
+    H.$('#bill-share').textContent = H.pct(share * 100) + ' of a 200K window';
+    H.$('#bill-left').textContent = '· ' + (WIN - tok).toLocaleString('en-US') + ' left for the task';
+    rects.forEach((r, i) => r.style.display = i < k ? '' : 'none');
+    n.setAttribute('aria-valuetext', k + ' tools, about ' + tok + ' tokens');
+  }
+  n.addEventListener('input', bill);
+  bill();
+  // drag directly on the window bar
+  const dragTo = e => {
+    const r = bwin.getBoundingClientRect();
+    n.value = Math.max(0, Math.min(100, Math.round((e.clientX - r.left) / r.width * 400 / BW)));
+    bill();
+  };
+  bwin.addEventListener('pointerdown', e => { bwin.setPointerCapture(e.pointerId); dragTo(e); });
+  bwin.addEventListener('pointermove', e => { if (e.buttons) dragTo(e); });
+
+  // code-execution pattern: the same workflow collapses from 150k to 2k tokens [5]
+  const codeBtn = H.$('#bill-code'), cmb = H.$('#bill-cmb'), cmn = H.$('#bill-cmn'), cml = H.$('#bill-cml'), note = H.$('#bill-note');
+  let codeOn = false, cmShown = 150000;
+  function code() {
+    codeBtn.setAttribute('aria-pressed', codeOn);
+    codeBtn.textContent = codeOn ? 'Back to tool calls' : 'Run it as code instead';
+    cml.textContent = codeOn ? 'code API' : 'tool calls';
+    cmb.className = 'bar ' + (codeOn ? 'green' : 'amber');
+    cmb.firstElementChild.style.width = codeOn ? (2000 / 150000 * 100) + '%' : '100%';
+    note.textContent = codeOn
+      ? 'Code-execution pattern: 150k → 2k tokens on the same workflow (−98.7%). Intermediate results stay in the sandbox.'
+      : 'Tool-call pattern: 150,000 tokens. Every intermediate result passes through the model.';
+    tween('code', cmShown, codeOn ? 2000 : 150000, 800, v => { cmShown = v; cmn.textContent = Math.round(v).toLocaleString('en-US'); });
+  }
+  codeBtn.addEventListener('click', () => { codeOn = !codeOn; code(); });
+  code();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-747pfNHVEcFnpHvc2aWmqHZt6zLyPx+qeRgr+rb+bus='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context Engineering for AI Agents: Context Rot, Compaction, Memory · The Harness</title>
+<meta name="description" content="The window on the spec sheet is not the window the model can use. Context engineering is deciding, every turn, which tokens earn a place.">
+<link rel="canonical" href="https://kuldeepluvani.github.io/book/02-context.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/site.css?v=8">
+<style>
+  /* chapter-specific instrument styles only — prefix: crg (Context Rot Gauge) */
+  .crg-panel-title { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); margin: 0 0 12px; }
+  .crg-lbl { display: block; font: 11px/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 4px; }
+  .crg-hint { font: 12px/1.4 var(--mono); color: var(--amber); opacity: .85; }
+  .crg-hint::before { content: "▸ "; }
+  .crg-hero { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: flex-end; margin: 0 0 18px; }
+  .crg-hero .readout { font-size: clamp(44px, 8vw, 68px); transition: color .3s; }
+  .crg-hero p { margin: 0; flex: 1 1 220px; min-width: 0; font: 13px/1.5 var(--mono); color: var(--text-dim); }
+  .crg-chips .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; font-size: 12px; }
+  .crg-sw { width: 10px; height: 3px; border-radius: 2px; background: var(--c); display: inline-block; }
+  .crg-chips .chip[aria-pressed="false"] { opacity: .5; }
+  .crg-chips .chip[aria-pressed="false"] .crg-sw { background: var(--text-faint); }
+  .crg-strip, .crg-stream { display: block; width: 100%; height: auto; overflow: visible; }
+  .crg-strip text, .crg-stream text { font: 10px var(--mono); fill: var(--text-faint); letter-spacing: .08em; }
+  .crg-blk { fill: var(--rule); transition: fill .25s; }
+  .crg-blk.on { fill: var(--cyan); opacity: .7; }
+  .crg-blk.rot { fill: var(--red); opacity: .55; animation: crg-flicker 1.1s steps(3) infinite; }
+  @keyframes crg-flicker { 0%, 100% { opacity: .55; transform: none; } 33% { opacity: .15; transform: translateY(1px); } 66% { opacity: .75; transform: translateY(-1px); } }
+  .crg-svg { display: block; width: 100%; height: auto; margin: 4px 0 6px; overflow: visible; cursor: ew-resize; touch-action: pan-y; user-select: none; }
+  .crg-svg text { font: 12px var(--mono); fill: var(--text-faint); }
+  .crg-grid { stroke: var(--rule); stroke-width: 1; }
+  .crg-axis { stroke: var(--rule-hi); stroke-width: 1; }
+  .crg-series { transition: opacity .35s ease; }
+  .crg-series.off { opacity: 0; pointer-events: none; }
+  .crg-line { fill: none; stroke: var(--c); stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; }
+  .crg-pt { fill: var(--panel); stroke: var(--c); stroke-width: 2; }
+  .crg-thr { stroke: var(--c); stroke-width: 1.25; stroke-dasharray: 5 5; opacity: .3; transition: opacity .3s; }
+  .crg-series.focus .crg-thr { opacity: .95; }
+  .crg-series.focus .crg-line { stroke-width: 3; filter: drop-shadow(0 0 6px var(--c)); }
+  .crg-rot, .crg-rot-hatch { transition: x .4s cubic-bezier(.2,.8,.2,1), width .4s cubic-bezier(.2,.8,.2,1); }
+  .crg-rot { fill: var(--red); opacity: .07; }
+  .crg-hatch { stroke: var(--red); stroke-width: .6; opacity: .22; }
+  .crg-rot-label { fill: var(--red) !important; opacity: .8; }
+  .crg-scan { stroke: var(--cyan); stroke-width: 1.25; opacity: .85; filter: drop-shadow(0 0 4px var(--cyan)); }
+  .crg-scan-dot { fill: var(--c); stroke: var(--void); stroke-width: 2; transition: opacity .3s; }
+  .crg-slider { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; margin: 4px 0 18px; }
+  .crg-slider output, .crg-calc output { font: 600 14px var(--mono); color: var(--text); min-width: 5.5ch; text-align: right; font-variant-numeric: tabular-nums; }
+  .crg-reads { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .crg-read { text-align: left; font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--rule); border-left: 3px solid var(--c); border-radius: 6px; padding: 10px 12px; cursor: pointer; transition: border-color .15s, background .15s, opacity .3s; }
+  .crg-read:hover { border-color: var(--rule-hi); border-left-color: var(--c); }
+  .crg-read[aria-pressed="true"] { background: rgba(62,230,255,.06); border-color: var(--c); }
+  .crg-read.off { opacity: .35; }
+  .crg-read small { display: block; font: 11px/1.3 var(--mono); color: var(--text-dim); letter-spacing: .04em; }
+  .crg-read b { display: block; font: 600 24px/1.15 var(--sans); font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .crg-read i { font: normal 11px var(--mono); color: var(--text-faint); }
+  .crg-read b.ok { color: var(--green); } .crg-read b.bad { color: var(--amber); } .crg-read b.fail { color: var(--red); }
+  .crg-calc { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 22px; margin-bottom: 18px; }
+  .crg-calc label { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; font: 12px var(--mono); }
+  .crg-calc label input { grid-column: 1 / -1; }
+  .crg-stream { margin: 0 0 16px; }
+  .crg-hits { filter: drop-shadow(0 0 3px rgba(62,230,255,.7)); }
+  .crg-hit { fill: rgba(62,230,255,.28); stroke: var(--cyan); stroke-width: .75; }
+  .crg-miss { fill: rgba(255,179,71,.3); stroke: var(--amber); stroke-width: .75; }
+  .crg-pay { fill: var(--amber); transition: height .4s cubic-bezier(.2,.8,.2,1), y .4s cubic-bezier(.2,.8,.2,1); }
+  .crg-pay.hit { fill: var(--cyan); }
+  .crg-costs { display: grid; gap: 10px; }
+  .crg-cost { display: grid; grid-template-columns: 9.5em 1fr 5.5em; gap: 10px; align-items: center; font: 12px var(--mono); color: var(--text-dim); }
+  .crg-cost span.v { color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
+  .crg-sum { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-end; margin-top: 18px; }
+  .crg-sum p { margin: 0; flex: 1 1 200px; min-width: 0; font: 12px/1.5 var(--mono); color: var(--text-faint); }
+  .crg-sum .readout.mid { font-size: clamp(22px, 3vw, 30px); }
+  @media (max-width: 480px) { .crg-cost { grid-template-columns: 7em 1fr 4.8em; } .crg-slider { grid-template-columns: 1fr auto; } .crg-slider label { grid-column: 1 / -1; } }
+</style>
+</head>
+<body>
+<header class="hud">
+  <a class="mark" href="../index.html"><i></i>KULDEEP LUVANI</a>
+  <nav>
+    <a href="../index.html#book">The Harness</a>
+    <a class="opt" href="../index.html#built">Portfolio</a>
+  </nav>
+  <div class="hud-meter"></div>
+</header>
+
+<main class="wrap">
+  <section class="ch-hero">
+    <div class="num" aria-hidden="true">02</div>
+    <p class="eyebrow">The Harness · Chapter 2</p>
+    <h1>Context</h1>
+    <p class="dek">The window on the spec sheet is not the window the model can use. The harness decides, every turn, which tokens earn a place in it.</p>
+    <div class="ch-meta"><span>~9 MIN READ</span><span>1 LIVE INSTRUMENT</span></div>
+  </section>
+
+  <div class="ch-body">
+    <article class="prose">
+      <p class="lede">Give Claude 3.5 Sonnet a short passage and a question whose answer shares no keywords with it, and it finds the answer 87.5% of the time. Pad the passage out to 32K tokens, a quarter of the 128K the model was built to accept, and the score falls to 29.8%.<sup class="cite"><a href="#r1">1</a></sup> The task did not change. Only the amount of text around it did. The gap between what a window can hold and what a model can actually use is the subject of this chapter, and managing that gap is most of what a harness does.</p>
+
+      <h2 id="s-1">The job is context, not prompts</h2>
+      <p>In mid-2025 several groups settled on the same name for this work within weeks of each other. Karpathy called it the art and science of filling the window with just the right information for the next step, and warned that too much, or the wrong kind, raises cost and lowers quality.<sup class="cite"><a href="#r2">2</a>,<a href="#r3">3</a></sup> Cognition put context engineering at the core of agent reliability.<sup class="cite"><a href="#r4">4</a></sup> Manus published the lessons of building its agent around it.<sup class="cite"><a href="#r5">5</a></sup> Anthropic defined it as curating and maintaining the best set of tokens during inference, with prompt writing as one subset of the job.<sup class="cite"><a href="#r6">6</a></sup></p>
+      <p>The rename matters because it moves the unit of work. A prompt is written once. Context is assembled on every turn of the loop from Chapter 1: instructions, tool definitions, files, earlier tool results, the model's own previous output. Anthropic's documentation describes the harness itself as the layer that supplies tools and manages what the model sees.<sup class="cite"><a href="#r7">7</a></sup> A prompt is a sentence. Context engineering is a policy that runs fifty times per task.</p>
+
+      <h2 id="s-2">The advertised window is not the usable window</h2>
+      <p>Every serious long-context benchmark finds the same thing: accuracy falls well before the limit on the spec sheet, and often by 8K to 32K tokens.</p>
+      <p>RULER tested 17 models on 13 tasks. All claimed at least 32K of context; only about half held up at 32K.<sup class="cite"><a href="#r8">8</a></sup> NoLiMa removed literal word overlap between question and answer, so the model had to make a one-step association instead of string matching. At 32K, 11 of the 13 models it tested scored below half their short-context baseline.<sup class="cite"><a href="#r1">1</a></sup> A Databricks study ran 20 models from 2K to 128K in a retrieval setting and found that only a handful of the newest stayed consistent past 64K; the rest failed in their own ways, from refusals to dropped instructions.<sup class="cite"><a href="#r9">9</a></sup> Chroma's study of 18 models, GPT-4.1, Claude 4 and Gemini 2.5 among them, saw decline with length even on copying a run of repeated words. On LongMemEval, a focused prompt of about 300 tokens beat the full one of roughly 113K.<sup class="cite"><a href="#r10">10</a></sup></p>
+      <p>Position matters as much as length. Lost in the Middle gave the curve its shape: with 20 documents, GPT-3.5-Turbo answered correctly 75.8% of the time when the relevant document came first, 53.8% when it sat tenth, and 63.2% when it came last. With no documents at all it scored 56.1%.<sup class="cite"><a href="#r11">11</a></sup> Burying the answer in the middle made the model slightly worse than giving it nothing.</p>
+      <p>Anthropic frames the cause as an attention budget. Every token attends to every other, so relationships grow with the square of length, and training data skews toward short sequences.<sup class="cite"><a href="#r6">6</a></sup> Chroma named the symptom: context rot.<sup class="cite"><a href="#r10">10</a></sup> The gauge below plots NoLiMa's numbers. Drag the scanline and watch where each model leaves its own 85% line.</p>
+
+      <section class="instrument" id="crg" aria-label="Context Rot Gauge: effective length">
+        <header>Context Rot Gauge · 01 effective length<span class="tag">data: <a href="#r1">[1]</a> NoLiMa</span></header>
+        <div class="body">
+          <div class="crg-hero">
+            <div><small class="crg-lbl" id="crg-big-lbl">Claude 3.5 Sonnet · 8K tokens</small><div class="readout" id="crg-big">—</div></div>
+            <p id="crg-eff-text" aria-live="polite"></p>
+          </div>
+          <svg class="crg-strip" id="crg-strip" viewBox="0 0 480 30" aria-hidden="true"></svg>
+          <svg class="crg-svg" id="crg-chart" viewBox="0 0 480 280" role="img" aria-labelledby="crg-chart-t">
+            <title id="crg-chart-t">NoLiMa accuracy versus context length, 1K to 32K tokens, for four models. Drag across the chart to move the scanline.</title>
+          </svg>
+          <div class="crg-slider">
+            <label for="crg-len">Context length (log scale)</label>
+            <input type="range" id="crg-len" min="0" max="5" step="0.05" value="3" aria-describedby="crg-len-out">
+            <output id="crg-len-out" for="crg-len">8K</output>
+          </div>
+          <div class="row" style="margin:-6px 0 16px"><button class="btn" id="crg-sweep" type="button">Sweep 1K → 32K</button><span class="crg-hint">Try: drag the chart to 8K. Claude 3.5 Sonnet already keeps only 71% of its score.</span></div>
+          <p class="crg-panel-title">Models (toggle lines)</p>
+          <div class="row crg-chips" id="crg-chips"></div>
+          <p class="crg-panel-title" style="margin-top:14px">Accuracy at this length (select one to focus)</p>
+          <div class="crg-reads" id="crg-reads"></div>
+        </div>
+        <div class="caption">Points are NoLiMa's measured scores at 1K, 4K, 8K, 16K and 32K <a href="#r1">[1]</a>. Between points the lines and readouts are linear interpolation in log-length space, a model, not measurement. Dashed lines mark 85% of each model's short-context base score. The paper's effective length uses a 2K test point that this excerpt omits, so the interpolated crossing is shown alongside it, not instead of it. The token strip above the chart is illustrative: blocks past the focused model's interpolated crossing are drawn as decayed.</div>
+      </section>
+
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <caption class="dim" style="caption-side:bottom;text-align:left;font-size:12px;padding-top:8px">NoLiMa accuracy (%) by context length; effective length is the longest tested length still at or above 85% of base.<sup class="cite"><a href="#r1">1</a></sup></caption>
+          <thead><tr><th>Model</th><th>Base</th><th>1K</th><th>4K</th><th>8K</th><th>16K</th><th>32K</th><th>Effective</th></tr></thead>
+          <tbody>
+            <tr><td>GPT-4o</td><td class="n">99.3</td><td class="n">98.1</td><td class="n">95.7</td><td class="n">89.2</td><td class="n">81.6</td><td class="n">69.7</td><td class="n">8K</td></tr>
+            <tr><td>Llama 3.3 70B</td><td class="n">97.3</td><td class="n">94.2</td><td class="n">81.5</td><td class="n">72.1</td><td class="n">59.5</td><td class="n">42.7</td><td class="n">2K</td></tr>
+            <tr><td>Gemini 1.5 Pro</td><td class="n">92.6</td><td class="n">86.4</td><td class="n">75.4</td><td class="n">63.9</td><td class="n">55.5</td><td class="n">48.2</td><td class="n">2K</td></tr>
+            <tr><td>Claude 3.5 Sonnet</td><td class="n">87.5</td><td class="n">85.4</td><td class="n">77.6</td><td class="n">61.7</td><td class="n">45.7</td><td class="n">29.8</td><td class="n">4K</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note"><b>Field note</b>Measure your own effective length. Seed a fact your task depends on into transcripts of 4K, 16K and 64K tokens and check whether the agent still uses it. Set your compaction trigger below the length where that check starts failing, not at the length where the API starts returning errors.</div>
+
+      <h2 id="s-3">Four ways context fails</h2>
+      <p>Drew Breunig sorted long-context failures into four kinds.<sup class="cite"><a href="#r12">12</a></sup> The taxonomy is useful because each one has a different fix, and applying the wrong one wastes a week.</p>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead><tr><th>Mode</th><th>What happens</th><th>Evidence</th><th>Fix</th></tr></thead>
+          <tbody>
+            <tr><td>Poisoning</td><td>A hallucination or bad result enters context and is re-read as fact on every later turn</td><td>Breunig's definition; no single benchmark</td><td>Prune it or restart</td></tr>
+            <tr><td>Distraction</td><td>History grows until the model copies past actions instead of planning</td><td>Gemini 2.5 agent past ~100K tokens</td><td>Compact</td></tr>
+            <tr><td>Confusion</td><td>Irrelevant material, often tools, pulls the model off task</td><td>Llama 3.1 8B: fails with 46 tools, passes with 19</td><td>Fewer tools, loaded on demand</td></tr>
+            <tr><td>Clash</td><td>Parts of the context disagree with each other</td><td>Sharded prompts: average −39%; o3 98.1 → 64.1</td><td>Quarantine exploration</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Clash deserves attention because it is the one harnesses cause. In the sharded-prompt study Breunig cites, splitting the same task's information across several turns cost 39% on average.<sup class="cite"><a href="#r12">12</a></sup> An agent that writes exploratory drafts into its main thread is manufacturing clash.</p>
+
+      <h2 id="s-4">Budget it like RAM</h2>
+      <p>Karpathy's framing holds up: the model is the CPU and the context window is RAM.<sup class="cite"><a href="#r3">3</a></sup> MemGPT made the analogy literal, with a main context the model reads directly and an external store it pages data in from.<sup class="cite"><a href="#r13">13</a></sup> The practical consequence is to split cost into two lines: fixed overhead and per-step spend.</p>
+      <p>Fixed overhead is everything loaded before the user types. In Claude Code that means the system prompt, CLAUDE.md, the first 200 lines or 25KB of auto memory, MCP tool names and skill descriptions, with full MCP tool definitions deferred until used.<sup class="cite"><a href="#r14">14</a>,<a href="#r7">7</a></sup> Each of those tokens is paid on every turn of every session. Per-step spend is file reads, tool output and the model's own reasoning.</p>
+      <p>Progressive disclosure keeps overhead small. Agent Skills load in three levels: name and description up front, the body only when relevant, bundled files only when read.<sup class="cite"><a href="#r15">15</a></sup> The same discipline applies to instruction files. Anthropic's test for each line of CLAUDE.md is whether deleting it would cause mistakes; bloated files make the model ignore the instructions that matter.<sup class="cite"><a href="#r16">16</a></sup></p>
+      <p>When spend does pile up, cut in order of cost. Claude Code clears older tool outputs first and summarizes only if that is not enough.<sup class="cite"><a href="#r7">7</a></sup> At the API level, tool-result clearing triggers at 100,000 input tokens by default and keeps the last three tool uses.<sup class="cite"><a href="#r17">17</a></sup> Anthropic measured context editing alone at +29% on an agentic search eval, +39% with a memory tool added, and 84% fewer tokens over a 100-turn web search run.<sup class="cite"><a href="#r18">18</a></sup> As of June 2025 Claude Code auto-compacted at 95% of the window.<sup class="cite"><a href="#r3">3</a></sup></p>
+      <p>Compaction is lossy, so decide what survives it. After compacting, Claude Code re-reads up to five recently modified files (larger ones come back as paths), re-injects skill bodies capped at 5,000 tokens each and 25,000 in total, and reloads CLAUDE.md and memory from disk. Nested instruction files and path-scoped rules are summarized away.<sup class="cite"><a href="#r14">14</a></sup> Anthropic's advice for writing a summarizer is to tune for recall first, then precision, keeping decisions, open bugs and implementation details.<sup class="cite"><a href="#r6">6</a></sup></p>
+
+      <div class="note"><b>Field note</b>Write down your compaction contract: the five things that must survive a summary (goal, decisions, open bugs, files touched, next step). Then force a compaction halfway through a real task and check the agent can name all five. If it cannot, the contract lives in a file, not in the transcript.</div>
+
+      <h2 id="s-5">Move it out, pull it in</h2>
+      <p>The filesystem is the cheapest memory tier because it is restorable. The lightest version is a notes file the agent writes and rereads.<sup class="cite"><a href="#r6">6</a></sup> Manus has its agent rewrite a todo list every step, which pushes the goals to the recent end of context across tasks that average about 50 tool calls. It treats files as unlimited, persistent and directly operable, and compresses only in ways it can undo: keep the URL, drop the page.<sup class="cite"><a href="#r5">5</a></sup></p>
+      <p>Heavier systems formalize the tiers. Letta splits memory into core blocks the agent edits in context, searchable recall history, and an archival store, and on overflow evicts about 70% of messages behind a recursive summary.<sup class="cite"><a href="#r19">19</a></sup> Mem0 extracts and consolidates facts; on the LOCOMO benchmark it reported a 26% judge-score gain over OpenAI's memory, 91% lower p95 latency and over 90% fewer tokens than replaying full history.<sup class="cite"><a href="#r20">20</a></sup></p>
+
+      <div class="note case"><b>Case study · a memory that argues with itself</b>
+        <p>Every memory tier above shares a weakness: whatever gets written is believed. A wrong fact stored once is retrieved forever, which is context poisoning made permanent. <a href="../index.html#built">Mycelium</a>, one of my own projects, explores the opposite design: memory that has to earn its way in.</p>
+        <ol>
+          <li><strong>Perceive in layers.</strong> A cheap structural pass reads the shape of each source before a deeper pass extracts entities, relationships and claims, so expensive reasoning is spent only on what structure cannot answer.</li>
+          <li><strong>Challenge before storing.</strong> An adversarial pass disputes every extracted claim, and a consistency check tests it against what is already known. Only reconciled facts enter, each carrying a confidence score and its provenance.</li>
+          <li><strong>Forget on purpose.</strong> Confidence decays unless new evidence reinforces it, and duplicates merge, so the store tends toward what is still true rather than everything ever said.</li>
+          <li><strong>Let structure create specialists.</strong> Dense clusters in the knowledge graph each become a specialist agent with a deep, narrow context, so no single window has to hold everything.</li>
+          <li><strong>Route, don't stuff.</strong> A supervising tier decides which specialists a question needs and pulls only their answers into the final context. This is the chapter's pull-not-push principle applied to memory itself.</li>
+        </ol>
+        <p>The design bet is that memory quality is a verification problem, not a storage problem. That is the same lesson Chapter 5 draws for evals.</p>
+      </div>
+      <p>Retrieval has the same push-or-pull choice.</p>
+      <blockquote class="pull">“Claude Code doesn't use RAG currently. In our testing we found that agentic search out-performed RAG for the kinds of things people use Code for.”<cite>— Boris Cherny, Hacker News (2025)</cite></blockquote>
+      <p>Anthropic calls the pattern just-in-time context: hold lightweight identifiers such as paths, URLs and queries, and load the content only when a step needs it, with upfront retrieval kept for cases where speed matters.<sup class="cite"><a href="#r6">6</a></sup></p>
+      <p>Subagents push the same idea further by spending tokens in a separate window. Anthropic's research system uses about 15 times the tokens of a chat, and token usage alone explained 80% of the variance in its BrowseComp results.<sup class="cite"><a href="#r21">21</a></sup> Each subagent hands back a condensed summary of 1,000 to 2,000 tokens.<sup class="cite"><a href="#r6">6</a></sup> The limit is decisions.</p>
+      <blockquote class="pull">“Actions carry implicit decisions, and conflicting decisions carry bad results.”<cite>— Walden Yan, Cognition (2025)</cite></blockquote>
+      <p>Parallel workers that never see each other's traces make incompatible choices. Cognition's Flappy Bird example shows subagents building parts that rest on conflicting assumptions. Read-only investigators that report back to one decision-making thread are the safe form.<sup class="cite"><a href="#r4">4</a></sup></p>
+
+      <h2 id="s-6">Pay attention to the cache</h2>
+      <p>The cheapest token is one already sitting in the KV cache.</p>
+      <blockquote class="pull">“the single most important metric for a production-stage AI agent”<cite>— Yichao “Peak” Ji, Manus, on KV-cache hit rate (2025)</cite></blockquote>
+      <p>Agent loops read far more than they write. Manus reports input-to-output ratios around 100:1, so the input price dominates the bill.<sup class="cite"><a href="#r5">5</a></sup> For Sonnet 4.5 input costs $3 per million tokens, a cache read $0.30, a five-minute cache write $3.75, and output $15.<sup class="cite"><a href="#r22">22</a></sup> The cache matches on prefix in the order tools, then system, then messages, and any change invalidates everything after it. Sonnet 4.5 needs at least 1,024 tokens to cache at all.<sup class="cite"><a href="#r22">22</a></sup></p>
+      <p>That makes cache discipline an architecture rule, not a style preference. Keep timestamps out of the system prompt, append instead of editing history, serialize deterministically, and mask tools rather than removing their definitions mid-session.<sup class="cite"><a href="#r5">5</a></sup> It also explains a tension from Section 4: clearing old tool results breaks the cached prefix, which is why the API lets you require a minimum amount cleared per edit so the rewrite pays for itself.<sup class="cite"><a href="#r17">17</a></sup></p>
+
+      <section class="instrument" id="crg-cache" aria-label="Context Rot Gauge: cache economics">
+        <header>Context Rot Gauge · 02 cache economics<span class="tag">data: <a href="#r22">[22]</a> prices · <a href="#r5">[5]</a> ratio</span></header>
+        <div class="body">
+          <div class="crg-calc">
+            <label for="crg-p">Prefix resent per turn <output id="crg-p-out" for="crg-p"></output><input type="range" id="crg-p" min="2000" max="150000" step="1000" value="20000"></label>
+            <label for="crg-t">Turns per session <output id="crg-t-out" for="crg-t"></output><input type="range" id="crg-t" min="1" max="200" step="1" value="50"></label>
+            <label for="crg-h">Cache hit rate <output id="crg-h-out" for="crg-h"></output><input type="range" id="crg-h" min="0" max="100" step="1" value="90"></label>
+            <label for="crg-r">Input : output ratio <output id="crg-r-out" for="crg-r"></output><input type="range" id="crg-r" min="10" max="300" step="5" value="100"></label>
+          </div>
+          <p class="crg-panel-title">Turn stream · prefix per turn (cyan = cache read, amber = cache write) over what that turn bills for input</p>
+          <svg class="crg-stream" id="crg-stream" viewBox="0 0 480 72" aria-hidden="true"></svg>
+          <div class="crg-costs">
+            <div class="crg-cost"><span>No cache (0%)</span><div class="bar amber"><span id="crg-bar0"></span></div><span class="v" id="crg-c0"></span></div>
+            <div class="crg-cost"><span id="crg-lab-h">At 90% hits</span><div class="bar"><span id="crg-barh"></span></div><span class="v" id="crg-ch"></span></div>
+          </div>
+          <div class="crg-sum">
+            <div><small class="crg-lbl" id="crg-odo-lbl">Session at 90% hits</small><div class="readout" id="crg-odo">$0.00</div></div>
+            <div><small class="crg-lbl">vs no cache</small><div class="readout mid" id="crg-mult">4.0×</div></div>
+            <p id="crg-detail" aria-live="polite"></p>
+          </div>
+          <p class="crg-hint" style="margin:12px 0 0">Try: drag hit rate below 22%. Misses bill as cache writes at 1.25× input, and the cache starts losing money.</p>
+        </div>
+        <div class="caption">Sonnet 4.5 list prices per million tokens <a href="#r22">[22]</a>: input $3, cache write (5-minute) $3.75, cache read $0.30, output $15. Default ratio 100:1 from Manus <a href="#r5">[5]</a>. Simplified model: every turn resends the same prefix, hits bill as reads, misses bill as cache writes, output is prefix ÷ ratio. Context growth and TTL expiry are ignored. The turn stream shows at most 60 turns and spreads hits deterministically at the chosen rate; it is an illustration of the same arithmetic, not a trace.</div>
+      </section>
+
+      <p>Run the numbers and the shape is clear. A cache miss is billed as a write at 1.25× the base input price,<sup class="cite"><a href="#r22">22</a></sup> so hit rates below about 22% lose money. Past that point the 10× read discount dominates, and with output a hundredth of input, the session cost follows the hit rate almost exactly.</p>
+
+      <h2 id="s-7">What fills the window next</h2>
+      <p>The pattern across this chapter is that a long context is a liability you manage, not a resource you fill. Keep fixed overhead small, cut stale results before summarizing, put durable state in files, pull content in on demand, and protect the cached prefix.</p>
+      <p>Most of the per-step spend, though, is tool output: file reads, search hits, command logs. How much of it lands in the window depends on what tools the agent has, how they are described and what they return. That is Chapter 3.</p>
+
+      <details class="refbox" id="s-refs"><summary>References (22)</summary>
+      <ol class="refs">
+        <li id="r1">Modarressi et al. (Adobe Research, LMU Munich), “NoLiMa: Long-Context Evaluation Beyond Literal Matching,” ICML 2025 / arXiv, February 2025. <a href="https://arxiv.org/abs/2502.05167">arxiv.org/abs/2502.05167</a></li>
+        <li id="r2">Pure AI, “Karpathy Puts Context at the Core of AI Coding (secondary report of Karpathy’s June 2025 post),” Pure AI, September 2025. <a href="https://pureai.com/articles/2025/09/23/karpathy-puts-context-at-the-core-of-ai-coding.aspx">pureai.com/articles/2025/09/23/karpathy-puts-c…</a></li>
+        <li id="r3">Lance Martin, “Context Engineering for Agents,” rlancemartin.github.io, June 2025. <a href="https://rlancemartin.github.io/2025/06/23/context_engineering/">rlancemartin.github.io/2025/06/23/context_engi…</a></li>
+        <li id="r4">Walden Yan, “Don’t Build Multi-Agents,” Cognition, June 2025. <a href="https://cognition.com/blog/dont-build-multi-agents">cognition.com/blog/dont-build-multi-agents</a></li>
+        <li id="r5">Yichao “Peak” Ji, “Context Engineering for AI Agents: Lessons from Building Manus,” Manus, July 2025. <a href="https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus">manus.im/blog/Context-Engineering-for-AI-Agent…</a></li>
+        <li id="r6">Rajasekaran, Dixon, Ryan, Hadfield (Anthropic), “Effective context engineering for AI agents,” Anthropic Engineering, September 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-en…</a></li>
+        <li id="r7">Anthropic, “How Claude Code works,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/how-claude-code-works">code.claude.com/docs/en/how-claude-code-works</a></li>
+        <li id="r8">Hsieh et al. (NVIDIA), “RULER: What’s the Real Context Size of Your Long-Context Language Models?,” arXiv, April 2024. <a href="https://arxiv.org/abs/2404.06654">arxiv.org/abs/2404.06654</a></li>
+        <li id="r9">Leng, Portes, Havens, Zaharia, Carbin (Databricks), “Long Context RAG Performance of Large Language Models,” Databricks / arXiv, November 2024. <a href="https://arxiv.org/abs/2411.03538">arxiv.org/abs/2411.03538</a></li>
+        <li id="r10">Hong, Troynikov, Huber (Chroma), “Context Rot: How Increasing Input Tokens Impacts LLM Performance,” Chroma, July 2025. <a href="https://www.trychroma.com/research/context-rot">trychroma.com/research/context-rot</a></li>
+        <li id="r11">Liu, Lin, Hewitt, Paranjape, Bevilacqua, Petroni, Liang, “Lost in the Middle: How Language Models Use Long Contexts,” TACL / arXiv, July 2023. <a href="https://arxiv.org/abs/2307.03172">arxiv.org/abs/2307.03172</a></li>
+        <li id="r12">Drew Breunig, “How Long Contexts Fail,” dbreunig.com, June 2025. <a href="https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html">dbreunig.com/2025/06/22/how-contexts-fail-and-…</a></li>
+        <li id="r13">Packer et al. (UC Berkeley), “MemGPT: Towards LLMs as Operating Systems,” arXiv, October 2023. <a href="https://arxiv.org/abs/2310.08560">arxiv.org/abs/2310.08560</a></li>
+        <li id="r14">Anthropic, “Explore the context window,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/context-window">code.claude.com/docs/en/context-window</a></li>
+        <li id="r15">Anthropic, “Equipping agents for the real world with Agent Skills,” Anthropic Engineering, October 2025. <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">anthropic.com/engineering/equipping-agents-for…</a></li>
+        <li id="r16">Anthropic, “Claude Code best practices,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
+        <li id="r17">Anthropic, “Context editing,” Claude Developer Platform docs, accessed October 2026. <a href="https://platform.claude.com/docs/en/build-with-claude/context-editing">platform.claude.com/docs/en/build-with-claude/…</a></li>
+        <li id="r18">Anthropic, “Managing context on the Claude Developer Platform,” Claude blog, September 2025. <a href="https://claude.com/blog/context-management">claude.com/blog/context-management</a></li>
+        <li id="r19">Letta, “Agent Memory: How to Build Agents that Learn and Remember,” Letta blog, July 2025. <a href="https://www.letta.com/blog/agent-memory">letta.com/blog/agent-memory</a></li>
+        <li id="r20">Chhikara et al., “Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory,” arXiv, April 2025. <a href="https://arxiv.org/abs/2504.19413">arxiv.org/abs/2504.19413</a></li>
+        <li id="r21">Anthropic, “How we built our multi-agent research system,” Anthropic Engineering, June 2025. <a href="https://www.anthropic.com/engineering/multi-agent-research-system">anthropic.com/engineering/multi-agent-research…</a></li>
+        <li id="r22">Anthropic, “Prompt caching,” Claude Developer Platform docs, accessed October 2026. <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">platform.claude.com/docs/en/build-with-claude/…</a></li>
+      </ol>
+      </details>
+
+      <nav class="pager">
+        <a class="prev" href="01-loop.html"><small>← Previous</small><span>The Loop</span></a>
+        <a class="next" href="03-tools.html"><small>Next →</small><span>Tools &amp; Environment</span></a>
+      </nav>
+    </article>
+
+    <aside class="rail" aria-label="On this page">
+      <div class="label">On this page</div>
+      <ol>
+        <li><a href="#s-1">The job is context</a></li>
+        <li><a href="#s-2">Advertised vs usable</a></li>
+        <li><a href="#s-3">Four ways it fails</a></li>
+        <li><a href="#s-4">Budget it like RAM</a></li>
+        <li><a href="#s-5">Move it out, pull it in</a></li>
+        <li><a href="#s-6">The cache</a></li>
+        <li><a href="#s-7">What fills it next</a></li>
+      </ol>
+    </aside>
+  </div>
+</main>
+
+<footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
+
+<script src="../assets/site.js?v=8"></script>
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  // rAF loop for one instrument: runs `step` while it returns true and the instrument is on screen
+  const loop = (root, step) => {
+    let raf = 0, seen = false;
+    const tick = now => { raf = 0; if (seen && step(now)) raf = requestAnimationFrame(tick); };
+    const kick = () => { if (!raf && seen) raf = requestAnimationFrame(tick); };
+    new IntersectionObserver(es => {
+      seen = es[0].isIntersecting;
+      if (seen) kick(); else { cancelAnimationFrame(raf); raf = 0; }
+    }, { threshold: 0.1 }).observe(root);
+    return kick;
+  };
+
+  /* ---------- panel 1: NoLiMa effective length ---------- */
+  const LEN = [1, 4, 8, 16, 32];              // K tokens, measured points (NoLiMa Table 3)
+  const TESTED = [1, 2, 4, 8, 16, 32];        // lengths the paper tests (2K omitted in our excerpt)
+  const M = [
+    { n: 'GPT-4o',            b: 99.3, v: [98.1, 95.7, 89.2, 81.6, 69.7], eff: 8, c: '--cyan' },
+    { n: 'Llama 3.3 70B',     b: 97.3, v: [94.2, 81.5, 72.1, 59.5, 42.7], eff: 2, c: '--violet' },
+    { n: 'Gemini 1.5 Pro',    b: 92.6, v: [86.4, 75.4, 63.9, 55.5, 48.2], eff: 2, c: '--green' },
+    { n: 'Claude 3.5 Sonnet', b: 87.5, v: [85.4, 77.6, 61.7, 45.7, 29.8], eff: 4, c: '--amber' },
+  ];
+  const LX = LEN.map(Math.log2);
+
+  // linear interpolation in log2(length) space
+  const accAt = (m, lx) => {
+    if (lx <= LX[0]) return m.v[0];
+    for (let i = 0; i < LX.length - 1; i++) {
+      if (lx <= LX[i + 1]) { const t = (lx - LX[i]) / (LX[i + 1] - LX[i]); return m.v[i] + t * (m.v[i + 1] - m.v[i]); }
+    }
+    return m.v[m.v.length - 1];
+  };
+  // log2(length) where the interpolated curve crosses 85% of base; null if never within 1K–32K
+  const crossAt = m => {
+    const thr = 0.85 * m.b;
+    if (m.v[0] < thr) return LX[0];
+    for (let i = 0; i < m.v.length - 1; i++) {
+      if (m.v[i] >= thr && m.v[i + 1] < thr) return LX[i] + (m.v[i] - thr) / (m.v[i] - m.v[i + 1]) * (LX[i + 1] - LX[i]);
+    }
+    return null;
+  };
+  const fmtK = lx => { const k = Math.pow(2, lx); return (k < 10 && Math.abs(k - Math.round(k)) > 0.05 ? k.toFixed(1) : Math.round(k)) + 'K'; };
+  const cls = r => r >= 0.85 ? 'ok' : r >= 0.5 ? 'bad' : 'fail';
+
+  // self-checks: interpolation reproduces measured points; paper's effective length is consistent with our crossing
+  M.forEach(m => {
+    LEN.forEach((k, i) => H.check(Math.abs(accAt(m, Math.log2(k)) - m.v[i]) < 1e-9, `${m.n} interp at ${k}K`));
+    const cx = Math.pow(2, crossAt(m));
+    const next = TESTED[TESTED.indexOf(m.eff) + 1];
+    H.check(m.eff <= cx + 1e-9 && cx < next, `${m.n}: paper effective ${m.eff}K vs crossing ${cx.toFixed(2)}K`);
+  });
+  H.check(M.filter(m => m.v[4] / m.b < 0.5).map(m => m.n).join() === 'Llama 3.3 70B,Claude 3.5 Sonnet', 'NoLiMa: below 50% of base at 32K');
+  H.check(Math.abs(0.85 * 87.5 - 74.375) < 1e-9, 'Claude 85% threshold');
+  H.check(Math.round(accAt(M[3], 3) / M[3].b * 100) === 71, 'hint: Claude keeps 71% at 8K');
+
+  // chart geometry
+  const svg = H.$('#crg-chart'), strip = H.$('#crg-strip');
+  const W = 480, HT = 280, P = { l: 40, r: 14, t: 14, b: 26 };
+  const X = lx => P.l + (lx / 5) * (W - P.l - P.r);
+  const LXof = x => Math.min(5, Math.max(0, (x - P.l) / (W - P.l - P.r) * 5));
+  const Y = a => P.t + (1 - a / 100) * (HT - P.t - P.b);
+  H.check(Math.abs(LXof(X(2.5)) - 2.5) < 1e-9, 'scanline x <-> length roundtrip');
+
+  const pat = el('pattern', { id: 'crg-hatch', width: 6, height: 6, patternUnits: 'userSpaceOnUse' }, el('defs', {}, svg));
+  el('path', { d: 'M0 6L6 0', class: 'crg-hatch' }, pat);
+  const rot = el('rect', { class: 'crg-rot', y: P.t, height: HT - P.t - P.b, x: X(5), width: 0 }, svg);
+  const rotH = el('rect', { class: 'crg-rot-hatch', fill: 'url(#crg-hatch)', y: P.t, height: HT - P.t - P.b, x: X(5), width: 0 }, svg);
+  for (const a of [0, 25, 50, 75, 100]) {
+    el('line', { class: a ? 'crg-grid' : 'crg-axis', x1: P.l, x2: W - P.r, y1: Y(a), y2: Y(a) }, svg);
+    el('text', { x: P.l - 8, y: Y(a) + 4, 'text-anchor': 'end' }, svg).textContent = a;
+  }
+  for (const k of TESTED) {
+    const x = X(Math.log2(k));
+    el('line', { class: 'crg-grid', x1: x, x2: x, y1: P.t, y2: HT - P.b }, svg);
+    el('text', { x, y: HT - P.b + 18, 'text-anchor': 'middle' }, svg).textContent = k + 'K';
+  }
+  const rotLabel = el('text', { class: 'crg-rot-label', x: W - P.r - 4, y: P.t + 14, 'text-anchor': 'end' }, svg);
+
+  const series = M.map((m, i) => {
+    const g = el('g', { class: 'crg-series', style: `--c: var(${m.c})` }, svg);
+    const thr = el('line', { class: 'crg-thr', x1: P.l, x2: W - P.r, y1: Y(0.85 * m.b), y2: Y(0.85 * m.b) }, g);
+    const line = el('polyline', { class: 'crg-line', points: LEN.map((k, j) => `${X(LX[j])},${Y(m.v[j])}`).join(' ') }, g);
+    LEN.forEach((k, j) => el('circle', { class: 'crg-pt', cx: X(LX[j]), cy: Y(m.v[j]), r: 3.5 }, g));
+    return { g, thr, line };
+  });
+  const scan = el('line', { class: 'crg-scan', y1: P.t, y2: HT - P.b }, svg);
+  const dots = M.map(m => el('circle', { class: 'crg-scan-dot', r: 5, style: `--c: var(${m.c})` }, svg));
+
+  // context-window strip: token blocks on the same log axis; blocks past the focused model's crossing decay
+  const NB = 48, bw = (W - P.l - P.r) / NB;
+  const blocks = Array.from({ length: NB }, (_, i) =>
+    el('rect', { class: 'crg-blk', x: P.l + i * bw + 1, y: 2, width: bw - 2, height: 12, rx: 1, style: `animation-delay:-${(i * 0.37) % 1.1}s` }, strip));
+  el('text', { x: P.l - 8, y: 12, 'text-anchor': 'end' }, strip).textContent = 'CTX';
+  el('text', { x: W - P.r, y: 27, 'text-anchor': 'end' }, strip).textContent = 'spec-sheet window continues →';
+
+  // controls
+  const on = M.map(() => true);
+  let focus = 3;
+  const chips = H.$('#crg-chips'), reads = H.$('#crg-reads'), len = H.$('#crg-len');
+  const big = H.$('#crg-big'), bigLbl = H.$('#crg-big-lbl'), live = H.$('#crg-eff-text');
+  const chipEls = M.map((m, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.setAttribute('aria-pressed', 'true');
+    b.style.setProperty('--c', `var(${m.c})`);
+    b.innerHTML = `<span class="crg-sw"></span>${m.n}`;
+    b.addEventListener('click', () => { on[i] = !on[i]; if (on[i]) focus = i; else if (focus === i) { const f = on.indexOf(true); if (f >= 0) focus = f; } settle(); });
+    chips.appendChild(b); return b;
+  });
+  const readEls = M.map((m, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'crg-read';
+    b.style.setProperty('--c', `var(${m.c})`);
+    b.innerHTML = `<small>${m.n}</small><b></b><i></i>`;
+    b.addEventListener('click', () => { focus = i; on[i] = true; settle(); });
+    reads.appendChild(b); return b;
+  });
+
+  // draw everything for a length; the aria-live sentence only when `announce` (never per animation frame)
+  function draw(lx, announce) {
+    len.value = lx.toFixed(2);
+    H.$('#crg-len-out').textContent = fmtK(lx);
+    len.setAttribute('aria-valuetext', fmtK(lx) + ' tokens');
+    scan.setAttribute('x1', X(lx)); scan.setAttribute('x2', X(lx));
+    M.forEach((m, i) => {
+      const a = accAt(m, lx), r = a / m.b;
+      series[i].g.classList.toggle('off', !on[i]);
+      series[i].g.classList.toggle('focus', i === focus && on[i]);
+      dots[i].setAttribute('cx', X(lx)); dots[i].setAttribute('cy', Y(a));
+      dots[i].style.opacity = on[i] ? 1 : 0;
+      chipEls[i].setAttribute('aria-pressed', String(on[i]));
+      readEls[i].setAttribute('aria-pressed', String(i === focus));
+      readEls[i].classList.toggle('off', !on[i]);
+      const bEl = readEls[i].querySelector('b');
+      bEl.textContent = H.pct(a); bEl.className = cls(r);
+      readEls[i].querySelector('i').textContent = `${Math.round(r * 100)}% of base`;
+    });
+    const f = M[focus], cx = crossAt(f), af = accAt(f, lx), r = af / f.b;
+    const xc = on[focus] && cx !== null ? X(cx) : X(5);
+    for (const q of [rot, rotH]) { q.setAttribute('x', xc); q.setAttribute('width', X(5) - xc); }
+    rotLabel.textContent = xc < X(5) ? 'past effective length' : '';
+    const xs = X(lx);
+    blocks.forEach((b, i) => { const bx = P.l + i * bw; b.setAttribute('class', 'crg-blk' + (bx < xs ? (bx >= xc ? ' rot' : ' on') : '')); });
+    big.textContent = H.pct(af);
+    big.className = 'readout ' + cls(r);
+    bigLbl.textContent = `${f.n} · ${fmtK(lx)} tokens · ${Math.round(r * 100)}% of base`;
+    if (announce) live.textContent =
+      `${f.n}: effective length ${f.eff}K per the paper; interpolated crossing of its ${H.pct(0.85 * f.b)} line ≈ ${fmtK(cx)}. ` +
+      `At ${fmtK(lx)} it keeps ${Math.round(r * 100)}% of its short-context score (${H.pct(f.b)}).`;
+  }
+
+  // motion: attract (idle ping-pong until first touch), sweep, or eased tween toward target
+  let cur = 3, target = 3, attract = !reduce, sweepT0 = 0;
+  const kick = loop(H.$('#crg'), now => {
+    if (sweepT0) { const t = Math.min(1, (now - sweepT0) / 3200); cur = target = 5 * t; if (t >= 1) sweepT0 = 0; }
+    else if (attract) { if (Math.abs(target - cur) < 0.03) target = target > 2.5 ? 0 : 5; cur += (target - cur) * 0.02; }
+    else if (Math.abs(target - cur) > 0.003) cur += (target - cur) * 0.18;
+    else cur = target;
+    const busy = !!sweepT0 || attract || cur !== target;
+    draw(cur, !busy);
+    return busy;
+  });
+  const stop = () => { attract = false; sweepT0 = 0; target = cur; };
+  const settle = () => { stop(); draw(cur, true); };
+  const go = (lx, snap) => { stop(); target = lx; if (snap || reduce) cur = lx; draw(cur, cur === target); kick(); };
+
+  len.addEventListener('input', () => go(+len.value, true));
+  // direct manipulation: drag the scanline on the chart itself
+  const ptr = e => { const r = svg.getBoundingClientRect(); go(LXof((e.clientX - r.left) / r.width * W), true); };
+  svg.addEventListener('pointerdown', e => { svg.setPointerCapture(e.pointerId); ptr(e); });
+  svg.addEventListener('pointermove', e => { if (svg.hasPointerCapture(e.pointerId)) ptr(e); });
+  H.$('#crg-sweep').addEventListener('click', () => {
+    stop();
+    if (reduce) { go(5, true); return; }
+    sweepT0 = performance.now(); kick();
+  });
+
+  // draw the lines in when the gauge scrolls into view
+  if (!reduce && 'IntersectionObserver' in window) {
+    series.forEach(s => { const L = s.line.getTotalLength(); s.line.style.strokeDasharray = L; s.line.style.strokeDashoffset = L; });
+    const io = new IntersectionObserver(es => {
+      if (!es[0].isIntersecting) return;
+      io.disconnect();
+      series.forEach((s, i) => {
+        s.line.style.transition = `stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1) ${i * 0.15}s`;
+        s.line.style.strokeDashoffset = 0;
+        setTimeout(() => { s.line.style.strokeDasharray = ''; }, 1400 + i * 150);
+      });
+    }, { threshold: 0.3 });
+    io.observe(svg);
+  }
+  draw(cur, true);
+  kick();
+
+  /* ---------- panel 2: cache economics (Sonnet 4.5, $/MTok) ---------- */
+  const PRICE = { in: 3, write: 3.75, read: 0.30, out: 15 };
+  // per-input-token price at hit rate h: hits are cache reads, misses are 5-minute cache writes
+  const inPrice = h => h * PRICE.read + (1 - h) * PRICE.write;
+  const session = (P, T, h, R, cached) => {
+    const inTok = P * T, outTok = inTok / R;
+    return (inTok * (cached ? inPrice(h) : PRICE.in) + outTok * PRICE.out) / 1e6;
+  };
+  const breakEven = (PRICE.write - PRICE.in) / (PRICE.write - PRICE.read);
+  // which turns of the stream are drawn as hits: golden-ratio spread, so the count tracks the rate without flicker
+  const isHit = (i, h) => i > 0 && (i * 0.6180339887) % 1 < h;
+
+  H.check(Math.abs(PRICE.in / inPrice(1) - 10) < 1e-9, 'input cost ratio at 100% hits is 10x');
+  H.check(Math.abs(breakEven - 0.75 / 3.45) < 1e-12 && Math.abs(inPrice(breakEven) - PRICE.in) < 1e-9, 'break-even hit rate ~21.7%');
+  H.check(Math.abs(session(20000, 50, 0, 100, false) - 3.15) < 1e-9, '20K x 50 turns uncached = $3.15');
+  H.check(Math.abs(session(20000, 50, 0.9, 100, true) - 0.795) < 1e-9, '20K x 50 turns at 90% hits = $0.795');
+  H.check(Math.abs(Array.from({ length: 60 }, (_, i) => isHit(i, 0.9)).filter(Boolean).length / 60 - 0.9) < 0.05, 'stream hit pattern tracks hit rate');
+
+  const ids = ['p', 't', 'h', 'r'].map(k => H.$('#crg-' + k));
+  const money = v => v < 10 ? '$' + v.toFixed(2) : '$' + v.toFixed(1);
+
+  // turn stream geometry: columns rebuilt only when the turn count changes
+  const stream = H.$('#crg-stream'), SW = 480, BASE = 38;
+  const hitsG = el('g', { class: 'crg-hits' }, stream), missG = el('g', {}, stream), payG = el('g', {}, stream);
+  const lab0 = el('text', { x: 0, y: 71 }, stream), labN = el('text', { x: SW, y: 71, 'text-anchor': 'end' }, stream);
+  lab0.textContent = 'TURN 1';
+  let cols = [];
+  const buildStream = n => {
+    [hitsG, missG, payG].forEach(g => g.replaceChildren());
+    const cw = SW / n, gap = cw > 4 ? 1 : cw * 0.2;
+    cols = Array.from({ length: n }, (_, i) => ({
+      pre: el('rect', { x: i * cw, width: cw - gap, rx: cw > 6 ? 1 : 0 }, missG),
+      pay: el('rect', { class: 'crg-pay', x: i * cw, width: cw - gap, y: BASE + 4 }, payG),
+    }));
+    labN.textContent = 'TURN ' + n;
+  };
+
+  const tgt = { c0: 0, ch: 0 }, shown = { c0: 0, ch: 0 };
+  let hcur = +ids[2].value, htarget = hcur, attract2 = !reduce;
+  function compute(announce) {
+    const [P, T, hp, R] = ids.map(i => +i.value), h = hp / 100;
+    H.$('#crg-p-out').textContent = (P / 1000) + 'K tok';
+    H.$('#crg-t-out').textContent = T;
+    H.$('#crg-h-out').textContent = hp + '%';
+    H.$('#crg-r-out').textContent = R + ':1';
+    tgt.c0 = session(P, T, h, R, false); tgt.ch = session(P, T, h, R, true);
+    const max = Math.max(tgt.c0, tgt.ch);
+    H.$('#crg-bar0').style.width = (tgt.c0 / max * 100) + '%';
+    H.$('#crg-barh').style.width = (tgt.ch / max * 100) + '%';
+    H.$('#crg-lab-h').textContent = `At ${hp}% hits`;
+    H.$('#crg-odo-lbl').textContent = `Session at ${hp}% hits`;
+    const n = Math.min(T, 60);
+    if (cols.length !== n) buildStream(n);
+    const ph = 6 + 30 * P / 150000;
+    cols.forEach((c, i) => {
+      const hit = isHit(i, h), price = hit ? PRICE.read : PRICE.write;
+      c.pre.setAttribute('class', hit ? 'crg-hit' : 'crg-miss');
+      c.pre.setAttribute('y', BASE - ph); c.pre.setAttribute('height', ph);
+      (hit ? hitsG : missG).appendChild(c.pre);
+      c.pay.setAttribute('class', 'crg-pay' + (hit ? ' hit' : ''));
+      c.pay.setAttribute('height', price / PRICE.write * 20);
+    });
+    if (announce) H.$('#crg-detail').textContent =
+      `${((P * T) / 1e6).toFixed(2)}M input, ${((P * T / R) / 1e3).toFixed(1)}K output tokens. ` +
+      `Input alone: ${(PRICE.in / inPrice(h)).toFixed(1)}× cheaper (10× at 100%). Break-even hit rate ${H.pct(breakEven * 100)}.`;
+  }
+  // odometer: tweened dollars and multiple
+  function paint() {
+    const mult = shown.c0 / shown.ch;
+    H.$('#crg-c0').textContent = money(shown.c0);
+    H.$('#crg-ch').textContent = money(shown.ch);
+    H.$('#crg-odo').textContent = money(shown.ch);
+    H.$('#crg-odo').className = 'readout ' + (mult >= 1 ? (mult >= 3 ? 'ok' : '') : 'fail');
+    const m = H.$('#crg-mult');
+    m.textContent = mult >= 1 ? mult.toFixed(1) + '× cheaper' : (1 / mult).toFixed(2) + '× dearer';
+    m.className = 'readout mid ' + (mult >= 1 ? (mult >= 3 ? 'ok' : '') : 'fail');
+  }
+  const kick2 = loop(H.$('#crg-cache'), () => {
+    let busy = false;
+    if (attract2) {
+      if (Math.abs(htarget - hcur) < 0.5) htarget = htarget > 50 ? 0 : 100;
+      hcur += (htarget - hcur) * 0.015;
+      ids[2].value = Math.round(hcur); compute(false); busy = true;
+    }
+    for (const k in shown) {
+      const d = tgt[k] - shown[k];
+      if (Math.abs(d) > 0.0005) { shown[k] += d * 0.2; busy = true; } else shown[k] = tgt[k];
+    }
+    paint();
+    return busy;
+  });
+  ids.forEach(i => i.addEventListener('input', () => {
+    attract2 = false; compute(true);
+    if (reduce) Object.assign(shown, tgt);
+    paint(); kick2();
+  }));
+  compute(true);
+  Object.assign(shown, tgt);  // first paint is exact; later changes tween
+  paint();
+  kick2();
+})();
+</script>
+</body>
+</html>
