@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-0Hjnl8iguwUPGtd5q29xRNiZ2XOwcv+uBHtcgn6Ay9w='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9P/5Vp9Vs8AdrK6p6+ovbQtUaHsafb0n3EsRDvjPF9I='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Agent = Model + Harness: What Harness Engineering Is · The Harness</title>
@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/site.css?v=8">
+<link rel="stylesheet" href="../assets/site.css?v=10">
 <style>
   /* HARNESS SWAP BENCH (hsb-) and history timeline (tl-) */
   .hsb-panel { padding: 18px 0; border-bottom: 1px dashed var(--rule); }
@@ -20,9 +20,8 @@
   .hsb-step { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); margin: 0 0 12px; }
   .hsb-head { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
   .hsb-sub { font: 12px/1.4 var(--mono); color: var(--text-faint); margin-top: 6px; }
-  .hsb-hint { font: 12px/1.4 var(--mono); color: var(--amber); margin: 8px 0 0; }
-  .hsb-hint::before { content: "▸ "; }
-  .hsb-svg { width: 100%; height: auto; display: block; }
+  #inst .hint { margin: 8px 0 0; }
+  .hsb-svg { width: 100%; height: auto; display: block; overflow: visible; }
   .hsb-svg text { font-family: var(--mono); }
   .hsb-axis { stroke: var(--rule-hi); stroke-width: 1; }
   .hsb-grid { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 4; }
@@ -40,10 +39,13 @@
   /* the model core: fixed, glowing; the shell around it is the harness and gets swapped */
   .hsb-core { fill: var(--void); stroke: var(--cyan); stroke-width: 1.5; filter: drop-shadow(0 0 14px rgba(62,230,255,.55)); cursor: pointer; }
   .hsb-core-txt { fill: #fff; font-size: 12px; font-weight: 600; text-anchor: middle; pointer-events: none; }
-  .hsb-core-sub { fill: var(--cyan); font-size: 8px; letter-spacing: .18em; text-anchor: middle; pointer-events: none; }
+  .hsb-core-sub { fill: var(--cyan); font-size: 9px; letter-spacing: .18em; text-anchor: middle; pointer-events: none; }
   .hsb-shell { fill: none; stroke: var(--text-dim); stroke-width: 1.5; stroke-dasharray: 10 6 2 6; transform-box: fill-box; transform-origin: center; animation: hsb-spin 14s linear infinite; }
+  /* infinite loops run only while the block is on screen (.on is set by an IntersectionObserver) */
+  .hsb-shell, .hsb-band, .tl-halo { animation-play-state: paused; }
+  .on .hsb-shell, .on .hsb-band, .on .tl-halo { animation-play-state: running; }
   .hsb-shell.swap { animation: hsb-swap .7s ease-out, hsb-spin 14s linear infinite; }
-  .hsb-shell-lbl { fill: var(--text-faint); font-size: 8px; letter-spacing: .18em; text-anchor: middle; }
+  .hsb-shell-lbl { fill: var(--text-faint); font-size: 10px; letter-spacing: .18em; text-anchor: middle; }
   @keyframes hsb-spin { to { transform: rotate(360deg); } }
   @keyframes hsb-swap { 0% { opacity: 0; stroke-width: 6; } 100% { opacity: 1; stroke-width: 1.5; } }
   @keyframes hsb-shimmer { 50% { opacity: .5; } }
@@ -74,7 +76,6 @@
   .hsb-slam .bar { transition: box-shadow .4s; }
   .hsb-slam.hit .bar { box-shadow: 0 0 16px rgba(62,230,255,.25); }
   .hsb-bar.violet > span { background: linear-gradient(90deg, #5d4a9e, var(--violet)); }
-  @media (max-width: 420px) { .hsb-ctx .seg { font-size: 0; } .hsb-ctx .free::after { font-size: 9px; } }
 
   .tl-fig { margin: 2.2em 0; padding: 16px 16px 8px; border: 1px solid var(--rule); border-radius: 10px; background: var(--panel); }
   .tl-fig svg { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; }
@@ -97,6 +98,18 @@
   .js .tl-fig.seen .tl-hot .tl-halo { animation: tl-halo 2.6s ease-out 1.6s infinite; }
   @keyframes tl-run { 0% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; } 100% { opacity: 0; transform: translateY(440px); } }
   @keyframes tl-halo { 0% { opacity: .8; r: 5px; } 100% { opacity: 0; r: 16px; } }
+  /* phone: the chart viewBox narrows to the bars (script), the schematic hides, and SVG text grows so it renders ≥ 11px at 390px wide */
+  @media (max-width: 640px) {
+    #inst > header { flex-wrap: wrap; } #inst > header .tag { flex-basis: 100%; margin-left: 19px; }
+    .hsb-schem { display: none; }
+    .hsb-tick, .hsb-name, .hsb-val, .hsb-gap-txt { font-size: 15px; }
+    .hsb-ctx .seg { font-size: 0; } .hsb-ctx .free::after { font-size: 11px; }
+    .tl-date, .tl-num { font-size: 14px; } .tl-ev { font-size: 15px; }
+    .js .tl-fig.seen .tl-spark { animation-name: tl-run-m; }
+  }
+  @keyframes tl-run-m { 0% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; } 100% { opacity: 0; transform: translateY(560px); } }
+/* keep citation superscripts in the lede from stretching the lines beside the drop cap */
+.lede sup.cite, .lede sup.cite a { line-height: 0; }
 </style>
 </head>
 <body>
@@ -124,25 +137,25 @@
 
       <h2 id="s-1">Same weights, different scores</h2>
       <p>The gap is real, it repeats across benchmarks, and in controlled studies it is larger than the gap between models.</p>
-      <p>Leaderboard rows are the weakest evidence, so start there. The Terminal-Bench differences are 3 to 8 points with error bars around 1.2 points: real, but modest.<sup class="cite"><a href="#r1">1</a></sup> Older numbers point the same way. Anthropic reported Claude 3.7 Sonnet at 63.7% on SWE-bench Verified in a plain setup and 70.3% once it added parallel attempts, regression-test filtering and a ranking model.<sup class="cite"><a href="#r2">2</a></sup> An aggregator tracking SWE-bench Pro shows Claude Opus 4.5 at 45.89% under a SWE-agent scaffold and 51.80% under Auggie CLI.<sup class="cite"><a href="#r3">3</a></sup></p>
+      <p>Leaderboard rows are the weakest evidence, so start there. The Terminal-Bench differences are 3 to 8 points with error bars around 1.2 points: real, but modest.<sup class="cite"><a href="#r1">1</a></sup> Older numbers point the same way. Anthropic reported Claude 3.7 Sonnet at 63.7% on a 489-task subset of SWE-bench Verified in a plain setup and 70.3% on the same subset once it added parallel attempts, regression-test filtering and a ranking model.<sup class="cite"><a href="#r2">2</a></sup> An aggregator tracking SWE-bench Pro shows Claude Opus 4.5 at 45.89% in Scale AI's independent run under a SWE-agent scaffold and 51.80% under Auggie CLI. The three higher rows come from one comparison published by Augment Code, which makes Auggie, so treat them as a vendor's numbers.<sup class="cite"><a href="#r3">3</a></sup></p>
 
       <div class="tbl-scroll">
         <table class="tbl">
-          <thead><tr><th>Model (held constant)</th><th>Benchmark</th><th>Harness</th><th>Score</th></tr></thead>
+          <thead><tr><th>Model (held constant)</th><th>Benchmark</th><th>Harness</th><th>Run by</th><th>Score</th></tr></thead>
           <tbody>
-            <tr><td>Claude 3.7 Sonnet</td><td>SWE-bench Verified</td><td>Plain</td><td class="n">63.7%</td></tr>
-            <tr><td>Claude 3.7 Sonnet</td><td>SWE-bench Verified</td><td>Custom scaffold + parallel compute</td><td class="n">70.3%</td></tr>
-            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>SWE-agent (Scale SEAL)</td><td class="n">45.89%</td></tr>
-            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>Claude Code</td><td class="n">49.75%</td></tr>
-            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>Cursor</td><td class="n">50.21%</td></tr>
-            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>Auggie CLI</td><td class="n">51.80%</td></tr>
+            <tr><td>Claude 3.7 Sonnet</td><td>SWE-bench Verified (489 tasks)</td><td>Plain</td><td>Anthropic</td><td class="n">63.7%</td></tr>
+            <tr><td>Claude 3.7 Sonnet</td><td>SWE-bench Verified (489 tasks)</td><td>Custom scaffold + parallel compute</td><td>Anthropic</td><td class="n">70.3%</td></tr>
+            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>SWE-agent</td><td>Scale AI (SEAL)</td><td class="n">45.89%</td></tr>
+            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>Claude Code</td><td>Augment Code</td><td class="n">49.75%</td></tr>
+            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>Cursor</td><td>Augment Code</td><td class="n">50.21%</td></tr>
+            <tr><td>Claude Opus 4.5</td><td>SWE-bench Pro</td><td>Auggie CLI</td><td>Augment Code (vendor)</td><td class="n">51.80%</td></tr>
           </tbody>
         </table>
       </div>
-      <p>The controlled studies are where the case gets strong. Sydney Lewis froze a model and changed one harness behavior: how old tool results get truncated as the context window fills. On 169 tight-window SWE-bench Verified tasks, the fail-to-pass rate went from 28% to 49% and complete solutions from 43 to 72.<sup class="cite"><a href="#r4">4</a></sup> An audit of 254 SWE-bench submissions found a within-model scaffold effect of 29.8 points against a model effect of only 8.8 points across the top 30, where no adjacent pair could be separated at α=0.05.<sup class="cite"><a href="#r5">5</a></sup> On GAIA, scaffold choice alone moved one model's accuracy by up to 28 points.<sup class="cite"><a href="#r6">6</a></sup> Zhang and colleagues call this the Binding Constraint Thesis: harness variance can exceed model variance, sometimes enough to reverse model rankings.<sup class="cite"><a href="#r7">7</a></sup></p>
+      <p>The controlled studies are the best evidence so far. All of them are 2026 arXiv preprints, so weigh them as such. Sydney Lewis froze a model and changed how the harness manages its working view of the record. Once the estimated prompt reaches half the window, the newest four tool results stay whole; older ones keep their beginning and end around an omission marker, and the character cap halves each time a result's age doubles. The full result stays in memory; only the model's view shrinks. The treatment also points out repeated failing commands and steers the model toward a different action. On 169 SWE-bench Verified tasks with a 20,480-token window, the fail-to-pass rate went from 28% to 49% and complete solutions from 43 to 72.<sup class="cite"><a href="#r4">4</a></sup> An audit of 254 SWE-bench submissions found a within-model scaffold effect of 29.8 points against a model effect of only 8.8 points across the top 30, where no adjacent pair could be separated at α=0.05.<sup class="cite"><a href="#r5">5</a></sup> On GAIA, scaffold choice alone moved one model's accuracy by up to 28 points.<sup class="cite"><a href="#r6">6</a></sup> Zhang and colleagues call this the Binding Constraint Thesis: harness variance can exceed model variance, sometimes enough to reverse model rankings.<sup class="cite"><a href="#r7">7</a></sup></p>
 
       <section class="instrument" id="inst" aria-label="Harness swap bench">
-        <header>Harness swap bench<span class="tag">data: [1] [4] [5]</span></header>
+        <header>Harness swap bench<span class="tag">data · [1] [4] [5] · illustrative</span></header>
         <div class="body">
           <div class="hsb-panel">
             <p class="hsb-step">01 · Pick a model. Swap its harness. The weights never move.</p>
@@ -158,12 +171,12 @@
               </div>
             </div>
             <svg class="hsb-svg" id="hsb-chart" viewBox="0 0 600 190" role="img" aria-label="Terminal-Bench 2.1 score by harness for the selected model; a fixed model core feeds two harness shells and the two bars they produce"></svg>
-            <p class="hsb-hint" id="hsb-hint">Try Gemini 3 Pro: its own vendor's CLI is its worst harness, 8 points down.</p>
+            <p class="hint" id="hsb-hint">Gemini 3 Pro: its own vendor's CLI is its worst harness.</p>
           </div>
 
           <div class="hsb-panel">
             <p class="hsb-step">02 · Freeze the model. Flip one harness knob.</p>
-            <button class="chip hsb-toggle" type="button" id="hsb-trunc" aria-pressed="false">Truncate old tool results as the window fills</button>
+            <button class="chip hsb-toggle" type="button" id="hsb-trunc" aria-pressed="false">Lewis treatment: truncate old tool results + repeated-failure detector</button>
             <div class="hsb-ctx" id="hsb-ctx" aria-hidden="true">
               <span class="seg sys">system</span>
               <span class="seg old">tool result</span>
@@ -208,56 +221,57 @@
             </div>
           </div>
         </div>
-        <div class="caption">Panel 1: Terminal-Bench 2.1 leaderboard rows, shimmering bands and whiskers are ±1σ as published <a href="#r1">[1]</a>; the axis starts at 60, which exaggerates bar length but not the point gap. The core-and-shell drawing is a schematic, not data. The σ-separation figure is computed here (errors combined in quadrature). Panel 2: Lewis, tight-window SWE-bench Verified, 20,480-token window <a href="#r4">[4]</a>; the context strip is an illustration of the mechanism, only the two counters are measured. Panel 3: Liu et al. audit, bars scaled to 30 pts <a href="#r5">[5]</a>. Notice that the smallest harness gap in panel 1 still clears both error bars.</div>
+        <div class="caption">Panel 1: Terminal-Bench 2.1 leaderboard rows, shimmering bands and whiskers are ±1σ as published <a href="#r1">[1]</a>; the axis starts at 60, which exaggerates bar length but not the point gap. The core-and-shell drawing is a schematic, not data. The σ-separation figure is computed here (errors combined in quadrature). Panel 2: Lewis, tight-window SWE-bench Verified, 20,480-token window <a href="#r4">[4]</a>; the treatment shortens older tool results and also flags repeated failing commands, so the toggle stands for both; the context strip is an illustration of the mechanism, only the two counters are measured. Panel 3: Liu et al. audit, bars scaled to 30 pts <a href="#r5">[5]</a>. Notice that the smallest harness gap in panel 1 still clears both error bars.</div>
       </section>
 
       <div class="note"><b>Field note</b>Before you read a leaderboard, find the harness column. If there isn't one, you are comparing two systems, not two models. When you evaluate a model for your own work, hold the harness fixed and say which one you used.</div>
 
       <h2 id="s-2">Naming the thing</h2>
-      <p>Birgitta Böckeler put it as an equation: Agent = Model + Harness, where the harness is everything except the model.<sup class="cite"><a href="#r8">8</a></sup> She splits it into concentric layers. The inner harness is what the vendor ships: system prompt, retrieval, orchestration. The outer harness is what you add: instruction files, MCP servers, scripts.</p>
-      <p>The practice got its name two months earlier. Mitchell Hashimoto described it as a habit rather than a formula, fixed either in an AGENTS.md file or in a real tool like a screenshot script or a filtered test runner.<sup class="cite"><a href="#r9">9</a></sup></p>
+      <p>Vivek Trivedy of LangChain wrote it as an equation in March 2026: “Agent = Model + Harness.” His gloss is short: “If you're not the model, you're the harness.”<sup class="cite"><a href="#r8">8</a></sup> Three weeks later Birgitta Böckeler of Thoughtworks took up the equation, linking to his post, and split the harness into concentric layers.<sup class="cite"><a href="#r9">9</a></sup> The inner harness is what the vendor ships: system prompt, retrieval, orchestration. The outer harness is what you add: instruction files, MCP servers, scripts.</p>
+      <p>The practice had been described a month before the equation. In February 2026 Mitchell Hashimoto wrote about it as a habit rather than a formula, fixed either in an AGENTS.md file or in a real tool like a screenshot script or a filtered test runner. He did not claim the term. He wrote that he did not know of an industry-accepted name and had “grown to calling this ‘harness engineering.’”<sup class="cite"><a href="#r10">10</a></sup></p>
 
       <blockquote class="pull">“Anytime you find an agent makes a mistake, you take the time to engineer a solution such that the agent never makes that mistake again.”<cite>— Mitchell Hashimoto (2026)</cite></blockquote>
 
-      <p>Credit is messier than either post suggests. Hashimoto never writes the equation. The encyclopedia entry credits it to Böckeler, notes that the UK AI Security Institute voiced a similar idea in 2023, and lists "agent scaffolding" as the older synonym.<sup class="cite"><a href="#r10">10</a></sup> The components it names are the ones this book covers: tool dispatch, memory and state, a sandbox, context management, guardrails.</p>
-      <p>Vendors and researchers now define it the same way. OpenAI calls the harness "the layer between your application and the model," responsible for conversation state, tool use, approval policy, failure handling and progress reporting.<sup class="cite"><a href="#r11">11</a></sup> A source-code study of 11 production coding harnesses found seven subsystems and 29 recurring patterns.<sup class="cite"><a href="#r12">12</a></sup> OpenAI also ran the extreme version: a product of roughly a million lines, built in about five months with no hand-written source, where engineers steered through pull requests and CI.<sup class="cite"><a href="#r13">13</a></sup> Reporting on it, Martin Fowler summed up the scope: "Harness includes context engineering, architectural constraints, and garbage collection."<sup class="cite"><a href="#r13">13</a></sup></p>
+      <p>Credit is messier than any one post suggests. Hashimoto never writes the equation. The encyclopedia entry calls the attribution of “harness engineering” contested, with some accounts tracing it to Hashimoto and others to Trivedy. It notes that the UK AI Security Institute described an agent as the model plus its scaffold in 2023, and lists “agent scaffolding” as a synonym.<sup class="cite"><a href="#r11">11</a></sup> The components it names are the ones this book covers: tool dispatch, memory and state, a sandbox, context management, guardrails.</p>
+      <p>Vendors and researchers now define it the same way. OpenAI calls the harness "the layer between your application and the model," responsible for conversation state, tool use, approval policy, failure handling and progress reporting.<sup class="cite"><a href="#r12">12</a></sup> A source-code study of 11 production coding harnesses found seven subsystems and 29 recurring patterns.<sup class="cite"><a href="#r13">13</a></sup> OpenAI also ran the extreme version: a product of roughly a million lines, built in about five months with no hand-written source, where engineers steered through pull requests and CI.<sup class="cite"><a href="#r14">14</a></sup> Reporting on it, Martin Fowler summed up the scope: "Harness includes context engineering, architectural constraints, and garbage collection."<sup class="cite"><a href="#r14">14</a></sup></p>
 
       <h2 id="s-3">A short history of the loop</h2>
       <p>Every harness still runs the same loop from 2022. What changed was everything around it.</p>
-      <p>ReAct gave the loop its shape: reason, act, observe the result, repeat. Interleaving thought with tool calls beat prior methods by 34 points on ALFWorld and 10 on WebShop.<sup class="cite"><a href="#r14">14</a></sup> In 2023 AutoGPT took that loop and let it run unattended. It showed the appetite was enormous; the repository sits at 187.7k stars.<sup class="cite"><a href="#r15">15</a></sup> It also showed that a loop with no verification and no environment design is a demo, not a worker.</p>
-      <p>The next step moved the effort from the prompt to the interface. In March 2024 Devin shipped a shell, an editor and a browser inside a sandbox and posted 13.86% on SWE-bench against a prior best of 1.96%. Cognition noted that even when handed the exact files to edit, the best earlier models resolved only 4.80%.<sup class="cite"><a href="#r16">16</a></sup> Two months later SWE-agent named the lever. Its authors coined "agent-computer interface" and reached 12.5% pass@1 by redesigning the commands and feedback the model sees, not the model.<sup class="cite"><a href="#r17">17</a></sup></p>
-      <p>Anthropic's late-2024 guidance turned that into design rules: separate workflows (predefined code paths) from agents (models directing their own process), shape tools so mistakes are hard to make, and start with direct API calls before reaching for a framework.<sup class="cite"><a href="#r18">18</a></sup> Production systems took the advice. None of the 11 harnesses in the source-code study imports a general-purpose agent framework.<sup class="cite"><a href="#r12">12</a></sup> Then the harness became the product. Claude Code ships with instruction files, hooks and verification loops as first-class features,<sup class="cite"><a href="#r19">19</a></sup> and OpenAI now pitches Codex as an open harness that others build on.<sup class="cite"><a href="#r11">11</a></sup></p>
+      <p>ReAct gave the loop its shape: reason, act, observe the result, repeat. Interleaving thought with tool calls beat prior methods by 34 points on ALFWorld and 10 on WebShop.<sup class="cite"><a href="#r15">15</a></sup> In 2023 AutoGPT took that loop and let it run unattended. It showed the appetite was enormous; the repository sits at 187.7k stars.<sup class="cite"><a href="#r16">16</a></sup> It also showed that a loop with no verification and no environment design is a demo, not a worker.</p>
+      <p>The next step moved the effort from the prompt to the interface. In March 2024 Devin shipped a shell, an editor and a browser inside a sandbox and posted 13.86% on a random 25% subset of SWE-bench, against a prior best of 1.96% measured on the full set, so the two are not like-for-like. Cognition noted that even when handed the exact files to edit, the best earlier models resolved only 4.80%.<sup class="cite"><a href="#r17">17</a></sup> Two months later SWE-agent named the lever. Its authors coined "agent-computer interface" and reached 12.5% pass@1 by redesigning the commands and feedback the model sees, not the model.<sup class="cite"><a href="#r18">18</a></sup></p>
+      <p>Anthropic's late-2024 guidance turned that into design rules: separate workflows (predefined code paths) from agents (models directing their own process), shape tools so mistakes are hard to make, and start with direct API calls before reaching for a framework.<sup class="cite"><a href="#r19">19</a></sup> Production systems took the advice. None of the 11 harnesses in the source-code study imports a general-purpose agent framework.<sup class="cite"><a href="#r13">13</a></sup> Then the harness became the product. Claude Code ships with instruction files, hooks and verification loops as first-class features,<sup class="cite"><a href="#r20">20</a></sup> and OpenAI now pitches Codex as an open harness that others build on.<sup class="cite"><a href="#r12">12</a></sup></p>
 
       <figure class="tl-fig rise" aria-label="Timeline of agent harness milestones, 2022 to 2026">
         <svg viewBox="0 0 400 500" id="tl-svg" role="img" aria-label="Timeline: ReAct 2022 through arXiv harness-variance papers in 2026"></svg>
-        <figcaption>Eleven steps from loop to discipline. Filled dots mark the moments the interface or harness, not the model, moved the number. Sources: <a href="#r14">[14]</a> <a href="#r15">[15]</a> <a href="#r16">[16]</a> <a href="#r17">[17]</a> <a href="#r18">[18]</a> <a href="#r2">[2]</a> <a href="#r20">[20]</a> <a href="#r9">[9]</a> <a href="#r13">[13]</a> <a href="#r21">[21]</a> <a href="#r8">[8]</a> <a href="#r5">[5]</a> <a href="#r6">[6]</a>.</figcaption>
+        <figcaption>Eleven steps from loop to discipline. Filled dots mark the moments the interface or harness, not the model, moved the number. Sources: <a href="#r15">[15]</a> <a href="#r16">[16]</a> <a href="#r17">[17]</a> <a href="#r18">[18]</a> <a href="#r19">[19]</a> <a href="#r2">[2]</a> <a href="#r21">[21]</a> <a href="#r10">[10]</a> <a href="#r14">[14]</a> <a href="#r8">[8]</a> <a href="#r9">[9]</a> <a href="#r22">[22]</a> <a href="#r5">[5]</a> <a href="#r6">[6]</a>.</figcaption>
       </figure>
 
       <h2 id="s-4">Prompt, context, harness</h2>
       <p>Each discipline in this lineage widened what the engineer controls, and the last step crossed from advice to enforcement.</p>
-      <p>Prompt engineering tuned words. Context engineering, in Anthropic's framing, is its "natural progression": the question becomes what configuration of context is most likely to produce the behavior you want, given that a model has a finite attention budget to spend across every token in the window.<sup class="cite"><a href="#r22">22</a></sup></p>
-      <p>Harness engineering is about what sits outside the window: tools, hooks, evaluators, resets, sandboxes. The Claude Code documentation draws the line that matters most. It calls the context window "the most important resource to manage," treats instruction files like CLAUDE.md as advisory, and describes hooks as "deterministic and guarantee the action happens."<sup class="cite"><a href="#r19">19</a></sup> An instruction asks the model to behave. A hook makes the behavior happen whether the model complies or not. That gap between advisory and deterministic is the hinge between context engineering and harness engineering.</p>
-      <p>Böckeler's test for a good outer harness follows from it: raise the odds the agent gets it right the first time, and give it feedback loops to correct itself before a human ever reviews the work.<sup class="cite"><a href="#r8">8</a></sup></p>
+      <p>Prompt engineering tuned words. Context engineering, in Anthropic's framing, is its "natural progression": the question becomes what configuration of context is most likely to produce the behavior you want, given that a model has a finite attention budget to spend across every token in the window.<sup class="cite"><a href="#r23">23</a></sup></p>
+      <p>Harness engineering is about what sits outside the window: tools, hooks, evaluators, resets, sandboxes. The Claude Code documentation draws the line that matters most. It calls the context window "the most important resource to manage," treats instruction files like CLAUDE.md as advisory, and describes hooks as "deterministic and guarantee the action happens."<sup class="cite"><a href="#r20">20</a></sup> An instruction asks the model to behave. A hook makes the behavior happen whether the model complies or not. That gap between advisory and deterministic is the hinge between context engineering and harness engineering.</p>
+      <p>Böckeler's test for a good outer harness follows from it: raise the odds the agent gets it right the first time, and give it feedback loops to correct itself before a human ever reviews the work.<sup class="cite"><a href="#r9">9</a></sup></p>
 
       <div class="note"><b>Field note</b>If the agent breaks the same instruction twice, stop rewording it. Move the rule out of the instruction file and into something that runs: a hook, a test, a linter, or a tool that rejects the bad input.</div>
 
       <h2 id="s-5">Why the money cares</h2>
       <p>Most agent and generative AI projects fail to pay off, and the reasons named are about integration, not intelligence.</p>
-      <p>Gartner predicted in June 2025 that more than 40% of agentic AI projects will be cancelled by the end of 2027, citing cost, unclear value and weak risk controls.<sup class="cite"><a href="#r23">23</a></sup> Gartner analyst Verma described most current projects as early experiments "mostly driven by hype." In a poll of 3,412 respondents, 19% had made significant agent investments, 42% conservative ones and 31% were waiting. Gartner counted only about 130 genuine agent vendors among thousands claiming the label, and called the rest "agent washing."<sup class="cite"><a href="#r23">23</a></sup></p>
-      <p>A separate study measures a different population. MIT NANDA's August 2025 report found about 95% of enterprise generative AI pilots showed no measurable P&amp;L impact, based on 150 interviews, 350 surveys and 300 public deployments.<sup class="cite"><a href="#r24">24</a></sup> That figure covers generative AI pilots broadly, not agents, so it should not be quoted as an agent failure rate. Its diagnosis is the useful part: the cause was a "learning gap" and poor integration into workflows, not model quality. Bought tools succeeded about 67% of the time; internal builds about 33%.<sup class="cite"><a href="#r24">24</a></sup></p>
-      <p>Read together, both reports point at the layer this book is about. The harness is the integration: what the system remembers, what it is allowed to touch, how it checks its own work. It is also where the cost goes. Anthropic's planner, generator and evaluator setup cost about $200 and six hours against $9 and twenty minutes for a solo agent, for output it called dramatically better.<sup class="cite"><a href="#r21">21</a></sup> That spend buys the harness, not a better model.</p>
+      <p>Gartner predicted in June 2025 that more than 40% of agentic AI projects will be cancelled by the end of 2027, citing cost, unclear value and weak risk controls.<sup class="cite"><a href="#r24">24</a></sup> Gartner analyst Verma described most current projects as early experiments "mostly driven by hype." In a poll of 3,412 respondents, 19% had made significant agent investments, 42% conservative ones and 31% were waiting. Gartner counted only about 130 genuine agent vendors among thousands claiming the label, and called the rest "agent washing."<sup class="cite"><a href="#r24">24</a></sup></p>
+      <p>A separate study measures a different population. MIT NANDA's August 2025 report found about 95% of enterprise generative AI pilots delivered little to no measurable P&amp;L impact, based on 150 interviews, 350 surveys and 300 public deployments.<sup class="cite"><a href="#r25">25</a></sup> That figure covers generative AI pilots broadly, not agents, so it should not be quoted as an agent failure rate. Its diagnosis is the useful part: the cause was a "learning gap" and poor integration into workflows, not model quality. Tools bought from specialized vendors, and partnerships, succeeded about 67% of the time; internal builds succeeded only a third as often.<sup class="cite"><a href="#r25">25</a></sup></p>
+      <p>For a budget owner that last figure reads like an argument against building anything, and so against this book. The report does not split the harness, but the split resolves it: buy the inner harness, own the outer one. The vendor's loop, sandbox and tracing are products, and rebuilding them is a poor use of a team. Your context, tools, permission policy and eval suite encode your own workflows, and no vendor can ship those. <a href="06-operating.html#s-1">Part 06</a> covers where to draw that line and how to staff and govern it.</p>
+      <p>Read together, both reports point at the layer this book is about. The harness is the integration: what the system remembers, what it is allowed to touch, how it checks its own work. It is also where the cost goes. Anthropic's planner, generator and evaluator setup cost about $200 and six hours against $9 and twenty minutes for a solo agent, for output it called dramatically better.<sup class="cite"><a href="#r22">22</a></sup> That spend buys the harness, not a better model.</p>
 
       <h3 id="s-5-fde">The people who build the outer harness</h3>
-      <p>If integration is where projects die, someone has to do the integrating. The industry's answer is a job title Palantir pioneered in the early 2010s: the <strong>forward deployed engineer</strong>.<sup class="cite"><a href="#r25">25</a></sup> Palantir's own description of the role is blunt. Its job is to “ensure the solutions we build actually work,” and in a world of demo-ware to deliver “tangible outcomes.”<sup class="cite"><a href="#r26">26</a></sup> The model labs now hire for the same seat. OpenAI's FDEs “lead complex end-to-end deployments of frontier models in production” and are measured on “eval-driven feedback that changes product and model roadmaps.”<sup class="cite"><a href="#r27">27</a></sup> Anthropic's embed with customers to deliver “MCP servers, sub-agents, and agent skills.”<sup class="cite"><a href="#r28">28</a></sup> Read in this book's terms, that is a job description for building the outer harness by hand: the customer's context, tools, guardrails and evals. Reported FDE job postings grew more than 800% between January and September 2025.<sup class="cite"><a href="#r25">25</a></sup></p>
-      <p>The leverage runs in both directions. The customer gets a harness fitted to their data and workflows. The vendor gets something no benchmark provides: field failures, which become evals and repeatable patterns, and those flow back into the inner harness everyone else uses.<sup class="cite"><a href="#r28">28</a></sup> Investors have called the trade “margin for moat,” accepting services-heavy margins today to become the system of record tomorrow.<sup class="cite"><a href="#r29">29</a></sup> Critics, including Palantir veterans, warn that most copies of the role reproduce its form without its function, and that it degrades into consulting with a new title when customer fixes never reach the product.<sup class="cite"><a href="#r30">30</a></sup><sup class="cite"><a href="#r31">31</a></sup></p>
+      <p>If integration is where projects die, someone has to do the integrating. The industry's answer is a job title Palantir pioneered in the early 2010s: the <strong>forward deployed engineer</strong>.<sup class="cite"><a href="#r26">26</a></sup> Palantir's own description of the role is blunt. Its job is to “ensure the solutions we build actually work,” and in a world of demo-ware to deliver “tangible outcomes.”<sup class="cite"><a href="#r27">27</a></sup> The model labs now hire for the same seat. OpenAI's FDEs “lead complex end-to-end deployments of frontier models in production” and are measured on “eval-driven feedback that changes product and model roadmaps.”<sup class="cite"><a href="#r28">28</a></sup> Anthropic's embed with customers to deliver “MCP servers, sub-agents, and agent skills.”<sup class="cite"><a href="#r29">29</a></sup> Read in this book's terms, that is a job description for building the outer harness by hand: the customer's context, tools, guardrails and evals. Reported FDE job postings grew more than 800% between January and September 2025.<sup class="cite"><a href="#r26">26</a></sup></p>
+      <p>The leverage runs in both directions. The customer gets a harness fitted to their data and workflows. The vendor gets something no benchmark provides: field failures, which become evals and repeatable patterns, and those flow back into the inner harness everyone else uses.<sup class="cite"><a href="#r29">29</a></sup> Investors have called the trade “margin for moat,” accepting services-heavy margins today to become the system of record tomorrow.<sup class="cite"><a href="#r30">30</a></sup> Critics, including Palantir veterans, warn that most copies of the role reproduce its form without its function, and that it degrades into consulting with a new title when customer fixes never reach the product.<sup class="cite"><a href="#r31">31</a></sup><sup class="cite"><a href="#r32">32</a></sup></p>
       <div class="note"><b>Hint · forward deployed engineering</b>The test that separates an FDE from a consultant is the one this book applies to every harness fix: does the lesson from the field become a reusable artifact, such as an eval, a tool, a skill or a guardrail, or does it die in one customer's repo? Every bespoke harness an FDE builds is a draft of the next product feature.</div>
 
       <h2 id="s-6">Built to be deleted</h2>
       <p>Every piece of a harness is a bet against a specific model weakness, which is why good harnesses are designed to shrink.</p>
 
-      <blockquote class="pull">“Every component in a harness encodes an assumption about what the model can't do on its own, and those assumptions are worth stress testing.”<cite>— Prithvi Rajasekaran, Anthropic (2026)</cite></blockquote>
+      <blockquote class="pull">“Every component in a harness encodes an assumption about what the model can't do on its own, and those assumptions are worth stress testing…”<cite>— Prithvi Rajasekaran, Anthropic (2026)</cite></blockquote>
 
-      <p>The examples are concrete. Agents asked to grade their own output tend to praise it even when it is mediocre, so Anthropic split the evaluator from the generator.<sup class="cite"><a href="#r21">21</a></sup> Long-running agents lose state across context resets, declare victory early and leave broken environments behind, so the fix was an initializer agent, a feature list, a progress file and a fixed startup routine.<sup class="cite"><a href="#r20">20</a></sup> Each of those is scaffolding around a known gap. When the gap closes, the scaffolding should go. The catch, in Rajasekaran's words, is that the space of useful harness designs "doesn't shrink as models improve. Instead, it moves."<sup class="cite"><a href="#r21">21</a></sup></p>
+      <p>The examples are concrete. Agents asked to grade their own output tend to praise it even when it is mediocre, so Anthropic split the evaluator from the generator.<sup class="cite"><a href="#r22">22</a></sup> Long-running agents lose state across context resets, declare victory early and leave broken environments behind, so the fix was an initializer agent, a feature list, a progress file and a fixed startup routine.<sup class="cite"><a href="#r21">21</a></sup> Each of those is scaffolding around a known gap. When the gap closes, the scaffolding should go. The catch, in Rajasekaran's words, is that the space of interesting harness combinations "doesn't shrink as models improve. Instead, it moves."<sup class="cite"><a href="#r22">22</a></sup></p>
       <p>That is the frame for the rest of this book. A harness has five subsystems, each built around a different model limitation, and each gets a chapter:</p>
       <ol>
         <li><a href="01-loop.html">The Loop</a>: how the agent decides, acts and knows when to stop.</li>
@@ -268,7 +282,7 @@
       </ol>
       <p>Start with the loop. Everything else hangs off it.</p>
 
-      <details class="refbox" id="s-refs"><summary>References (31)</summary>
+      <details class="refbox" id="s-refs"><summary>References</summary>
       <ol class="refs">
         <li id="r1">Snorkel AI, “Terminal-Bench 2.1 leaderboard,” Snorkel AI, accessed Oct 2026. <a href="https://snorkel.ai/leaderboard/terminal-bench-2-1/">snorkel.ai/leaderboard/terminal-bench-2-1</a></li>
         <li id="r2">Anthropic, “Claude 3.7 Sonnet and Claude Code,” Anthropic, Feb 2025. <a href="https://www.anthropic.com/news/claude-3-7-sonnet">anthropic.com/news/claude-3-7-sonnet</a></li>
@@ -277,30 +291,31 @@
         <li id="r5">Liu, Liu, Sun, Luo, Guo, “Coding Agents Have Converged,” arXiv, Sep 2026. <a href="https://arxiv.org/abs/2609.17394">arxiv.org/abs/2609.17394</a></li>
         <li id="r6">Jason Starace, “Scaffold Effects on GAIA: A Controlled Comparison,” arXiv, Jun 2026. <a href="https://arxiv.org/abs/2606.08529">arxiv.org/abs/2606.08529</a></li>
         <li id="r7">Zhang, Wang, Ge, Xu, Hamm, Reddy, “Stop Comparing LLM Agents Without Disclosing the Harness,” arXiv, May 2026. <a href="https://arxiv.org/abs/2605.23950">arxiv.org/abs/2605.23950</a></li>
-        <li id="r8">Birgitta Böckeler, “Harness Engineering for Coding Agent Users,” martinfowler.com / Thoughtworks, Apr 2026. <a href="https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html">martinfowler.com/articles/exploring-gen-ai/harness-engineering</a></li>
-        <li id="r9">Mitchell Hashimoto, “My AI Adoption Journey,” mitchellh.com, Feb 2026. <a href="https://mitchellh.com/writing/my-ai-adoption-journey">mitchellh.com/writing/my-ai-adoption-journey</a></li>
-        <li id="r10">Wikipedia, “Agent harness,” Wikipedia, accessed Oct 2026. <a href="https://en.wikipedia.org/wiki/Agent_harness">en.wikipedia.org/wiki/Agent_harness</a></li>
-        <li id="r11">OpenAI, “Codex as a platform: build on the open agent harness,” OpenAI Developers, Aug 2026. <a href="https://developers.openai.com/blog/codex-as-a-platform">developers.openai.com/blog/codex-as-a-platform</a></li>
-        <li id="r12">Barbaste, Darrigol, Vu, Wiltberger, “Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents,” arXiv, Jul 2026. <a href="https://arxiv.org/abs/2609.00006">arxiv.org/abs/2609.00006</a></li>
-        <li id="r13">InfoQ, “OpenAI Introduces Harness Engineering” (secondary; primary at openai.com/index/harness-engineering), InfoQ, Feb 2026. <a href="https://www.infoq.com/news/2026/02/openai-harness-engineering-codex/">infoq.com/news/2026/02/openai-harness-engineering-codex</a></li>
-        <li id="r14">Yao et al., “ReAct: Synergizing Reasoning and Acting in Language Models,” arXiv, Oct 2022. <a href="https://arxiv.org/abs/2210.03629">arxiv.org/abs/2210.03629</a></li>
-        <li id="r15">Significant-Gravitas, “AutoGPT,” GitHub, accessed Oct 2026. <a href="https://github.com/Significant-Gravitas/AutoGPT">github.com/Significant-Gravitas/AutoGPT</a></li>
-        <li id="r16">Cognition, “Introducing Devin,” Cognition, Mar 2024. <a href="https://cognition.com/blog/introducing-devin">cognition.com/blog/introducing-devin</a></li>
-        <li id="r17">Yang, Jimenez, Wettig, Lieret, Yao, Narasimhan, Press, “SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering,” arXiv, May 2024. <a href="https://arxiv.org/abs/2405.15793">arxiv.org/abs/2405.15793</a></li>
-        <li id="r18">Anthropic, “Building effective agents,” Anthropic Engineering, Dec 2024. <a href="https://www.anthropic.com/engineering/building-effective-agents">anthropic.com/engineering/building-effective-agents</a></li>
-        <li id="r19">Anthropic, “Best practices for Claude Code,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
-        <li id="r20">Anthropic, “Effective harnesses for long-running agents,” Anthropic Engineering, Nov 2025. <a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">anthropic.com/engineering/effective-harnesses-for-long-running-agents</a></li>
-        <li id="r21">Prithvi Rajasekaran, “Harness design for long-running apps,” Anthropic Engineering, Mar 2026. <a href="https://www.anthropic.com/engineering/harness-design-long-running-apps">anthropic.com/engineering/harness-design-long-running-apps</a></li>
-        <li id="r22">Anthropic, “Effective context engineering for AI agents,” Anthropic Engineering, Sep 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
-        <li id="r23">RCR Wireless, “Gartner: more than 40% of agentic AI projects will fail by 2027” (secondary; Gartner press release, Jun 2025), RCR Wireless, Jun 2025. <a href="https://www.rcrwireless.com/20250627/business/agentic-ai-gartner">rcrwireless.com/20250627/business/agentic-ai-gartner</a></li>
-        <li id="r24">Fortune, “MIT report: 95% of generative AI pilots at companies are failing” (secondary; MIT NANDA, The GenAI Divide), Fortune, Aug 2025. <a href="https://fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots-at-companies-failing-cfo/">fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots</a></li>
-        <li id="r25">Fast Company, “Postings for this AI job are up 800%” (secondary; reports Financial Times / Indeed data), November 2025. <a href="https://www.fastcompany.com/91435680/postings-for-this-ai-job-are-up-800">fastcompany.com/91435680</a></li>
-        <li id="r26">Palantir, “Careers: Echos, Deltas, and Devs,” palantir.com, accessed October 2026. <a href="https://www.palantir.com/careers/">palantir.com/careers</a></li>
-        <li id="r27">OpenAI, “Forward Deployed Engineer (FDE),” OpenAI Careers, accessed October 2026. <a href="https://openai.com/careers/forward-deployed-engineer-(fde)-sf-san-francisco/">openai.com/careers/forward-deployed-engineer</a></li>
-        <li id="r28">Anthropic, “Forward Deployed Engineer, Applied AI,” job posting (Greenhouse), accessed October 2026. <a href="https://job-boards.greenhouse.io/anthropic/jobs/5391021008">job-boards.greenhouse.io/anthropic/jobs/5391021008</a></li>
-        <li id="r29">Joe Schmidt, “Trading Margin for Moat: Why the Forward Deployed Engineer Is the Hottest Job in Startups,” a16z, June 2025. <a href="https://a16z.com/services-led-growth/">a16z.com/services-led-growth</a></li>
-        <li id="r30">Ted Mabrey, “Sorry, that isn’t an FDE,” Substack, September 2024. <a href="https://tedmabrey.substack.com/p/sorry-that-isnt-an-fde">tedmabrey.substack.com/p/sorry-that-isnt-an-fde</a></li>
-        <li id="r31">KDnuggets, “Forward Deployed Engineer: AI’s Hottest New Career, or Consulting With a Better Title?” (secondary roundup), 2026. <a href="https://www.kdnuggets.com/forward-deployed-engineer-ais-hottest-new-career-or-consulting-with-a-better-title">kdnuggets.com/forward-deployed-engineer…</a></li>
+        <li id="r8">Vivek Trivedy, “The Anatomy of an Agent Harness,” LangChain, Mar 2026. <a href="https://www.langchain.com/blog/the-anatomy-of-an-agent-harness">langchain.com/blog/the-anatomy-of-an-agent-harness</a></li>
+        <li id="r9">Birgitta Böckeler, “Harness Engineering for Coding Agent Users,” martinfowler.com / Thoughtworks, Apr 2026. <a href="https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html">martinfowler.com/articles/exploring-gen-ai/harness-engineering</a></li>
+        <li id="r10">Mitchell Hashimoto, “My AI Adoption Journey,” mitchellh.com, Feb 2026. <a href="https://mitchellh.com/writing/my-ai-adoption-journey">mitchellh.com/writing/my-ai-adoption-journey</a></li>
+        <li id="r11">Wikipedia, “Agent harness,” Wikipedia, accessed Oct 2026. <a href="https://en.wikipedia.org/wiki/Agent_harness">en.wikipedia.org/wiki/Agent_harness</a></li>
+        <li id="r12">OpenAI, “Codex as a platform: build on the open agent harness,” OpenAI Developers, Aug 2026. <a href="https://developers.openai.com/blog/codex-as-a-platform">developers.openai.com/blog/codex-as-a-platform</a></li>
+        <li id="r13">Barbaste, Darrigol, Vu, Wiltberger, “Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents,” arXiv, Jul 2026. <a href="https://arxiv.org/abs/2609.00006">arxiv.org/abs/2609.00006</a></li>
+        <li id="r14">InfoQ, “OpenAI Introduces Harness Engineering” (secondary; primary at openai.com/index/harness-engineering), InfoQ, Feb 2026. <a href="https://www.infoq.com/news/2026/02/openai-harness-engineering-codex/">infoq.com/news/2026/02/openai-harness-engineering-codex</a></li>
+        <li id="r15">Yao et al., “ReAct: Synergizing Reasoning and Acting in Language Models,” arXiv, Oct 2022. <a href="https://arxiv.org/abs/2210.03629">arxiv.org/abs/2210.03629</a></li>
+        <li id="r16">Significant-Gravitas, “AutoGPT,” GitHub, accessed Oct 2026. <a href="https://github.com/Significant-Gravitas/AutoGPT">github.com/Significant-Gravitas/AutoGPT</a></li>
+        <li id="r17">Cognition, “Introducing Devin,” Cognition, Mar 2024. <a href="https://cognition.com/blog/introducing-devin">cognition.com/blog/introducing-devin</a></li>
+        <li id="r18">Yang, Jimenez, Wettig, Lieret, Yao, Narasimhan, Press, “SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering,” arXiv, May 2024. <a href="https://arxiv.org/abs/2405.15793">arxiv.org/abs/2405.15793</a></li>
+        <li id="r19">Anthropic, “Building effective agents,” Anthropic Engineering, Dec 2024. <a href="https://www.anthropic.com/engineering/building-effective-agents">anthropic.com/engineering/building-effective-agents</a></li>
+        <li id="r20">Anthropic, “Best practices for Claude Code,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
+        <li id="r21">Anthropic, “Effective harnesses for long-running agents,” Anthropic Engineering, Nov 2025. <a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">anthropic.com/engineering/effective-harnesses-for-long-running-agents</a></li>
+        <li id="r22">Prithvi Rajasekaran, “Harness design for long-running apps,” Anthropic Engineering, Mar 2026. <a href="https://www.anthropic.com/engineering/harness-design-long-running-apps">anthropic.com/engineering/harness-design-long-running-apps</a></li>
+        <li id="r23">Anthropic, “Effective context engineering for AI agents,” Anthropic Engineering, Sep 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
+        <li id="r24">RCR Wireless, “Gartner: more than 40% of agentic AI projects will fail by 2027” (secondary; Gartner press release, Jun 2025), RCR Wireless, Jun 2025. <a href="https://www.rcrwireless.com/20250627/business/agentic-ai-gartner">rcrwireless.com/20250627/business/agentic-ai-gartner</a></li>
+        <li id="r25">Fortune, “MIT report: 95% of generative AI pilots at companies are failing” (secondary; MIT NANDA, The GenAI Divide), Fortune, Aug 2025. <a href="https://fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots-at-companies-failing-cfo/">fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots</a></li>
+        <li id="r26">Fast Company, “Postings for this AI job are up 800%” (secondary; reports Financial Times / Indeed data), November 2025. <a href="https://www.fastcompany.com/91435680/postings-for-this-ai-job-are-up-800">fastcompany.com/91435680</a></li>
+        <li id="r27">Palantir, “Careers: Echos, Deltas, and Devs,” palantir.com, accessed October 2026. <a href="https://www.palantir.com/careers/">palantir.com/careers</a></li>
+        <li id="r28">OpenAI, “Forward Deployed Engineer (FDE),” OpenAI Careers, accessed October 2026. <a href="https://openai.com/careers/forward-deployed-engineer-(fde)-sf-san-francisco/">openai.com/careers/forward-deployed-engineer</a></li>
+        <li id="r29">Anthropic, “Forward Deployed Engineer, Applied AI,” job posting (Greenhouse), accessed October 2026. <a href="https://job-boards.greenhouse.io/anthropic/jobs/5391021008">job-boards.greenhouse.io/anthropic/jobs/5391021008</a></li>
+        <li id="r30">Joe Schmidt, “Trading Margin for Moat: Why the Forward Deployed Engineer Is the Hottest Job in Startups,” a16z, June 2025. <a href="https://a16z.com/services-led-growth/">a16z.com/services-led-growth</a></li>
+        <li id="r31">Ted Mabrey, “Sorry, that isn’t an FDE,” Substack, September 2024. <a href="https://tedmabrey.substack.com/p/sorry-that-isnt-an-fde">tedmabrey.substack.com/p/sorry-that-isnt-an-fde</a></li>
+        <li id="r32">KDnuggets, “Forward Deployed Engineer: AI’s Hottest New Career, or Consulting With a Better Title?” (secondary roundup), 2026. <a href="https://www.kdnuggets.com/forward-deployed-engineer-ais-hottest-new-career-or-consulting-with-a-better-title">kdnuggets.com/forward-deployed-engineer…</a></li>
       </ol>
       </details>
 
@@ -326,19 +341,26 @@
 
 <footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
 
-<script src="../assets/site.js?v=8"></script>
+<script src="../assets/site.js?v=10"></script>
 <script>
 (() => {
   const NS = 'http://www.w3.org/2000/svg';
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
-  // Tween 0..1 over ms with ease-out; jumps straight to the end under reduced motion.
-  const tween = (ms, fn) => {
-    if (still) { fn(1); return; }
-    const t0 = performance.now();
-    const step = now => { const p = Math.min(1, (now - t0) / ms); fn(1 - Math.pow(1 - p, 3)); if (p < 1) requestAnimationFrame(step); };
-    requestAnimationFrame(step);
+  // Tween 0..1 over ms with ease-out; jumps straight to the end under reduced motion or a hidden tab.
+  // Each tweener owns one run token, so a new call cancels the previous animation on the same panel.
+  const tweener = () => {
+    let run = 0;
+    return (ms, fn) => {
+      const my = ++run;
+      if (still || document.hidden) { fn(1); return; }
+      const t0 = performance.now();
+      const step = now => { if (my !== run) return; const p = Math.min(1, (now - t0) / ms); fn(1 - Math.pow(1 - p, 3)); if (p < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    };
   };
+  const tween1 = tweener(), tween2 = tweener(), tween3 = tweener();
+  const phone = matchMedia('(max-width: 640px)');
 
   // ---------- Panel 1: Terminal-Bench 2.1, Table A [1] ----------
   const MODELS = [
@@ -355,6 +377,8 @@
   H.check(Math.abs(sigmas(MODELS[0]) - 2.0) < 0.05, 'Fable ~2.0 sigma');
 
   const svg = H.$('#hsb-chart');
+  const fitChart = () => svg.setAttribute('viewBox', phone.matches ? '180 0 420 190' : '0 0 600 190'); // phone: bars only, schematic hidden by CSS
+  phone.addEventListener('change', fitChart); fitChart();
   const X0 = 200, X1 = 580, LO = 60, HI = 90, ROWY = [22, 104], BH = 28;
   const sx = v => X0 + (v - LO) / (HI - LO) * (X1 - X0);
   H.check(sx(60) === X0 && sx(90) === X1, 'axis maps 60..90 onto plot');
@@ -364,18 +388,18 @@
   });
   el('line', { x1: X0, x2: X0, y1: 8, y2: 164, class: 'hsb-axis' }, svg);
   // model core (fixed) + harness shell (swapped) + two leads into the two harness bars
-  const CX = 72, CY = 88;
-  el('path', { d: `M ${CX + 46} 74 C 160 74 160 ${ROWY[0] + BH / 2} ${X0} ${ROWY[0] + BH / 2}`, class: 'hsb-lead best' }, svg);
-  el('path', { d: `M ${CX + 46} 102 C 160 102 160 ${ROWY[1] + BH / 2} ${X0} ${ROWY[1] + BH / 2}`, class: 'hsb-lead worst' }, svg);
-  const shell = el('circle', { cx: CX, cy: CY, r: 46, class: 'hsb-shell' }, svg);
-  el('text', { x: CX, y: CY + 62, class: 'hsb-shell-lbl' }, svg).textContent = 'HARNESS';
-  el('text', { x: CX, y: 14, class: 'hsb-shell-lbl' }, svg).textContent = 'MODEL';
-  const core = el('circle', { cx: CX, cy: CY, r: 30, class: 'hsb-core' }, svg);
-  const coreT = [el('text', { x: CX, y: CY - 3, class: 'hsb-core-txt' }, svg), el('text', { x: CX, y: CY + 8, class: 'hsb-core-txt' }, svg)];
-  el('text', { x: CX, y: CY + 21, class: 'hsb-core-sub' }, svg).textContent = 'WEIGHTS';
-  const rows = ROWY.map(y => {
+  const CX = 72, CY = 88, schem = el('g', { class: 'hsb-schem' }, svg);
+  el('path', { d: `M ${CX + 46} 74 C 160 74 160 ${ROWY[0] + BH / 2} ${X0} ${ROWY[0] + BH / 2}`, class: 'hsb-lead best' }, schem);
+  el('path', { d: `M ${CX + 46} 102 C 160 102 160 ${ROWY[1] + BH / 2} ${X0} ${ROWY[1] + BH / 2}`, class: 'hsb-lead worst' }, schem);
+  const shell = el('circle', { cx: CX, cy: CY, r: 46, class: 'hsb-shell' }, schem);
+  el('text', { x: CX, y: CY + 62, class: 'hsb-shell-lbl' }, schem).textContent = 'HARNESS';
+  el('text', { x: CX, y: 14, class: 'hsb-shell-lbl' }, schem).textContent = 'MODEL';
+  const core = el('circle', { cx: CX, cy: CY, r: 30, class: 'hsb-core' }, schem);
+  const coreT = [el('text', { x: CX, y: CY - 3, class: 'hsb-core-txt' }, schem), el('text', { x: CX, y: CY + 8, class: 'hsb-core-txt' }, schem)];
+  el('text', { x: CX, y: CY + 21, class: 'hsb-core-sub' }, schem).textContent = 'WEIGHTS';
+  const rows = ROWY.map((y, i) => {
     const g = el('g', {}, svg);
-    const name = el('text', { x: X0, y: y - 7, class: 'hsb-name' }, g);
+    const name = el('text', { x: X0, y: i ? y + BH + 15 : y - 7, class: 'hsb-name' }, g); // worst-row label sits below its bar, clear of the gap bracket
     const rect = el('rect', { x: X0, y, height: BH, width: 0, rx: 3 }, g);
     const band = el('rect', { y, height: BH, width: 0, class: 'hsb-band' }, g);
     const wl = el('line', { y1: y + BH / 2, y2: y + BH / 2, class: 'hsb-whisk' }, g);
@@ -385,11 +409,11 @@
     return { name, rect, band, wl, wa, wb, val, cur: LO };
   });
   // gap bracket: drops from the best bar, rises from the worst bar, meets between the rows
-  const GY = 80;
-  const gapA = el('line', { y1: ROWY[0] + BH, y2: GY, class: 'hsb-gap' }, svg);
-  const gapB = el('line', { y1: ROWY[1], y2: GY, class: 'hsb-gap' }, svg);
-  const gapH = el('line', { y1: GY, y2: GY, class: 'hsb-gap' }, svg);
-  const gapT = el('text', { y: GY - 5, 'text-anchor': 'middle', class: 'hsb-gap-txt' }, svg);
+  const GY = 80, gapG = el('g', {}, svg);
+  const gapA = el('line', { y1: ROWY[0] + BH, y2: GY, class: 'hsb-gap' }, gapG);
+  const gapB = el('line', { y1: ROWY[1], y2: GY, class: 'hsb-gap' }, gapG);
+  const gapH = el('line', { y1: GY, y2: GY, class: 'hsb-gap' }, gapG);
+  const gapT = el('text', { y: GY - 5, 'text-anchor': 'middle', class: 'hsb-gap-txt' }, gapG);
   const readout = H.$('#hsb-delta'), sigEl = H.$('#hsb-sigma');
   let curDelta = 0, curModel = -1;
   const showModel = idx => {
@@ -406,7 +430,11 @@
     if (!m.core[1]) { coreT[0].setAttribute('y', CY + 3); } else { coreT[0].setAttribute('y', CY - 3); }
     shell.classList.remove('swap'); void shell.getBoundingClientRect(); shell.classList.add('swap');
     H.$$('[data-model]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.model === idx));
-    tween(700, p => {
+    readout.textContent = to.toFixed(1) + ' pts';
+    readout.className = 'readout' + (to >= 8 ? ' fail' : to >= 5 ? ' bad' : '');
+    sigEl.textContent = `${m.name}: best minus worst harness, same weights · ≈${sigmas(m).toFixed(1)}σ apart`;
+    if (idx === 2 && !attract && !hint.classList.contains('done')) { hint.classList.add('done'); hint.textContent = `Gemini CLI, the vendor's own harness, trails Terminus 2 by ${to.toFixed(1)} points on the same weights.`; }
+    tween1(700, p => {
       rows.forEach((r, i) => {
         const [, v, e] = runs[i];
         const cv = from[i] + (v - from[i]) * p;
@@ -426,23 +454,25 @@
       gapT.setAttribute('x', (xb + xw) / 2);
       curDelta = fromD + (to - fromD) * p;
       gapT.textContent = 'Δ ' + curDelta.toFixed(1);
-      readout.textContent = curDelta.toFixed(1) + ' pts';
     });
-    readout.className = 'readout' + (to >= 8 ? ' fail' : to >= 5 ? ' bad' : '');
-    sigEl.textContent = `${m.name}: best minus worst harness, same weights · ≈${sigmas(m).toFixed(1)}σ apart`;
   };
-  H.$$('[data-model]').forEach(b => b.addEventListener('click', () => showModel(+b.dataset.model)));
-  core.addEventListener('click', () => showModel((curModel + 1) % MODELS.length));
-  showModel(0);
-
-  // attract loop: cycle models until the reader touches anything, pause while off-screen
-  const inst = H.$('#inst');
+  // attract loop: cycle models until the reader touches anything; pause while off-screen or in a hidden tab
+  const inst = H.$('#inst'), hint = H.$('#hsb-hint');
   let attract = !still, timer = 0, visible = false;
-  const loop = () => { clearTimeout(timer); if (attract && visible) timer = setTimeout(() => { showModel((curModel + 1) % MODELS.length); loop(); }, 2800); };
+  const loop = () => { clearTimeout(timer); if (attract && visible && !document.hidden) timer = setTimeout(() => { showModel((curModel + 1) % MODELS.length); loop(); }, 2800); };
   readout.setAttribute('aria-live', attract ? 'off' : 'polite'); // no announcements while the attract loop cycles
   const stop = () => { attract = false; clearTimeout(timer); readout.setAttribute('aria-live', 'polite'); };
   ['pointerdown', 'keydown', 'focusin'].forEach(t => inst.addEventListener(t, stop, { once: true }));
-  new IntersectionObserver(es => { visible = es.some(e => e.isIntersecting); loop(); }, { threshold: 0.25 }).observe(inst);
+  H.$$('[data-model]').forEach(b => b.addEventListener('click', () => showModel(+b.dataset.model)));
+  core.addEventListener('click', () => showModel((curModel + 1) % MODELS.length));
+  showModel(0);
+  // one observer gates the attract loop and the infinite CSS loops (.on) for the bench and the timeline
+  const io1 = new IntersectionObserver(es => {
+    es.forEach(e => e.target.classList.toggle('on', e.isIntersecting));
+    visible = inst.classList.contains('on'); loop();
+  }, { threshold: 0.25 });
+  io1.observe(inst); io1.observe(H.$('.tl-fig'));
+  document.addEventListener('visibilitychange', loop);
 
   // ---------- Panel 2: Lewis 2026, Table C [4] ----------
   const TASKS = 169, OFF = { f2p: 28, sol: 43 }, ON = { f2p: 49, sol: 72 };
@@ -456,15 +486,12 @@
     const on = tog.getAttribute('aria-pressed') !== 'true';
     tog.setAttribute('aria-pressed', on);
     ctx.classList.toggle('on', on);
-    const a = on ? OFF : ON, b = on ? ON : OFF;
+    const b = on ? ON : OFF;
     H.$('#hsb-f2p-bar').style.width = b.f2p + '%';
     H.$('#hsb-sol-bar').style.width = (b.sol / TASKS * 100) + '%';
-    tween(900, p => {
-      f2pN.textContent = Math.round(a.f2p + (b.f2p - a.f2p) * p) + '%';
-      const n = Math.round(a.sol + (b.sol - a.sol) * p);
-      solN.textContent = n;
-      cells.forEach((c, i) => c.classList.toggle('lit', i < n));
-    });
+    f2pN.textContent = b.f2p + '%'; solN.textContent = b.sol;
+    const from = cells.filter(c => c.classList.contains('lit')).length;
+    tween2(900, p => { const n = Math.round(from + (b.sol - from) * p); cells.forEach((c, i) => c.classList.toggle('lit', i < n)); });
   });
 
   // ---------- Panel 3: Liu et al. 2026, Table D [5] ----------
@@ -475,7 +502,7 @@
   const p3 = H.$('#hsb-p3'), ratioBig = H.$('#hsb-ratio-big');
   const fill = () => {
     H.$('#hsb-scaf').style.width = (SCAF / SCALE * 100) + '%'; H.$('#hsb-mod').style.width = (MOD / SCALE * 100) + '%';
-    tween(900, p => { ratioBig.textContent = (ratio * p).toFixed(1) + '×'; });
+    tween3(900, p => { ratioBig.textContent = (ratio * p).toFixed(1) + '×'; });
     setTimeout(() => p3.classList.add('hit'), still ? 0 : 800);
   };
   const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { fill(); io.disconnect(); } }, { threshold: 0.3 });
@@ -485,31 +512,39 @@
   const TL = [
     ['2022-10', 'ReAct: reason → act → observe', '+34 pts ALFWorld, +10 WebShop', 0],
     ['2023', 'AutoGPT runs the loop unattended', '187.7k GitHub stars today', 0],
-    ['2024-03', 'Devin: shell + editor + browser', '13.86% SWE-bench vs 1.96% prior', 1],
+    ['2024-03', 'Devin: shell + editor + browser', '13.86% on 25% subset vs 1.96%', 1],
     ['2024-05', 'SWE-agent coins the ACI', '12.5% pass@1 from interface design', 1],
     ['2024-12', '“Building effective agents”', 'workflows vs agents; start simple', 0],
-    ['2025-02', 'Claude 3.7 Sonnet scaffold', '63.7% → 70.3%, same weights', 1],
+    ['2025-02', 'Claude 3.7 Sonnet scaffold', '63.7% → 70.3% on 489 tasks', 1],
     ['2025-11', 'Long-running agent harness', 'initializer + progress file', 0],
-    ['2026-02', 'Hashimoto; OpenAI ~1M-line build', '“harness engineering” named', 0],
+    ['2026-02', 'Hashimoto; OpenAI ~1M-line build', '“harness engineering” in use', 0],
+    ['2026-03', 'Trivedy: Agent = Model + Harness', 'Böckeler (Apr): inner vs outer', 0],
     ['2026-03', 'Planner / generator / evaluator', '$9 solo vs $200 full harness', 0],
-    ['2026-04', 'Böckeler: Agent = Model + Harness', 'inner vs outer harness', 0],
     ['2026-05→09', 'arXiv harness-variance papers', '28–30 pt scaffold swings', 1],
   ];
-  const tl = H.$('#tl-svg'), STEP = 44, TOP = 18;
-  el('line', { x1: 98, x2: 98, y1: TOP, y2: TOP + STEP * (TL.length - 1), class: 'tl-spine' }, tl);
-  TL.forEach(([d, ev, num, hot], i) => {
-    const y = TOP + i * STEP;
-    const g = el('g', { class: 'tl-row' + (hot ? ' tl-hot' : ''), style: `transition-delay:${(i * 0.12).toFixed(2)}s` }, tl);
-    el('text', { x: 86, y: y + 4, 'text-anchor': 'end', class: 'tl-date' }, g).textContent = d;
-    if (hot) el('circle', { cx: 98, cy: y, r: 5, class: 'tl-halo' }, g);
-    el('circle', { cx: 98, cy: y, r: 5, class: 'tl-dot' }, g);
-    el('text', { x: 112, y: y + 5, class: 'tl-ev' }, g).textContent = ev;
-    el('text', { x: 112, y: y + 21, class: 'tl-num' }, g).textContent = num;
-  });
-  // a spark runs the spine once when the figure scrolls in (CSS tl-run covers STEP*10 = 440 user units)
-  el('circle', { cx: 98, cy: TOP, r: 4, class: 'tl-spark' }, tl);
+  // desktop: date column left of the spine, 44 units per row; phone: date stacked above the event, spine at the left edge, 56 per row
+  const tl = H.$('#tl-svg');
+  const buildTL = () => {
+    const m = phone.matches, STEP = m ? 56 : 44, TOP = m ? 26 : 18, SX = m ? 14 : 98, TX = SX + 14;
+    tl.replaceChildren();
+    tl.setAttribute('viewBox', m ? '0 0 400 620' : '0 0 400 500');
+    el('line', { x1: SX, x2: SX, y1: TOP, y2: TOP + STEP * (TL.length - 1), class: 'tl-spine' }, tl);
+    TL.forEach(([d, ev, num, hot], i) => {
+      const y = TOP + i * STEP;
+      const g = el('g', { class: 'tl-row' + (hot ? ' tl-hot' : ''), style: `transition-delay:${(i * 0.12).toFixed(2)}s` }, tl);
+      if (m) el('text', { x: TX, y: y - 13, class: 'tl-date' }, g).textContent = d;
+      else el('text', { x: SX - 12, y: y + 4, 'text-anchor': 'end', class: 'tl-date' }, g).textContent = d;
+      if (hot) el('circle', { cx: SX, cy: y, r: 5, class: 'tl-halo' }, g);
+      el('circle', { cx: SX, cy: y, r: 5, class: 'tl-dot' }, g);
+      el('text', { x: TX, y: y + 5, class: 'tl-ev' }, g).textContent = ev;
+      el('text', { x: TX, y: y + 21, class: 'tl-num' }, g).textContent = num;
+    });
+    // a spark runs the spine once when the figure scrolls in (CSS tl-run covers 440 user units, tl-run-m 560)
+    el('circle', { cx: SX, cy: TOP, r: 4, class: 'tl-spark' }, tl);
+    H.check(STEP * (TL.length - 1) === (m ? 560 : 440), 'spark travel matches spine length');
+  };
+  phone.addEventListener('change', buildTL); buildTL();
   H.check(TL.length === 11, 'timeline has 11 rows from Table G');
-  H.check(STEP * (TL.length - 1) === 440, 'spark travel matches spine length');
 })();
 </script>
 </body>

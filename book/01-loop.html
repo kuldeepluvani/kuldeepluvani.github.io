@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-qLllQ40NsadsoyE+qGXmDPwRhDeiR8a5QISn3uXeBQ0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ZgaHf+wM0LWpeQ2M1xENoIdOD3QGeW3uxZcNtJJii14='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Agent Loop: Stop Conditions, Ralph Loops and Sub-Agents · The Harness</title>
@@ -11,11 +11,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/site.css?v=8">
+<link rel="stylesheet" href="../assets/site.css?v=10">
 <style>
   /* LOOP STEPPER (prefix: ls-) */
-  .ls-hint { margin: 0 0 14px; font: 12px/1.5 var(--mono); color: var(--amber); letter-spacing: .02em; }
-  .ls-hint::before { content: "\25B8  "; }
+  #inst .hint { margin: 0 0 14px; }
+  @media (max-width: 640px) { #inst > header { flex-wrap: wrap; } #inst > header .tag { flex-basis: 100%; margin-left: 0; } }
+  @media (pointer: coarse) { .ls-ctrls input[type="number"] { min-height: 40px; } }
   .ls-grid { display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1fr); gap: 18px; align-items: start; }
   @media (max-width: 620px) { .ls-grid { grid-template-columns: minmax(0, 1fr); } .ls-ring { max-width: 250px; margin: 0 auto; } }
   .ls-ring { width: 100%; height: auto; display: block; }
@@ -26,7 +27,7 @@
   .ls-ring .ls-ghost-arc { fill: none; stroke: var(--amber); stroke-width: 2; stroke-dasharray: 2 6; }
   .ls-ring .ls-ghost { fill: none; stroke: var(--amber); stroke-width: 1.5; stroke-dasharray: 3 3; }
   .ls-ring .ls-node circle { fill: var(--panel-2); stroke: var(--rule-hi); stroke-width: 1.5; transition: stroke .3s, fill .3s; transform-box: fill-box; transform-origin: center; }
-  .ls-ring .ls-node text { font: 600 9.5px var(--mono); letter-spacing: .08em; fill: var(--text-faint); text-anchor: middle; dominant-baseline: middle; transition: fill .3s; }
+  .ls-ring .ls-node text { font: 600 11px var(--mono); letter-spacing: .03em; fill: var(--text-faint); text-anchor: middle; dominant-baseline: middle; transition: fill .3s; }
   .ls-ring .ls-node.near circle { stroke: var(--cyan-dim); }
   .ls-ring .ls-node.lit circle { stroke: var(--cyan-dim); fill: rgba(62,230,255,.05); }
   .ls-ring .ls-node.lit text { fill: var(--text-dim); }
@@ -39,11 +40,11 @@
   .ls-ring .ls-node.pass text { fill: var(--green); }
   .ls-ring .ls-cursor { fill: var(--cyan); filter: drop-shadow(0 0 6px var(--cyan)); }
   .ls-ring .ls-mid1 { font: 600 22px var(--sans); fill: #fff; text-anchor: middle; }
-  .ls-ring .ls-mid2 { font: 500 10px var(--mono); fill: var(--text-dim); text-anchor: middle; letter-spacing: .1em; }
+  .ls-ring .ls-mid2 { font: 500 11px var(--mono); fill: var(--text-dim); text-anchor: middle; letter-spacing: .1em; }
   .ls-log { background: var(--void) repeating-linear-gradient(180deg, transparent 0 3px, rgba(62,230,255,.025) 3px 4px); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; font: 12px/1.55 var(--mono); font-variant-ligatures: none; min-height: 222px; max-height: 270px; overflow-y: auto; overflow-wrap: anywhere; }
   .ls-log div { margin-bottom: 6px; animation: ls-in .3s ease-out; }
   @keyframes ls-in { from { opacity: 0; transform: translateY(4px); } }
-  .ls-log .ls-tool { display: inline-block; font: 600 10px/1.4 var(--mono); letter-spacing: .06em; padding: 0 6px; border-radius: 3px; color: var(--violet); background: rgba(168,139,255,.14); border: 1px solid rgba(168,139,255,.4); margin-right: 8px; vertical-align: 1px; }
+  .ls-log .ls-tool { display: inline-block; font: 600 11px/1.4 var(--mono); letter-spacing: .06em; padding: 0 6px; border-radius: 3px; color: var(--violet); background: rgba(168,139,255,.14); border: 1px solid rgba(168,139,255,.4); margin-right: 8px; vertical-align: 1px; }
   .ls-log .ls-tool.t-bash { color: var(--cyan); background: rgba(62,230,255,.1); border-color: rgba(62,230,255,.4); }
   .ls-log .ls-tool.t-edit { color: var(--amber); background: rgba(255,179,71,.1); border-color: rgba(255,179,71,.4); }
   .ls-log .ls-cmd { color: var(--text); }
@@ -64,14 +65,14 @@
   .ls-status small, .ls-sub { font: 11px/1.4 var(--mono); color: var(--text-faint); letter-spacing: .08em; text-transform: uppercase; }
   .ls-sub { flex-basis: 100%; transition: color .3s; }
   .ls-sub.bad { color: var(--amber); } .ls-sub.ok { color: var(--green); }
+  .ls-status .readout.idle { color: var(--text-faint); text-shadow: none; }
   .ls-ralph { margin-top: 22px; padding-top: 18px; border-top: 1px dashed var(--rule-hi); }
   .ls-ralph h3 { font: 600 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--violet); margin: 0 0 12px; }
   .ls-ctrls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 170px); gap: 14px; align-items: end; }
   @media (max-width: 480px) { .ls-ctrls { grid-template-columns: minmax(0, 1fr); } }
   .ls-ctrls input[type="number"] { width: 100%; box-sizing: border-box; font: 500 14px var(--mono); color: var(--text); background: var(--panel-2); border: 1px solid var(--rule-hi); border-radius: 6px; padding: 8px 10px; }
   .ls-sp { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; margin: 14px 0 10px; }
-  .ls-spiral { width: 240px; max-width: 100%; height: auto; display: block; flex: 0 0 auto; touch-action: none; cursor: grab; user-select: none; }
-  .ls-spiral:active { cursor: grabbing; }
+  .ls-spiral { width: 240px; max-width: 100%; height: auto; display: block; flex: 0 0 auto; touch-action: pan-y; cursor: ew-resize; user-select: none; }
   .ls-spiral .ls-sptrack { fill: none; stroke: var(--rule); stroke-width: 1; }
   .ls-spiral .ls-cell { fill: var(--panel-2); stroke: var(--rule-hi); stroke-width: 1.5; transition: fill .25s, stroke .25s; }
   .ls-spiral .ls-cell.ran { fill: rgba(62,230,255,.28); stroke: var(--cyan-dim); }
@@ -80,7 +81,7 @@
   .ls-spiral .ls-cell.off { fill: none; stroke: var(--rule); stroke-dasharray: 2 2; }
   .ls-spiral .ls-capring { fill: none; stroke: var(--amber); stroke-width: 1.5; stroke-dasharray: 3 3; }
   .ls-spiral .ls-sp1 { font: 600 22px var(--sans); fill: #fff; text-anchor: middle; }
-  .ls-spiral .ls-sp2 { font: 500 7.5px var(--mono); fill: var(--text-faint); text-anchor: middle; letter-spacing: .1em; }
+  .ls-spiral .ls-sp2 { font: 500 11px var(--mono); fill: var(--text-faint); text-anchor: middle; letter-spacing: .1em; }
   .ls-nums { display: flex; flex-direction: column; gap: 6px; font: 13px/1.5 var(--mono); color: var(--text-dim); min-width: 0; flex: 1 1 160px; }
   .ls-nums b { color: #fff; font-weight: 600; }
   .ls-odo b { display: block; font: 600 clamp(28px, 4vw, 40px)/1 var(--sans); color: var(--cyan); text-shadow: var(--glow); font-variant-numeric: tabular-nums; }
@@ -103,7 +104,7 @@
     <p class="eyebrow">The Harness · Chapter 1</p>
     <h1>The Loop</h1>
     <p class="dek">Every agent is a loop of observe, plan, act and verify. The hard parts are when it stops, when to run more than one, and how it survives a restart.</p>
-    <div class="ch-meta"><span>~10 MIN READ</span><span>1 LIVE INSTRUMENT</span></div>
+    <div class="ch-meta"><span>~16 MIN READ</span><span>1 LIVE INSTRUMENT</span><span>UPDATED OCT 2026</span></div>
   </section>
 
   <div class="ch-body">
@@ -143,11 +144,11 @@
 
       <blockquote class="pull">“Without a check it can run, ‘looks done’ is the only signal available, and you become the verification loop.”<cite>— Claude Code best practices, Anthropic</cite></blockquote>
 
-      <p>The guide lays out four escalating gates: a check written into the prompt, a <code>/goal</code> evaluator, a Stop hook that acts as a deterministic gate, and a verification subagent.<sup class="cite"><a href="#r10">10</a></sup> A Stop hook can return a JSON <code>decision</code> of <code>block</code> with a reason, or exit with code 2, and the model keeps working with that reason in front of it. Its input carries a <code>stop_hook_active</code> flag so the hook itself can avoid looping forever.<sup class="cite"><a href="#r11">11</a></sup> Even compaction has a breaker: if the context refills right after each summary, Claude Code gives up after a few attempts and shows an error.<sup class="cite"><a href="#r2">2</a></sup></p>
+      <p>The guide lays out four escalating gates: a check written into the prompt, a <code>/goal</code> evaluator, a Stop hook that acts as a deterministic gate, and a verification subagent.<sup class="cite"><a href="#r10">10</a></sup> A Stop hook can return a JSON <code>decision</code> of <code>block</code> with a reason, or exit with code 2, and the model keeps working with that reason in front of it. Its input carries a <code>stop_hook_active</code> flag so the hook itself can avoid looping forever.<sup class="cite"><a href="#r11">11</a></sup> In your own loop the same gate is a check that runs whenever the model ends a turn without a tool call; on failure, its output goes back in as the next message. Even compaction has a breaker: if the context refills right after each summary, Claude Code gives up after a few attempts and shows an error.<sup class="cite"><a href="#r2">2</a></sup></p>
       <p>The stepper below plays the six-step “fix the failing tests” sequence from Claude Code's docs.<sup class="cite"><a href="#r2">2</a></sup> Turn the verification check off and watch what the loop reports.</p>
 
       <section class="instrument" id="inst" aria-label="Loop stepper">
-        <header>Loop stepper<span class="tag">pattern: [2] [13] · trace: illustrative</span></header>
+        <header>Loop stepper<span class="tag">data · [2] [12] · illustrative</span></header>
         <div class="body">
           <div class="row" style="margin-bottom:10px">
             <button class="btn primary" id="ls-step" type="button">Step</button>
@@ -155,22 +156,22 @@
             <button class="btn" id="ls-reset" type="button">Reset</button>
             <button class="chip" id="ls-verify" type="button" aria-pressed="true">Verification check: ON</button>
           </div>
-          <p class="ls-hint">Try this: switch the check OFF, press Run, and read the stop signal.</p>
+          <p class="hint" id="ls-hint">switch the check OFF, press Run, and read the stop signal.</p>
           <div class="ls-grid">
             <svg class="ls-ring" viewBox="0 0 240 240" role="img" aria-label="Loop ring with phases observe, plan, act and verify">
               <defs><radialGradient id="ls-core"><stop offset="0" stop-color="rgba(62,230,255,.12)"/><stop offset="1" stop-color="rgba(62,230,255,0)"/></radialGradient></defs>
               <circle cx="120" cy="120" r="72" fill="url(#ls-core)"/>
               <g class="ls-gridline"><circle cx="120" cy="120" r="56"/><circle cx="120" cy="120" r="116"/><path d="M120 4V236M4 120H236M38 38L202 202M202 38L38 202"/></g>
-              <circle class="ls-track" cx="120" cy="120" r="88"/>
+              <circle class="ls-track" cx="120" cy="120" r="104"/>
               <path class="ls-arc" id="ls-arc" d=""/>
               <path class="ls-ghost-arc" id="ls-ghost-arc" d=""/>
               <path class="ls-tail" id="ls-tail" d=""/>
-              <g class="ls-node" data-p="0"><circle cx="120" cy="32" r="22"/><text x="120" y="32">OBSERVE</text></g>
-              <g class="ls-node" data-p="1"><circle cx="208" cy="120" r="22"/><text x="208" y="120">PLAN</text></g>
-              <g class="ls-node" data-p="2"><circle cx="120" cy="208" r="22"/><text x="120" y="208">ACT</text></g>
-              <g class="ls-node" data-p="3"><circle cx="32" cy="120" r="22"/><text x="32" y="120">VERIFY</text></g>
-              <circle class="ls-ghost" id="ls-ghost" cx="120" cy="208" r="6" opacity="0"/>
-              <circle class="ls-cursor" id="ls-cursor" cx="120" cy="32" r="6"/>
+              <g class="ls-node" data-p="0"><circle cx="120" cy="50" r="25"/><text x="120" y="50">OBSERVE</text></g>
+              <g class="ls-node" data-p="1"><circle cx="190" cy="120" r="25"/><text x="190" y="120">PLAN</text></g>
+              <g class="ls-node" data-p="2"><circle cx="120" cy="190" r="25"/><text x="120" y="190">ACT</text></g>
+              <g class="ls-node" data-p="3"><circle cx="50" cy="120" r="25"/><text x="50" y="120">VERIFY</text></g>
+              <circle class="ls-ghost" id="ls-ghost" cx="120" cy="224" r="6" opacity="0"/>
+              <circle class="ls-cursor" id="ls-cursor" cx="120" cy="16" r="6"/>
               <text class="ls-mid1" id="ls-mid1" x="120" y="118">0/6</text>
               <text class="ls-mid2" id="ls-mid2" x="120" y="138">READY</text>
             </svg>
@@ -184,7 +185,7 @@
           </div>
           <div class="ls-status">
             <small>Stop signal</small>
-            <span class="readout" id="ls-readout" aria-live="polite">RUNNING</span>
+            <span class="readout idle" id="ls-readout" aria-live="polite">IDLE</span>
             <span class="ls-sub" id="ls-sub">tests run since edit: —</span>
           </div>
 
@@ -201,51 +202,139 @@
               </div>
             </div>
             <div class="ls-sp">
-              <svg class="ls-spiral" id="ls-spiral" viewBox="0 0 240 240" role="img" aria-label="Iterations as loops on a spiral, out of 50. Drag on the spiral to set the cap; the slider does the same."></svg>
+              <svg class="ls-spiral" id="ls-spiral" viewBox="0 0 240 240" role="img" aria-label="Iterations as loops on a spiral, out of 50. Drag left or right on the spiral to set the cap; the slider does the same."></svg>
               <div class="ls-nums" aria-live="polite">
                 <div class="ls-odo"><b id="ls-total">800,000</b><small>tokens spent</small></div>
                 <span>exit: <b id="ls-exit">promise</b></span>
                 <span>iterations: <b id="ls-iters">16</b></span>
               </div>
             </div>
-            <p class="ls-hint">Drag the cap below 16: the spend stops, the promise never lands, the work stays unfinished.</p>
+            <p class="hint" id="ls-rhint">drag the cap below 16: the spend stops, the promise never lands, the work stays unfinished.</p>
           </div>
         </div>
-        <div class="caption">Upper panel: the six steps and tool sequence follow the “fix the failing tests” walkthrough in Claude Code's docs <a href="#r2">[2]</a>; the file names, terminal lines and token counts are invented for illustration, and the 200k window is a nominal scale. The verify gate is the one the best-practices guide describes <a href="#r10">[10]</a>; with it off, the dashed ghost shows the test run the agent never made. Lower panel: the exit rules (exact <code>&lt;promise&gt;</code> match, or iteration reaches the cap) come from the ralph-wiggum plugin <a href="#r13">[13]</a>; when the promise arrives is simulated with a fixed seed and a 10% chance per iteration, so it is reproducible, not measured.</div>
+        <div class="caption">Upper panel: the six steps and tool sequence follow the “fix the failing tests” walkthrough in Claude Code's docs <a href="#r2">[2]</a>; the file names, terminal lines and token counts are invented for illustration, and the 200k window is a nominal scale, not a current model's limit. The verify gate is the one the best-practices guide describes <a href="#r10">[10]</a>; with it off, the dashed ghost shows the test run the agent never made. Lower panel: the exit rules (exact <code>&lt;promise&gt;</code> match, or iteration reaches the cap) come from the ralph-wiggum plugin <a href="#r12">[12]</a>; when the promise arrives is simulated with a fixed seed and a 10% chance per iteration, so it is reproducible, not measured. Cost per iteration is held fixed here; real iterations get more expensive as the repository and progress files grow, so set the cap from a measured per-iteration cost, not an estimate.</div>
       </section>
 
       <div class="note"><b>Field note</b>Name the check before you start the loop. A test command, a linter, a curl against a health endpoint: something the agent can run that returns pass or fail. If you cannot name one, the task is not ready for an agent.</div>
 
+      <p class="code-cap">Copy this: a minimal Stop-hook gate that runs the test suite and blocks Claude Code from stopping while it fails, checked against the current hooks reference (Oct 2026).<sup class="cite"><a href="#r11">11</a></sup></p>
+<pre><code>// .claude/settings.json
+{ "hooks": { "Stop": [ { "hooks": [ { "type": "command",
+    "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/tests-gate.sh",
+    "timeout": 300 } ] } ] } }
+
+#!/usr/bin/env bash
+# save as .claude/hooks/tests-gate.sh, chmod +x (needs jq)
+input=$(cat)
+# Already continuing because a Stop hook blocked: allow the stop, never loop forever
+[ "$(jq -r '.stop_hook_active' &lt;&lt;&lt;"$input")" = "true" ] &amp;&amp; exit 0
+if out=$(npm test 2&gt;&amp;1); then exit 0; fi
+jq -n --arg r "Tests are failing. Fix them and rerun npm test before stopping.
+$(tail -n 20 &lt;&lt;&lt;"$out")" '{decision: "block", reason: $r}'</code></pre>
+      <p>The guard buys one forced retry per stop. Remove it and Claude Code's own cap, which ends the turn after eight consecutive hook continuations, is the backstop.<sup class="cite"><a href="#r11">11</a></sup> Any other harness: when the model returns with no tool call, run the test command; if it fails, append the last 20 lines as a user message and call the model again, at most N times.</p>
+
       <h2 id="s-4">Ralph: the dumbest loop that works</h2>
-      <p>Geoffrey Huntley's Ralph technique is one line of shell: <code>while :; do cat PROMPT.md | claude-code ; done</code>.<sup class="cite"><a href="#r12">12</a></sup> The same prompt, forever, against a repository that changes underneath it. Each pass reads the files, does one thing, and exits. His rule is one item per loop.</p>
+      <p>Ralph is a pattern you can take to production: a deterministic outer loop around a nondeterministic worker, with all state on disk and a hard spend cap. Geoffrey Huntley's original is one line of shell, <code>while :; do cat PROMPT.md | claude-code ; done</code>.<sup class="cite"><a href="#r13">13</a></sup> The same prompt runs every pass against a repository that changes underneath it. Each pass reads the files, does one item, and exits.</p>
 
       <blockquote class="pull">“That's the beauty of Ralph - the technique is deterministically bad in an undeterministic world.”<cite>— Geoffrey Huntley (2025)</cite></blockquote>
 
-      <p>When Ralph does something dumb, you do not swap the model. You add a sign to the prompt, the way a playground gets a sign telling kids to slide down instead of jumping. Huntley reports delivering an MVP on a $50k contract for $297, and he used the method to build a compiler for an esoteric language called CURSED.<sup class="cite"><a href="#r12">12</a></sup> Those are one practitioner's numbers. The mechanism holds regardless: a deterministic outer loop around a nondeterministic worker, with all state kept on disk.</p>
-      <p>Anthropic's ralph-wiggum plugin moves the loop inside the session with a Stop hook. You start it with a prompt, <code>--max-iterations</code> and <code>--completion-promise</code>. The prompt never changes, and the agent improves by reading its own past work in files. The hook blocks every stop until the output contains the exact promise string inside <code>&lt;promise&gt;</code> tags or the count reaches the cap, and its system message reminds the agent not to claim completion falsely. The README tells you to rely on <code>--max-iterations</code> as the primary safety mechanism.<sup class="cite"><a href="#r13">13</a></sup> In the Ralph panel above, drag the cap below the iteration where the promise lands: the loop stops, the spend is fixed, and the work is unfinished. That is the correct failure.</p>
+      <p>When Ralph does something dumb, you do not swap the model; you add a sign to the prompt. Huntley's headline result, an MVP on a $50k contract for $297, is one practitioner's report, not a measurement.<sup class="cite"><a href="#r13">13</a></sup></p>
+      <p>The original line will not run as written against the current CLI. A form that does, with both caps made explicit:</p>
+<pre><code># Run only inside a container or VM: this skips every permission prompt.
+for i in $(seq 1 20); do                      # hard cap: 20 passes
+  out=$(claude -p "$(cat PROMPT.md)" \
+        --dangerously-skip-permissions \
+        --max-budget-usd 2.00)                # per-pass spend cap
+  grep -q '&lt;promise&gt;DONE&lt;/promise&gt;' &lt;&lt;&lt;"$out" &amp;&amp; break
+done                                          # worst case about 20 x $2</code></pre>
+      <p><code>--max-budget-usd</code> stops a print-mode run once its estimated spend reaches the cap, counts subagent spend toward it, and can overshoot slightly, so leave headroom.<sup class="cite"><a href="#r14">14</a></sup> Claude Code's docs limit skipping permissions to isolated containers and VMs; an unattended loop belongs in one.<sup class="cite"><a href="#r15">15</a></sup> State lives in the repository and a progress file, never in the session.</p>
+      <p>Anthropic's ralph-wiggum plugin moves the loop inside the session with a Stop hook. You start it with a prompt, <code>--max-iterations</code> and <code>--completion-promise</code>. The prompt never changes, and the agent improves by reading its own past work in files. The hook blocks every stop until the output contains the exact promise string inside <code>&lt;promise&gt;</code> tags or the count reaches the cap, and its system message reminds the agent not to claim completion falsely. The README tells you to rely on <code>--max-iterations</code> as the primary safety mechanism.<sup class="cite"><a href="#r12">12</a></sup> In the Ralph panel above, drag the cap below the iteration where the promise lands: the loop stops, the spend is fixed, and the work is unfinished. That is the correct failure. In a harness without the plugin, the outer script above does the same job: count passes, check for the promise, stop at the cap.</p>
 
       <h2 id="s-5">Fan-out, and its critics</h2>
-      <p>Once one loop works, the obvious move is to run several. Anthropic's research system has a lead agent that plans and delegates to subagents running in parallel. With Opus 4 leading Sonnet 4 workers, it beat single-agent Opus 4 by 90.2% on an internal research eval. Token usage alone explained 80% of the performance variance on BrowseComp, the system uses about 15 times the tokens of a chat, and parallel tool calls cut research time by up to 90%.<sup class="cite"><a href="#r14">14</a></sup> Its prompts scale effort to the query: one agent and 3 to 10 tool calls for a fact, 2 to 4 subagents for a comparison, more than 10 for complex research.<sup class="cite"><a href="#r14">14</a></sup></p>
-      <p>Cognition's Walden Yan argued the opposite the same month: share full context and full agent traces, not just individual messages.<sup class="cite"><a href="#r15">15</a></sup></p>
+      <p>Once one loop works, the obvious move is to run several. Anthropic's research system has a lead agent that plans and delegates to subagents running in parallel. In that 2025 setup, with Opus 4 leading Sonnet 4 workers, it beat single-agent Opus 4 by 90.2% on an internal research eval. Token usage alone explained 80% of the performance variance on BrowseComp, the system uses about 15 times the tokens of a chat, and parallel tool calls cut research time by up to 90%.<sup class="cite"><a href="#r16">16</a></sup> Its prompts scale effort to the query: one agent and 3 to 10 tool calls for a fact, 2 to 4 subagents for a comparison, more than 10 for complex research.<sup class="cite"><a href="#r16">16</a></sup></p>
+      <p>Cognition's Walden Yan argued the opposite the same month: share full context and full agent traces, not just individual messages.<sup class="cite"><a href="#r17">17</a></sup></p>
 
       <blockquote class="pull">“Actions carry implicit decisions, and conflicting decisions carry bad results.”<cite>— Walden Yan, Cognition (2025)</cite></blockquote>
 
-      <p>His example is a Flappy Bird clone split between two subagents that return a background and a bird in mismatched styles.<sup class="cite"><a href="#r15">15</a></sup> A Berkeley study of more than 1,600 multi-agent traces across seven frameworks found 14 failure modes in three categories: system design, inter-agent misalignment, and task verification.<sup class="cite"><a href="#r16">16</a></sup> Verification shows up again.</p>
-      <p>The two positions reconcile once you look at what each side parallelizes. Research is reads. Subagents search, condense and report back, which Anthropic's context-engineering guidance frames as a clean separation between search and synthesis.<sup class="cite"><a href="#r17">17</a></sup> Code is writes, and two writers with different assumptions collide. Claude Code keeps subagents in separate context windows that return summaries, recommends a fresh-context reviewer that will not be biased toward code it just wrote, and gives parallel writers their own git worktrees.<sup class="cite"><a href="#r10">10</a></sup> Cursor 2.0 runs up to eight agents on one prompt the same way, isolated on worktrees or remote machines.<sup class="cite"><a href="#r18">18</a></sup></p>
+      <p>His example is a Flappy Bird clone split between two subagents that return a background and a bird in mismatched styles.<sup class="cite"><a href="#r17">17</a></sup> A Berkeley study of more than 1,600 multi-agent traces across seven frameworks found 14 failure modes in three categories: system design, inter-agent misalignment, and task verification.<sup class="cite"><a href="#r18">18</a></sup> Verification shows up again.</p>
+      <p>The two positions reconcile once you look at what each side parallelizes. Research is reads. Subagents search, condense and report back, which Anthropic's context-engineering guidance frames as a clean separation between search and synthesis.<sup class="cite"><a href="#r19">19</a></sup> Code is writes, and two writers with different assumptions collide. Claude Code keeps subagents in separate context windows that return summaries, recommends a fresh-context reviewer that will not be biased toward code it just wrote, and gives parallel writers their own git worktrees.<sup class="cite"><a href="#r10">10</a></sup> In your own harness a subagent is a child loop with its own message list, and its final message is the only thing the parent reads. Cursor 2.0 runs up to eight agents on one prompt the same way, isolated on worktrees or remote machines.<sup class="cite"><a href="#r20">20</a></sup></p>
 
       <div class="note"><b>Field note</b>Parallelize reads, serialize writes. Fan out for search, review and investigation. When two agents must change code, give each its own worktree and merge through a single point that runs the tests.</div>
 
-      <h2 id="s-6">Surviving the session boundary</h2>
-      <p>Long tasks outlive a context window, and each new session begins with no memory of the last.<sup class="cite"><a href="#r19">19</a></sup> Anthropic's harness for long-running agents treats that as a handoff problem. An initializer agent writes an <code>init.sh</code>, a progress file and the first commit. Every later session is a coding agent that builds one feature against a JSON list of 200-plus features, each marked pass or fail. Each session opens with the same ritual: read the progress log, check git history, run the basic tests, pick the next failing feature.<sup class="cite"><a href="#r19">19</a></sup></p>
-      <p>Drop the ritual and the failures are predictable: declaring the project done early, leaving bugs and undocumented changes behind, marking features passed without testing them, and spending tokens rediscovering state.<sup class="cite"><a href="#r19">19</a></sup> Two of those four are verification failures.</p>
-      <p>Cloud agents face a harder version, where the gap is a CI run or a human review that takes hours. Cognition found containers cannot survive those gaps and now snapshots memory, process trees and filesystem at the hypervisor level so a task can stop and resume.<sup class="cite"><a href="#r20">20</a></sup> OpenAI's Codex cloud gives each task its own workspace and hands back diffs, logs and test results with citations, not a claim that it worked.<sup class="cite"><a href="#r21">21</a></sup> Claude Code stores sessions as JSONL that can be resumed or forked, but sessions are independent.<sup class="cite"><a href="#r2">2</a></sup> Anything that must carry over belongs in files.</p>
+      <h2 id="s-6">Orchestration patterns that hold up</h2>
+      <p>Four shapes cover most multi-agent systems. Three come straight from Anthropic's workflow taxonomy: orchestrator-workers, prompt chaining, and evaluator-optimizer with its voting variant.<sup class="cite"><a href="#r8">8</a></sup> The fourth is what coding tools added: parallel writers, each isolated on its own worktree.<sup class="cite"><a href="#r10">10</a></sup><sup class="cite"><a href="#r20">20</a></sup></p>
 
-      <h2 id="s-7">What it costs</h2>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead><tr><th>Pattern</th><th>Shape</th><th>Use it for</th><th>Watch for</th></tr></thead>
+          <tbody>
+            <tr><td>Lead / worker</td><td>A lead plans, spawns workers with narrow briefs, merges their reports</td><td>Research, investigation, wide reads</td><td>Workers drifting from the brief; the lead stopping early</td></tr>
+            <tr><td>Pipeline</td><td>Fixed stages, each output feeds the next, a check between stages</td><td>Work you can decompose ahead of time</td><td>An early error compounding through every later stage</td></tr>
+            <tr><td>Review / debate</td><td>One agent produces, a fresh-context agent critiques, or several vote</td><td>Code review, plan review, claims that need checking</td><td>A reviewer that shares the writer's context and agrees with it</td></tr>
+            <tr><td>Parallel on worktrees</td><td>N writers on separate checkouts, one merge point that runs the tests</td><td>Independent changes, migrations, trying N approaches</td><td>Conflicting implicit decisions surfacing at merge</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><b>What a subagent returns is an API.</b> Anthropic's guidance notes a subagent may spend tens of thousands of tokens exploring and still return a condensed summary, often 1,000 to 2,000 tokens.<sup class="cite"><a href="#r19">19</a></sup> Make that a contract: fixed fields, a hard cap of 2,000 tokens, and a lead that validates the shape before it reads the content. The field names below are a suggestion; the fixed shape is the point.</p>
+<pre><code>{
+  "status": "done | partial | blocked",
+  "answer": "the conclusion, in 3 to 8 sentences",
+  "evidence": ["src/cart/pricing.py:27", "pytest -q: exit 0"],
+  "changed": [],
+  "open_questions": ["what the lead has to decide"],
+  "tokens_used": 41200
+}</code></pre>
+      <p>A <code>blocked</code> status with a question is a legitimate answer. Without it, a worker that lacks information guesses.</p>
+      <p><b>Budget the tree, not the node.</b> Fan-out multiplied tokens about fifteenfold in Anthropic's system,<sup class="cite"><a href="#r16">16</a></sup> so per-agent caps still let a lead spawn its way past any sane total. Give the root one budget that every descendant draws from, and cap depth and width as well. Claude Code and its Agent SDK already count subagent spend toward the run's budget; once it is reached, spawning another subagent fails with “Budget limit reached” and running background subagents are stopped.<sup class="cite"><a href="#r21">21</a></sup> In your own orchestrator, pass a shared budget down the tree, decrement it on every model response, and refuse to spawn when it is empty.</p>
+      <p><b>Check the failure modes before launch.</b> The Berkeley MAST taxonomy groups its 14 modes into three categories.<sup class="cite"><a href="#r18">18</a></sup> Read them as a pre-launch checklist:</p>
+
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead><tr><th>Category</th><th>Failure modes</th><th>Check before launch</th></tr></thead>
+          <tbody>
+            <tr><td>System design</td><td>disobey task spec · disobey role spec · step repetition · loss of conversation history · unaware of stopping conditions</td><td>Every agent has a written brief, a role it cannot widen, a turn cap and a named stop condition</td></tr>
+            <tr><td>Inter-agent misalignment</td><td>conversation reset · fail to ask for clarification · task derailment · information withholding · ignored other agent's input · reasoning-action mismatch</td><td>Handoffs use the return contract; workers can return <code>blocked</code>; the lead records which reports it used</td></tr>
+            <tr><td>Task verification</td><td>premature termination · no or incomplete verification · incorrect verification</td><td>A check that runs (tests, schema, resolved citations) gates the final answer, applied by a fresh-context agent</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="s-7">When the loop breaks</h2>
+      <p>Production loops seldom fail in the model's reasoning. They fail at the seams: a 529 from the API, a tool that hangs, a write that half-happened before a crash, a retry that sends the email twice. Sort every failure into one of three classes, because each gets a different retry rule and the model sees something different.</p>
+
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead><tr><th>Class</th><th>Examples</th><th>Who retries</th><th>What the model sees</th></tr></thead>
+          <tbody>
+            <tr><td>Model / API error</td><td>429 rate limit, 500, 529 overloaded</td><td>The harness, with exponential backoff and <code>retry-after</code>. Claude's SDKs retry twice by default. A spend-cap 429 keeps failing: stop, don't spin.<sup class="cite"><a href="#r22">22</a></sup></td><td>Nothing; the turn resumes</td></tr>
+            <tr><td>Tool error</td><td>timeout, non-zero exit, bad arguments</td><td>The harness once, only if the tool is idempotent; otherwise the model decides</td><td>A short error flagged as one (<code>is_error: true</code> on Claude's API)<sup class="cite"><a href="#r23">23</a></sup></td></tr>
+            <tr><td>Policy deny</td><td>permission rule, hook deny, sandbox block</td><td>Never automatically</td><td>The denial and its reason, so it can choose another route<sup class="cite"><a href="#r11">11</a></sup></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Claude Code runs a separate <code>StopFailure</code> hook when a turn ends on an API error, with types such as <code>rate_limit</code>, <code>overloaded</code> and <code>server_error</code>, which is the place to hang an alert.<sup class="cite"><a href="#r11">11</a></sup></p>
+      <p><b>Give every write tool an idempotency key.</b> Retries and resumes replay calls, and a payment, email or ticket created twice is a real incident. Stripe's API is the reference design: the client sends a unique key, the server saves the first result, and a retry with the same key gets that saved result instead of a second action.<sup class="cite"><a href="#r24">24</a></sup> For an agent, derive the key from the run id and the tool-call id, so a resumed run reuses it.</p>
+      <p><b>Put a timeout on every tool.</b> A hung tool holds the whole loop and its budget. Claude Code's Bash tool defaults to two minutes and lets the model raise that to ten, and HTTP-based MCP requests time out after 60 seconds by default.<sup class="cite"><a href="#r25">25</a></sup></p>
+      <p><b>Checkpoint before the side effect, not after.</b> Write the intended call and its inputs to durable storage, run it, then record the result. On restart, a call with an intent and no result is the one to reconcile, using its key. Do not lean on the agent's undo: Claude Code's checkpoints track files edited in the session, not files changed only by Bash, and nothing outside the filesystem.<sup class="cite"><a href="#r26">26</a></sup></p>
+      <p><b>Show the model one useful line.</b> After a failure the model needs what failed, why, and what to try next, not 400 lines of traceback. SWE-agent's interface gains came partly from error feedback designed for the model,<sup class="cite"><a href="#r7">7</a></sup> and Anthropic's tool-writing guidance says the same.<sup class="cite"><a href="#r27">27</a></sup></p>
+
+      <blockquote class="pull">“…prompt-engineer your error responses to clearly communicate specific and actionable improvements, rather than opaque error codes or tracebacks.”<cite>— Ken Aizawa, Anthropic (2025)</cite></blockquote>
+
+      <h2 id="s-8">Surviving the session boundary</h2>
+      <p>Long tasks outlive a context window, and each new session begins with no memory of the last.<sup class="cite"><a href="#r28">28</a></sup> Anthropic's harness for long-running agents treats that as a handoff problem. An initializer agent writes an <code>init.sh</code>, a progress file and the first commit. Every later session is a coding agent that builds one feature against a JSON list of 200-plus features, each marked pass or fail. Each session opens with the same ritual: read the progress log, check git history, run the basic tests, pick the next failing feature.<sup class="cite"><a href="#r28">28</a></sup></p>
+      <p>Drop the ritual and the failures are predictable: declaring the project done early, leaving bugs and undocumented changes behind, marking features passed without testing them, and spending tokens rediscovering state.<sup class="cite"><a href="#r28">28</a></sup> Two of those four are verification failures.</p>
+      <p>Cloud agents face a harder version, where the gap is a CI run or a human review that takes hours. Cognition found containers cannot survive those gaps and now snapshots memory, process trees and filesystem at the hypervisor level so a task can stop and resume.<sup class="cite"><a href="#r29">29</a></sup> OpenAI's Codex cloud gives each task its own workspace and hands back diffs, logs and test results with citations, not a claim that it worked.<sup class="cite"><a href="#r30">30</a></sup> Claude Code stores sessions as JSONL that can be resumed or forked, but sessions are independent.<sup class="cite"><a href="#r2">2</a></sup> Anything that must carry over belongs in files.</p>
+
+      <div class="note case"><b>From my harness · CLAIM</b>CLAIM, the memory system I built for coding agents, turns that opening ritual into a hook. Six lifecycle hooks capture tool uses, decisions and discoveries as a session runs. A SessionStart hook then injects a briefing of what is relevant, so the next session begins where the last one left off instead of rediscovering state. The memory is markdown I own, with SQLite alongside for speed, and the token cost lands on periodic sweep cycles rather than on every session. The pattern travels to any harness that can run a command at session start and put its output in context; in Claude Code, SessionStart is one of the few events whose output the model sees.<sup class="cite"><a href="#r11">11</a></sup></div>
+
+      <h2 id="s-9">What it costs</h2>
       <p>The loop is free. A <code>while</code> statement costs nothing. What costs money is each pass through the model, and what costs trust is each pass that ends without a check.</p>
-      <p>Anthropic's research numbers give the shape: tokens explain most of the quality, fan-out multiplies tokens roughly fifteenfold, and parallelism buys back time, not money.<sup class="cite"><a href="#r14">14</a></sup> Agentic systems trade latency and cost for task performance by design.<sup class="cite"><a href="#r8">8</a></sup> Model speed is a loop-level lever too; Cursor pitches its Composer model as 4x faster than similarly intelligent models.<sup class="cite"><a href="#r18">18</a></sup> And a cap is a budget. Maximum iterations times tokens per iteration is the most a loop can spend, which is why the Ralph panel multiplies them.</p>
-      <p>So keep the loop simple, cap it, and spend on verification: the test run, the fresh reviewer, the Stop hook that refuses “looks done.” Every turn of the loop also feeds the model a context window, and that window is usually the first thing to degrade. That is <a href="02-context.html">Chapter 2</a>.</p>
+      <p>Anthropic's research numbers give the shape: tokens explain most of the quality, fan-out multiplies tokens roughly fifteenfold, and parallelism buys back time, not money.<sup class="cite"><a href="#r16">16</a></sup> Agentic systems trade latency and cost for task performance by design.<sup class="cite"><a href="#r8">8</a></sup> Model speed is a loop-level lever too; Cursor pitches its Composer model as 4x faster than similarly intelligent models.<sup class="cite"><a href="#r20">20</a></sup> And a cap is a budget. Maximum iterations times tokens per iteration is the most a loop can spend, which is why the Ralph panel multiplies them. For a tree of agents the cap belongs at the root, as above.</p>
+      <p>So keep the loop simple, cap it, and spend on verification: the test run, the fresh reviewer, the Stop hook that refuses “looks done.” Every turn of the loop also feeds the model a context window, and that window is usually the first thing to degrade. That is <a href="02-context.html">Chapter 2</a>. Cost per task, model routing, and how to staff and govern all of this are in <a href="06-operating.html">Part 06</a>.</p>
 
-      <details class="refbox" id="s-refs"><summary>References (21)</summary>
+      <details class="refbox" id="s-refs"><summary>References</summary>
       <ol class="refs">
         <li id="r1">SWE-agent team (Princeton/Stanford), “mini-swe-agent,” GitHub, 2025. <a href="https://github.com/SWE-agent/mini-swe-agent">github.com/SWE-agent/mini-swe-agent</a></li>
         <li id="r2">Anthropic, “How Claude Code works,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/how-claude-code-works">code.claude.com/docs/en/how-claude-code-works</a></li>
@@ -258,16 +347,25 @@
         <li id="r9">Google, “Loop agents,” Agent Development Kit docs, accessed Oct 2026. <a href="https://adk.dev/agents/workflow-agents/loop-agents/">adk.dev/agents/workflow-agents/loop-agents</a></li>
         <li id="r10">Anthropic, “Claude Code best practices,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
         <li id="r11">Anthropic, “Hooks reference,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/hooks">code.claude.com/docs/en/hooks</a></li>
-        <li id="r12">Geoffrey Huntley, “Ralph Wiggum,” ghuntley.com, Jul 2025. <a href="https://ghuntley.com/ralph/">ghuntley.com/ralph</a></li>
-        <li id="r13">Anthropic, “ralph-wiggum plugin and stop-hook.sh,” anthropics/claude-code on GitHub, 2025. <a href="https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum">github.com/anthropics/claude-code/…/ralph-wiggum</a></li>
-        <li id="r14">Anthropic, “How we built our multi-agent research system,” Anthropic, Jun 2025. <a href="https://www.anthropic.com/engineering/multi-agent-research-system">anthropic.com/engineering/multi-agent-research-system</a></li>
-        <li id="r15">Walden Yan, “Don't Build Multi-Agents,” Cognition, Jun 2025. <a href="https://cognition.com/blog/dont-build-multi-agents">cognition.com/blog/dont-build-multi-agents</a></li>
-        <li id="r16">Cemri et al. (UC Berkeley), “Why Do Multi-Agent LLM Systems Fail?,” arXiv, Mar 2025. <a href="https://arxiv.org/abs/2503.13657">arxiv.org/abs/2503.13657</a></li>
-        <li id="r17">Anthropic, “Effective context engineering for AI agents,” Anthropic, Sep 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
-        <li id="r18">Cursor, “Cursor 2.0,” Cursor changelog, Oct 2025. <a href="https://cursor.com/changelog/2-0">cursor.com/changelog/2-0</a></li>
-        <li id="r19">Justin Young, “Effective harnesses for long-running agents,” Anthropic, Nov 2025. <a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">anthropic.com/engineering/effective-harnesses-for-long-running-agents</a></li>
-        <li id="r20">Cognition, “What We Learned Building Cloud Agents,” Cognition, Apr 2026. <a href="https://cognition.com/blog/what-we-learned-building-cloud-agents">cognition.com/blog/what-we-learned-building-cloud-agents</a></li>
-        <li id="r21">OpenAI, “Codex cloud,” OpenAI docs, accessed Oct 2026. <a href="https://learn.chatgpt.com/docs/cloud">learn.chatgpt.com/docs/cloud</a></li>
+        <li id="r12">Anthropic, “ralph-wiggum plugin and stop-hook.sh,” anthropics/claude-code on GitHub, 2025. <a href="https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum">github.com/anthropics/claude-code/…/ralph-wiggum</a></li>
+        <li id="r13">Geoffrey Huntley, “Ralph Wiggum,” ghuntley.com, Jul 2025. <a href="https://ghuntley.com/ralph/">ghuntley.com/ralph</a></li>
+        <li id="r14">Anthropic, “CLI reference,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/cli-reference">code.claude.com/docs/en/cli-reference</a></li>
+        <li id="r15">Anthropic, “Permission modes,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/permission-modes">code.claude.com/docs/en/permission-modes</a></li>
+        <li id="r16">Anthropic, “How we built our multi-agent research system,” Anthropic, Jun 2025. <a href="https://www.anthropic.com/engineering/multi-agent-research-system">anthropic.com/engineering/multi-agent-research-system</a></li>
+        <li id="r17">Walden Yan, “Don't Build Multi-Agents,” Cognition, Jun 2025. <a href="https://cognition.com/blog/dont-build-multi-agents">cognition.com/blog/dont-build-multi-agents</a></li>
+        <li id="r18">Cemri et al. (UC Berkeley), “Why Do Multi-Agent LLM Systems Fail?,” arXiv, Mar 2025. <a href="https://arxiv.org/abs/2503.13657">arxiv.org/abs/2503.13657</a></li>
+        <li id="r19">Anthropic, “Effective context engineering for AI agents,” Anthropic, Sep 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
+        <li id="r20">Cursor, “Cursor 2.0,” Cursor changelog, Oct 2025. <a href="https://cursor.com/changelog/2-0">cursor.com/changelog/2-0</a></li>
+        <li id="r21">Anthropic, “How the agent loop works,” Claude Agent SDK docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/agent-sdk/agent-loop">code.claude.com/docs/en/agent-sdk/agent-loop</a></li>
+        <li id="r22">Anthropic, “Claude API errors,” Claude Platform docs, accessed Oct 2026. <a href="https://platform.claude.com/docs/en/api/errors">platform.claude.com/docs/en/api/errors</a></li>
+        <li id="r23">Anthropic, “Handle tool calls,” Claude Platform docs, accessed Oct 2026. <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls">platform.claude.com/docs/…/handle-tool-calls</a></li>
+        <li id="r24">Stripe, “Idempotent requests,” Stripe API reference, accessed Oct 2026. <a href="https://docs.stripe.com/api/idempotent_requests">docs.stripe.com/api/idempotent_requests</a></li>
+        <li id="r25">Anthropic, “Environment variables,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/env-vars">code.claude.com/docs/en/env-vars</a></li>
+        <li id="r26">Anthropic, “Checkpointing,” Claude Code docs, accessed Oct 2026. <a href="https://code.claude.com/docs/en/checkpointing">code.claude.com/docs/en/checkpointing</a></li>
+        <li id="r27">Ken Aizawa, “Writing effective tools for agents — with agents,” Anthropic, Sep 2025. <a href="https://www.anthropic.com/engineering/writing-tools-for-agents">anthropic.com/engineering/writing-tools-for-agents</a></li>
+        <li id="r28">Justin Young, “Effective harnesses for long-running agents,” Anthropic, Nov 2025. <a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">anthropic.com/engineering/effective-harnesses-for-long-running-agents</a></li>
+        <li id="r29">Cognition, “What We Learned Building Cloud Agents,” Cognition, Apr 2026. <a href="https://cognition.com/blog/what-we-learned-building-cloud-agents">cognition.com/blog/what-we-learned-building-cloud-agents</a></li>
+        <li id="r30">OpenAI, “Codex cloud,” OpenAI docs, accessed Oct 2026. <a href="https://learn.chatgpt.com/docs/cloud">learn.chatgpt.com/docs/cloud</a></li>
       </ol>
       </details>
 
@@ -285,8 +383,10 @@
         <li><a href="#s-3">“Looks done” is not a stop signal</a></li>
         <li><a href="#s-4">Ralph: the dumbest loop that works</a></li>
         <li><a href="#s-5">Fan-out, and its critics</a></li>
-        <li><a href="#s-6">Surviving the session boundary</a></li>
-        <li><a href="#s-7">What it costs</a></li>
+        <li><a href="#s-6">Orchestration patterns</a></li>
+        <li><a href="#s-7">When the loop breaks</a></li>
+        <li><a href="#s-8">Surviving the session boundary</a></li>
+        <li><a href="#s-9">What it costs</a></li>
       </ol>
     </aside>
   </div>
@@ -294,7 +394,7 @@
 
 <footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
 
-<script src="../assets/site.js?v=8"></script>
+<script src="../assets/site.js?v=10"></script>
 <script>
 (() => {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -310,7 +410,7 @@
     return () => cancelAnimationFrame(id);
   }
 
-  const C = 120, R = 88, WINDOW = 200, BASE = 8.0;          // ring geometry; illustrative context scale (k tokens)
+  const C = 120, R = 104, WINDOW = 200, BASE = 8.0;         // cursor orbits outside the phase labels (nodes sit at r=70); illustrative context scale (k tokens)
   const PHASE_DEG = [-90, 0, 90, 180];                        // OBSERVE top, PLAN right, ACT bottom, VERIFY left
   // Six-step trace shape from [2]; text and token deltas are illustrative.
   const TRACE = [
@@ -329,7 +429,7 @@
 
   const log = H.$('#ls-log'), cur = H.$('#ls-cursor'), arc = H.$('#ls-arc'), tail = H.$('#ls-tail'), out = H.$('#ls-readout');
   const ghost = H.$('#ls-ghost'), garc = H.$('#ls-ghost-arc'), sub = H.$('#ls-sub'), ctxV = H.$('#ls-ctxv'), ctxBar = H.$('#ls-ctxbar');
-  const nodes = H.$$('.ls-node'), vBtn = H.$('#ls-verify'), runBtn = H.$('#ls-run'), stepBtn = H.$('#ls-step');
+  const nodes = H.$$('.ls-node'), vBtn = H.$('#ls-verify'), runBtn = H.$('#ls-run'), stepBtn = H.$('#ls-step'), hint = H.$('#ls-hint');
   let step = 0, verify = true, angle = -90, done = false, timer = null, gen = 0, shownCtx = BASE;
   let cancelMove = () => {}, cancelGhost = () => {}, cancelCtx = () => {};
 
@@ -356,10 +456,10 @@
   // ---- attract: the comet orbits idly until the reader touches anything in the instrument
   let touched = false, attractRaf = null;
   function attract() {
-    if (touched || reduce || attractRaf || !visible) return;
+    if (touched || reduce || attractRaf || !visible || document.hidden) return;
     const t0 = performance.now();
     const tick = t => {
-      if (touched || !visible) { attractRaf = null; return; }
+      if (touched || !visible || document.hidden) { attractRaf = null; return; }
       angle = -90 + ((t - t0) / 18) % 360;                     // one orbit in about 6.5 s
       drawCursor(angle, false);
       nodes.forEach((g, i) => { const d = ((angle - PHASE_DEG[i]) % 360 + 360) % 360; g.classList.toggle('near', d < 14 || d > 346); });
@@ -377,6 +477,7 @@
   inst.addEventListener('pointerdown', wake);
   inst.addEventListener('focusin', wake);
   new IntersectionObserver(es => es.forEach(e => { visible = e.isIntersecting; if (visible) attract(); })).observe(inst);
+  document.addEventListener('visibilitychange', attract);
 
   function setReadout(text, cls) { out.textContent = text; out.className = 'readout' + (cls ? ' ' + cls : ''); }
   // terminal line: tool badge, command typed out, then the output
@@ -416,6 +517,10 @@
     sub.textContent = 'tests run since edit: ' + (edited ? runs : '—');
     sub.className = 'ls-sub' + (edited ? (runs ? ' ok' : ' bad') : '');
     stepBtn.disabled = runBtn.disabled = done;
+    const aha = done && !verify;                                 // hint tracks the state instead of going stale
+    hint.classList.toggle('done', aha);
+    hint.textContent = aha ? '"LOOKS DONE" is the model’s guess, not a test result: you are the verification loop.'
+      : verify ? 'switch the check OFF, press Run, and read the stop signal.' : 'now press Run and read the stop signal.';
   }
 
   // the run the agent never made: a dashed ghost completes the ring and logs the skipped pytest
@@ -454,7 +559,7 @@
     ghost.setAttribute('opacity', '0'); garc.setAttribute('d', '');
     if (touched) moveTo(-90, 400); else { angle = -90; drawCursor(angle, false); }
     log.innerHTML = '<div class="ls-empty">user: the tests are failing, fix them</div>';
-    setReadout('RUNNING'); render();
+    setReadout('IDLE', 'idle'); render();
   }
 
   stepBtn.addEventListener('click', () => { stopRun(); advance(); });
@@ -499,7 +604,7 @@
   const capRing = el('circle', { class: 'ls-capring', r: 10 });
   const sp1 = el('text', { class: 'ls-sp1', x: 120, y: 125 }), sp2 = el('text', { class: 'ls-sp2', x: 120, y: 137 });
 
-  const maxEl = H.$('#ls-max'), costEl = H.$('#ls-cost'), totalEl = H.$('#ls-total');
+  const maxEl = H.$('#ls-max'), costEl = H.$('#ls-cost'), totalEl = H.$('#ls-total'), rhint = H.$('#ls-rhint');
   let ralphRaf = null, shownTotal = 0, cancelOdo = () => {};
   function updateRalph() {
     const max = +maxEl.value;
@@ -510,7 +615,10 @@
     H.$('#ls-exit').textContent = res.exit === 'promise' ? '<promise> matched at ' + res.iters : 'cap hit, no promise';
     H.$('#ls-exit').style.color = res.exit === 'promise' ? 'var(--green)' : 'var(--red)';
     H.$('#ls-iters').textContent = res.iters + ' / ' + max;
-    sp1.textContent = res.iters; sp2.textContent = 'OF CAP ' + max;
+    sp1.textContent = res.iters; sp2.textContent = 'CAP ' + max;
+    rhint.classList.toggle('done', res.exit === 'cap');
+    rhint.textContent = res.exit === 'cap' ? 'cap ' + max + ' fixes the spend at ' + res.total.toLocaleString('en-US') + ' tokens; the promise never lands and the work is unfinished.'
+      : 'drag the cap below ' + PROMISE + ': the spend stops, the promise never lands, the work stays unfinished.';
     capRing.setAttribute('cx', CP[max - 1][0].toFixed(2)); capRing.setAttribute('cy', CP[max - 1][1].toFixed(2));
     const from = shownTotal; cancelOdo();                       // token odometer rolls to the new spend
     cancelOdo = tween(500, e => { shownTotal = Math.round(from + (res.total - from) * e); totalEl.textContent = shownTotal.toLocaleString('en-US'); });
@@ -526,19 +634,24 @@
   }
   maxEl.addEventListener('input', updateRalph);
   costEl.addEventListener('input', updateRalph);
-  // direct manipulation: drag anywhere on the spiral to move the cap to the nearest loop
+  // direct manipulation: a tap moves the cap to the nearest loop; a horizontal drag winds it (touch-action: pan-y keeps page scroll)
   const nearestCell = e => {
     const b = sp.getBoundingClientRect(), x = (e.clientX - b.left) / b.width * 240, y = (e.clientY - b.top) / b.height * 240;
     let best = 0, bd = Infinity;
     CP.forEach(([px, py], i) => { const d = (px - x) ** 2 + (py - y) ** 2; if (d < bd) { bd = d; best = i; } });
     return best + 1;
   };
-  const setMax = k => { if (+maxEl.value !== k) { maxEl.value = k; updateRalph(); } };
-  let dragging = false;
-  sp.addEventListener('pointerdown', e => { dragging = true; sp.setPointerCapture(e.pointerId); setMax(nearestCell(e)); });
-  sp.addEventListener('pointermove', e => { if (dragging) setMax(nearestCell(e)); });
-  sp.addEventListener('pointerup', () => { dragging = false; });
-  sp.addEventListener('pointercancel', () => { dragging = false; });
+  const setMax = k => { k = Math.max(1, Math.min(MAXCAP, k)); if (+maxEl.value !== k) { maxEl.value = k; updateRalph(); } };
+  let drag = null;                                              // { x0, cap0, moved }
+  sp.addEventListener('pointerdown', e => { drag = { x0: e.clientX, cap0: +maxEl.value, moved: false }; sp.setPointerCapture(e.pointerId); });
+  sp.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x0;
+    if (Math.abs(dx) > 4) drag.moved = true;
+    if (drag.moved) setMax(drag.cap0 + Math.round(dx / (sp.getBoundingClientRect().width / MAXCAP)));
+  });
+  sp.addEventListener('pointerup', e => { if (drag && !drag.moved) setMax(nearestCell(e)); drag = null; });
+  sp.addEventListener('pointercancel', () => { drag = null; });
   updateRalph();
 })();
 </script>

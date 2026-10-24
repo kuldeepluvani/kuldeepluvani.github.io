@@ -7,7 +7,7 @@
   --rule-hi: #2a3b4a;
   --text: #d8e3ea;
   --text-dim: #8a9aa8;
-  --text-faint: #56677a;
+  --text-faint: #7a8b9c; /* ≥5:1 on every panel (WCAG AA) */
   --cyan: #3ee6ff;
   --cyan-dim: #1b8fa3;
   --amber: #ffb347;
@@ -83,7 +83,9 @@ hr { border: 0; border-top: 1px solid var(--rule); margin: 3em 0; }
 
 /* ---------- chapter page ---------- */
 .ch-hero { padding: clamp(56px, 10vw, 120px) 0 40px; border-bottom: 1px solid var(--rule); position: relative; }
-.ch-hero .num { font: 600 clamp(80px, 16vw, 200px)/.8 var(--sans); color: transparent; -webkit-text-stroke: 1px var(--rule-hi); position: absolute; right: 0; top: 40px; user-select: none; }
+.ch-hero .num { font: 600 clamp(80px, 16vw, 200px)/.8 var(--sans); color: transparent; -webkit-text-stroke: 1px rgba(62,230,255,.28); position: absolute; right: 0; top: 40px; user-select: none; }
+.ch-hero h1 { max-width: calc(100% - 230px); }
+@media (max-width: 640px) { .ch-hero h1 { max-width: none; } }
 .ch-hero .dek { font-size: clamp(19px, 2.2vw, 24px); color: var(--text-dim); max-width: 46ch; }
 .ch-meta { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 28px; font: 12px/1 var(--mono); color: var(--text-faint); letter-spacing: .06em; }
 .ch-body { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 56px; padding: 48px 0 96px; }
@@ -201,3 +203,50 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border: 0; bo
 .note.case ol { margin: 0 0 .9em; padding-left: 1.2em; }
 .note.case li { margin-bottom: .5em; }
 .note.case p:last-child { margin-bottom: 0; }
+
+/* citations must not stretch line height */
+sup { line-height: 0; }
+
+/* shared instrument hint: one colour, one phrasing ("▸ Try: …"); add .done when the suggested state is reached */
+.instrument .hint { font: 500 12.5px/1.5 var(--mono); color: var(--amber); letter-spacing: .02em; }
+.instrument .hint::before { content: "▸ Try: "; font-weight: 600; }
+.instrument .hint.done { color: var(--green); }
+.instrument .hint.done::before { content: "✓ "; }
+
+/* chapter switcher in the HUD + on-this-page for narrow screens (built by site.js) */
+.chmenu { position: relative; }
+.chmenu > summary { list-style: none; cursor: pointer; color: var(--text-dim); }
+.chmenu > summary::-webkit-details-marker { display: none; }
+.chmenu > summary:hover, .chmenu[open] > summary { color: var(--cyan); }
+.chmenu ol { position: absolute; right: 0; top: calc(100% + 14px); min-width: 280px; margin: 0; padding: 8px; list-style: none; background: var(--panel); border: 1px solid var(--rule-hi); border-radius: 10px; box-shadow: 0 20px 40px rgba(0,0,0,.5); z-index: 60; }
+.chmenu li a { display: flex; gap: 12px; padding: 9px 10px; border-radius: 6px; color: var(--text); font: 500 13px/1.3 var(--mono); }
+.chmenu li a span { color: var(--text-faint); min-width: 22px; }
+.chmenu li a:hover, .chmenu li a[aria-current="page"] { background: rgba(62,230,255,.08); color: var(--cyan); }
+.otp { display: none; margin: 24px 0 0; border: 1px solid var(--rule); border-radius: 10px; background: var(--panel); font: 13px/1.5 var(--mono); }
+.otp > summary { padding: 12px 14px; cursor: pointer; color: var(--text-dim); letter-spacing: .12em; text-transform: uppercase; font-size: 11.5px; }
+.otp ol { margin: 0; padding: 0 14px 12px 32px; }
+.otp a { color: var(--text); text-decoration: none; display: block; padding: 5px 0; }
+@media (max-width: 980px) { .otp { display: block; } }
+
+/* touch: bigger targets on coarse pointers (WCAG 2.5.8) */
+@media (pointer: coarse) {
+  .chip, .btn { min-height: 40px; }
+  input[type="range"] { height: 28px; background: transparent; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: var(--rule-hi); border-radius: 2px; }
+  input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -10px; }
+  input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
+}
+
+/* never hide content from print, reader modes or captures */
+@media print { .js .rise { opacity: 1 !important; transform: none !important; } .hud, .rail, .chmenu, .otp { display: none !important; } body { background: #fff; color: #111; } }
+
+/* "Copy this" code blocks */
+.code-cap { margin: 2em 0 .5em; font: 600 11.5px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--cyan); }
+.code-cap + pre { margin-top: 0; }
+pre code { white-space: pre; }
+
+/* instrument header: tag on its own line on phones */
+@media (max-width: 640px) {
+  .instrument > header { flex-wrap: wrap; row-gap: 6px; line-height: 1.4; }
+  .instrument > header .tag { margin-left: 15px; flex-basis: 100%; }
+}

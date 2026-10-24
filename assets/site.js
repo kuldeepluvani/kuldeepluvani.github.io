@@ -28,6 +28,34 @@ document.documentElement.classList.add('js');
   addEventListener('scroll', reveal, { passive: true });
   addEventListener('resize', reveal);
   reveal();
+  // captures, reader modes and find-in-page never scroll: show everything after a beat
+  setTimeout(() => { pending.forEach(el => el.classList.add('seen')); pending = []; }, 2500);
+
+  // Chapter pages: a chapter switcher in the HUD, and "On this page" for screens without the rail.
+  const CHAPTERS = [
+    ['00-prologue', 'Agent = Model + Harness'], ['01-loop', 'The Loop'], ['02-context', 'Context'],
+    ['03-tools', 'Tools & Environment'], ['04-guardrails', 'Guardrails & Trust'], ['05-evals', 'Evals & Evolution'],
+    ['06-operating', 'Operating the Harness'],
+  ];
+  const here = (location.pathname.match(/\/book\/(\d\d-[a-z]+)\.html$/) || [])[1];
+  const nav = document.querySelector('.hud nav');
+  if (here && nav) {
+    const i = CHAPTERS.findIndex(c => c[0] === here);
+    const menu = document.createElement('details');
+    menu.className = 'chmenu';
+    menu.innerHTML = `<summary aria-label="Chapters">${String(i).padStart(2, '0')} / ${String(CHAPTERS.length - 1).padStart(2, '0')} ▾</summary><ol>` +
+      CHAPTERS.map(([f, t], k) => `<li><a href="${f}.html"${k === i ? ' aria-current="page"' : ''}><span>${String(k).padStart(2, '0')}</span>${t}</a></li>`).join('') + '</ol>';
+    nav.prepend(menu);
+    document.addEventListener('click', e => { if (!menu.contains(e.target)) menu.open = false; });
+  }
+  const rail = document.querySelector('.rail ol'), hero = document.querySelector('.ch-hero');
+  if (rail && hero) {
+    const otp = document.createElement('details');
+    otp.className = 'otp';
+    otp.innerHTML = '<summary>On this page</summary>' + rail.outerHTML;
+    hero.append(otp);
+    otp.addEventListener('click', e => { if (e.target.closest('a')) otp.open = false; });
+  }
 
   // Chapter rail: highlight the h2 currently in view.
   const links = [...document.querySelectorAll('.rail a[href^="#"]')];

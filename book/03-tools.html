@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LDoeUxFiQd2aAYjORtmv5N4Nbv9zs0ilhJ715E0N8eI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-+PZLyBLTVD7lfSQcIt694KfHr4Jd9RHq2PNaIL2u3rE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tools for AI Agents: MCP, Sandboxes, Skills and Hooks · The Harness</title>
@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/site.css?v=8">
+<link rel="stylesheet" href="../assets/site.css?v=10">
 <style>
   /* ACI ablation board (aci-) and tool bill (bill-) */
   .aci-top { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -57,10 +57,9 @@
   .aci-term .t-l { display: flex; gap: 6px; align-items: center; height: 9px; }
   .aci-term .t-l i { display: block; height: 4px; border-radius: 2px; background: var(--rule-hi); }
   .aci-term .t-l b { flex: 0 0 26px; font-weight: 400; color: var(--text-faint); font-size: 9px; }
-  .aci-hint { margin: 12px 0 0; font-size: 12px; color: var(--text-faint); display: flex; gap: 8px; align-items: baseline; }
-  .aci-hint::before { content: "▸"; color: var(--cyan); }
-  .aci-hint kbd { font-size: 11px; padding: 1px 6px; }
-  .aci-hint .aci-auto { color: var(--cyan); animation: pulse 1.6s infinite; }
+  #inst .hint { margin: 12px 0 0; }
+  #inst .hint kbd { font-size: 11px; padding: 1px 6px; }
+  .aci-auto { margin: 8px 0 0; font-size: 12px; color: var(--cyan); animation: pulse 1.6s infinite; }
   /* tool bill */
   .bill { margin-top: 22px; border: 1px solid var(--rule); border-radius: 8px; padding: 16px; background: var(--panel-2); }
   .bill-h { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
@@ -71,6 +70,8 @@
   .bill-win { cursor: ew-resize; touch-action: none; }
   .bill-win .bill-blk { fill: var(--cyan); opacity: .85; transition: fill .3s; }
   .bill-win.bill-hot .bill-blk { fill: var(--amber); }
+  .bill-win .bill-names { fill: var(--violet); opacity: .9; }
+  .bill-mode { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
   .bill-cx { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--rule-hi); }
   .bill-cx .row { justify-content: space-between; }
   .bill-cx .bill-h { margin: 0; }
@@ -79,7 +80,12 @@
   .bill-cm .bar > span { transition: width .7s cubic-bezier(.2,.8,.2,1), background .7s; }
   .bill-cm .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
   .bill-note { margin-top: 8px; font-size: 12px; color: var(--green); min-height: 1.5em; }
-  @media (max-width: 640px) { .aci-split { grid-template-columns: 1fr; } .aci-hero { grid-template-columns: 1fr; gap: 4px; } .aci-hero .readout { grid-row: auto; } .aci-term { height: 200px; } .bill-cm { grid-template-columns: 64px minmax(0, 1fr) 58px; } }
+  @media (max-width: 640px) {
+    .aci-split { grid-template-columns: 1fr; } .aci-hero { grid-template-columns: 1fr; gap: 4px; } .aci-hero .readout { grid-row: auto; } .aci-term { height: 200px; } .bill-cm { grid-template-columns: 64px minmax(0, 1fr) 58px; }
+    #inst > header { flex-wrap: wrap; } #inst > header .tag { flex-basis: 100%; margin-left: 0; }
+    /* viewBox renders at ~0.71 scale on a 390px phone: 16 units ≈ 11.4px */
+    .aci-chart text, .aci-chart .aci-row-l { font-size: 16px; }
+  }
 </style>
 </head>
 <body>
@@ -103,7 +109,7 @@
 
   <div class="ch-body">
     <article class="prose">
-      <p class="lede">Give GPT-4 Turbo a plain shell and point it at SWE-bench Lite: it resolves 11.0% of the issues. Keep the model and the tasks fixed, replace the shell with a purpose-built interface, and it resolves 18.0%. That is seven points, a 64% relative gain, and not one weight changed.<sup class="cite"><a href="#r1">1</a></sup> This chapter is about that interface: the tools an agent holds, the machine it runs them on, and why both deserve as much engineering as the prompt.</p>
+      <p class="lede">In a 2024 ablation, give GPT-4 Turbo a plain shell and point it at SWE-bench Lite: it resolves 11.0% of the issues. Keep the model and the tasks fixed, replace the shell with a purpose-built interface, and it resolves 18.0%. That is seven points, a 64% relative gain, and not one weight changed.<sup class="cite"><a href="#r1">1</a></sup> This chapter is about that interface: the tools an agent holds, the machine it runs them on, and why both deserve as much engineering as the prompt.</p>
 
       <h2 id="s-1">The interface is a variable</h2>
       <p>The Princeton team behind SWE-agent named the thing they built an agent-computer interface, by deliberate analogy with the IDE. Humans got better at software when editors learned to jump to definitions and underline errors. Models are no different, except that their editor has to be designed for a reader that sees text, not pixels.<sup class="cite"><a href="#r1">1</a></sup></p>
@@ -112,7 +118,7 @@
       <h2 id="s-2">What a good tool looks like</h2>
       <p>Anthropic's guidance on writing tools lands in the same place from the other direction.<sup class="cite"><a href="#r2">2</a></sup> Consolidate: one <code>schedule_event</code> beats separate <code>list_users</code>, <code>list_events</code> and <code>create_event</code> calls, and <code>search_logs</code> beats <code>read_logs</code>. Namespace by service and resource, as in <code>asana_projects_search</code>, so similar tools stop colliding. Return high-signal context: a Slack tool answering in a concise format used 72 tokens where the detailed one used 206. Claude Code caps tool results at 25,000 tokens and nudges the agent toward narrower queries when it hits the cap. Prefer names to UUIDs, because agents handle natural-language identifiers far better than opaque ones.<sup class="cite"><a href="#r2">2</a></sup></p>
 
-      <blockquote class="pull">“Tools are a new kind of software reflecting a contract between deterministic systems and non-deterministic agents.”<cite>— Ken Aizawa, Anthropic (2025)</cite></blockquote>
+      <blockquote class="pull">“Tools are a new kind of software which reflects a contract between deterministic systems and non-deterministic agents.”<cite>— Ken Aizawa, Anthropic (2025)</cite></blockquote>
 
       <p>The cheapest lever is the description. Anthropic's platform docs call detailed descriptions “by far the most important factor in tool performance” and ask for at least three to four sentences per tool.<sup class="cite"><a href="#r3">3</a></sup> Compare:</p>
 <pre>// before
@@ -125,10 +131,10 @@ get_stock_price  "Returns the most recent trade price, in USD,
   current quote. It returns no history, volume or fundamentals;
   call a different tool for those. Fails on unlisted symbols."
   ticker: string   // uppercase symbol, e.g. "AAPL"</pre>
-      <p>The SWE-agent ablations put numbers on these principles.<sup class="cite"><a href="#r1">1</a></sup> A 100-line file viewer beat both a 30-line window and the whole file, which is pagination by another name. An editor that lints every change beat one that does not, which is a guardrail. Summarized search beat iterative search, which is high-signal returns. And iterative search scored below no search at all: a badly shaped tool costs more than a missing one. Try it.</p>
+      <p>The SWE-agent ablations put numbers on these principles. They are historical (2024, one model, one benchmark), but they remain the cleanest single-variable test of interface design, and the 2025 guidance above arrives at the same rules.<sup class="cite"><a href="#r1">1</a></sup> A 100-line file viewer beat both a 30-line window and the whole file, which is pagination by another name. An editor that lints every change beat one that does not, which is a guardrail. Summarized search beat iterative search, which is high-signal returns. And iterative search scored below no search at all: a badly shaped tool costs more than a missing one. Try it.</p>
 
       <section class="instrument" id="inst" aria-label="ACI ablation board">
-        <header>ACI ablation board<span class="tag">data: SWE-agent [1], GitHub MCP [4]</span></header>
+        <header>ACI ablation board<span class="tag">data · [1] [4] [14] · illustrative</span></header>
         <div class="body">
           <div class="aci-top">
             <span class="aci-unit">GPT-4 Turbo · SWE-bench Lite · % of issues resolved · dot = paper default</span>
@@ -151,10 +157,15 @@ get_stock_price  "Returns the most recent trade price, in USD,
             <div class="aci-knobs" id="aci-knobs" role="group" aria-label="Interface knobs"></div>
             <div class="aci-term" id="aci-term" aria-hidden="true"><div class="t-h">what the model sees · illustration</div><div id="aci-tb"></div></div>
           </div>
-          <p class="aci-hint" id="aci-hint"><span class="aci-auto" id="aci-auto">auto-demo · touch any control to take over ·</span><span>Try: set Viewer to <kbd>30 lines</kbd>, then flip <kbd>Shell only</kbd>. Same model, same tasks.</span></p>
+          <p class="hint" id="aci-hint">set Viewer to <kbd>30 lines</kbd>, then flip <kbd>Shell only</kbd>. Same model, same tasks.</p>
+          <p class="aci-auto" id="aci-auto">auto-demo · touch any control to take over</p>
 
           <div class="bill" aria-label="Tool bill">
-            <div class="bill-h">Tool bill · definitions loaded before the first user message</div>
+            <div class="bill-h" id="bill-hd">Tool bill · definitions loaded eagerly, before the first user message</div>
+            <div class="bill-mode" role="group" aria-label="Loading mode">
+              <button class="chip" id="bill-eager" type="button" aria-pressed="true">Eager</button>
+              <button class="chip" id="bill-defer" type="button" aria-pressed="false">Deferred / tool search</button>
+            </div>
             <label for="bill-n">Tool definitions: <b id="bill-nv">93</b></label>
             <input type="range" id="bill-n" min="0" max="100" value="93" step="1">
             <div class="bill-row">
@@ -165,10 +176,11 @@ get_stock_price  "Returns the most recent trade price, in USD,
             </div>
             <svg class="aci-chart bill-win" id="bill-win" viewBox="0 0 400 66" role="img" aria-label="A 200K context window filling with stacked tool-definition blocks. Drag across it to change the tool count.">
               <rect x="0" y="4" width="400" height="38" rx="3" fill="var(--void)" stroke="var(--rule)"/>
+              <rect id="bill-names" class="bill-names" x=".3" y="5" width="0" height="36" rx=".8"/>
               <g id="bill-blocks"></g>
               <line id="bill-mk" x1="0" x2="0" y1="0" y2="48" stroke="var(--amber)" stroke-dasharray="3 2"/>
-              <text id="bill-mkt" x="0" y="60" fill="var(--amber)">GitHub MCP: 93 tools ≈ 55k</text>
-              <text x="400" y="60" text-anchor="end">200K window</text>
+              <text id="bill-mkt" x="0" y="60" fill="var(--amber)">GitHub MCP, eager: 93 ≈ 55k</text>
+              <text x="396" y="28" text-anchor="end">200K window</text>
             </svg>
             <div class="bill-cx" aria-label="Code-execution pattern comparison">
               <div class="row"><span class="bill-h">Same workflow, two ways</span><button class="chip" id="bill-code" type="button" aria-pressed="false">Run it as code instead</button></div>
@@ -179,21 +191,22 @@ get_stock_price  "Returns the most recent trade price, in USD,
             </div>
           </div>
         </div>
-        <div class="caption">Every measured value is a single-knob ablation from the full SWE-agent configuration (18.0%) or the shell-only baseline (11.0%), GPT-4 Turbo on SWE-bench Lite <a href="#r1">[1]</a>. The paper does not test combinations: with two or more knobs changed the board says “not measured” and shows an additive estimate (18.0 plus the sum of single-knob deltas, floored at 0), which is a model, not a result. The terminal pane is an illustration of each interface's shape, not output from the paper. Tool bill: ≈591 tokens per tool, derived as 55,000 / 93 from the GitHub MCP server figure <a href="#r4">[4]</a>; real definitions vary widely in size. Code-execution figure from <a href="#r5">[5]</a>.</div>
+        <div class="caption">Every measured value is a single-knob ablation from the full SWE-agent configuration (18.0%) or the shell-only baseline (11.0%), GPT-4 Turbo on SWE-bench Lite <a href="#r1">[1]</a>. The paper does not test combinations: with two or more knobs changed the board says “not measured” and shows an additive estimate (18.0 plus the sum of single-knob deltas, floored at 0), which is a model, not a result. The terminal pane is an illustration of each interface's shape, not output from the paper. Tool bill, eager mode: ≈591 tokens per tool, derived as 55,000 / 93 from a vendor measurement of the GitHub MCP server (Speakeasy, March 2026) <a href="#r4">[4]</a>; real definitions vary widely in size. Deferred / tool search mode: only names load up front <a href="#r5">[5]</a>; the API docs say the model then loads typically 3 to 5 full definitions per request (the bill models 4) and that this usually cuts a ~55k-token multi-server setup by over 85% <a href="#r14">[14]</a>. The ≈20 tokens per deferred name is an illustrative assumption, not a sourced figure. Code-execution figure from <a href="#r6">[6]</a>.</div>
       </section>
 
       <div class="note"><b>Field note</b>Review tools like public APIs. Every tool gets a description of three or more sentences saying what it returns, when to use it and what it will not do. Default responses to a concise format, paginate anything that can grow, and if two tools are usually called back to back, merge them.</div>
 
       <h2 id="s-3">The tool-count cliff</h2>
-      <p>More tools do not mean a more capable agent. Anthropic lists bloated tool sets with ambiguous decision points among the most common failure modes and recommends a minimal viable set.<sup class="cite"><a href="#r6">6</a></sup> The measurements agree. With a large MCP tool pool dumped into the prompt, RAG-MCP found tool-selection accuracy of 13.62%; retrieving a shortlist first raised it to 43.13% and more than halved prompt tokens.<sup class="cite"><a href="#r7">7</a></sup></p>
-      <p>A production routing study with 110 agents and 584 tools saw F1 on under-specified requests fall 16 to 23 points as the catalog grew from 10 agents to 110. Even with perfect retrieval the ceiling dropped about 10 points, a confusion gap that no shortlist can close; embedding shortlists won back 10 to 11 points.<sup class="cite"><a href="#r8">8</a></sup> On edge devices, pruning the tool list improved function calling and cut execution time by up to 70% and power by up to 40%.<sup class="cite"><a href="#r9">9</a></sup></p>
-      <p>Manus adds a constraint from the serving side: do not add or remove tools mid-task. Definitions sit near the front of the context, so changing them invalidates the KV cache and leaves earlier calls pointing at tools that no longer exist. Their fix is to keep the list stable and mask token logits instead. Mask, don't remove.<sup class="cite"><a href="#r10">10</a></sup></p>
+      <p>More tools do not mean a more capable agent. Anthropic lists bloated tool sets with ambiguous decision points among the most common failure modes and recommends a minimal viable set.<sup class="cite"><a href="#r7">7</a></sup> The measurements agree. With a large MCP tool pool dumped into the prompt, RAG-MCP found tool-selection accuracy of 13.62%; retrieving a shortlist first raised it to 43.13% and more than halved prompt tokens.<sup class="cite"><a href="#r8">8</a></sup></p>
+      <p>A production routing study with 110 agents and 584 tools saw F1 on under-specified requests fall 16 to 23 points as the catalog grew from 10 agents to 110. Even with perfect retrieval the ceiling dropped about 10 points, a confusion gap that no shortlist can close; embedding shortlists won back 10 to 11 points.<sup class="cite"><a href="#r9">9</a></sup> On edge devices, pruning the tool list improved function calling and cut execution time by up to 70% and power by up to 40%.<sup class="cite"><a href="#r10">10</a></sup></p>
+      <p>Manus adds a constraint from the serving side: do not add or remove tools mid-task. Definitions sit near the front of the context, so changing them invalidates the KV cache and leaves earlier calls pointing at tools that no longer exist. Their fix is to keep the list stable and mask token logits instead, helped by consistent name prefixes such as <code>browser_</code> and <code>shell_</code> so a whole group can be allowed or masked at once. Mask, don't remove.<sup class="cite"><a href="#r11">11</a></sup> Most hosted APIs give you no logit access. There the same idea becomes a stable tool list plus a per-turn restriction: <code>tool_choice</code> to force or forbid calls, or an allowed-tools list enforced by the harness. On the Claude API, changing <code>tool_choice</code> invalidates cached message blocks, but tool definitions and the system prompt stay cached.<sup class="cite"><a href="#r12">12</a></sup></p>
 
       <h2 id="s-4">MCP: the standard and its bill</h2>
-      <p>The Model Context Protocol is JSON-RPC 2.0 over stateful connections with capability negotiation. Servers offer tools, resources and prompts; clients offer sampling, roots and elicitation. The spec takes the Language Server Protocol as its model, and the payoff is the same: write an integration once and every compliant client can use it.<sup class="cite"><a href="#r11">11</a></sup></p>
-      <p>The bill arrives before the first question. The GitHub MCP server's 93 tools take roughly 55,000 tokens of definitions, loaded whether or not the task touches GitHub.<sup class="cite"><a href="#r4">4</a></sup> That is over a quarter of a 200K window spent on a menu. Drag the slider above to see how fast a few servers add up.</p>
-      <p>Then there is the attack surface. The spec says it plainly: “Tools represent arbitrary code execution and must be treated with appropriate caution,” and descriptions from untrusted servers are untrusted input.<sup class="cite"><a href="#r11">11</a></sup> Invariant Labs showed why. Hidden instructions in a tool description got Cursor to read <code>~/.cursor/mcp.json</code> and <code>~/.ssh/id_rsa</code> and leak them. A server can change its descriptions after you approve it, and a malicious tool can shadow the behavior of a trusted one on the same client.<sup class="cite"><a href="#r12">12</a></sup></p>
-      <p>Two teams converged on the same answer. Anthropic proposed presenting MCP servers to the agent as a filesystem of code modules: the agent reads only the files it needs and writes code that calls them, so intermediate results stay in the execution environment and sensitive fields can be tokenized before the model sees them. One workflow dropped from 150,000 tokens to 2,000.<sup class="cite"><a href="#r5">5</a></sup> Cloudflare turned MCP schemas into a TypeScript API and ran the generated code in V8 isolates that start in milliseconds, use a few megabytes, and can reach nothing but the bound servers.<sup class="cite"><a href="#r13">13</a></sup></p>
+      <p>The Model Context Protocol uses JSON-RPC 2.0 messages. The current revision (schema 2026-07-28) makes every request stateless and self-contained, with capabilities negotiated per request. Servers offer tools, resources and prompts; clients may offer elicitation, a server-initiated request for more information from the user. Long-running asynchronous tasks live in opt-in extensions. Earlier revisions, such as 2025-06-18, ran over stateful connections and had clients also offer sampling and roots; much published MCP material still describes that design. The spec takes inspiration from the Language Server Protocol, and the payoff is the same: write an integration once and every compliant client can use it.<sup class="cite"><a href="#r13">13</a></sup></p>
+      <p>The bill can arrive before the first question. In a harness that loads definitions eagerly, the GitHub MCP server's 93 tools take roughly 55,000 tokens before the task has touched GitHub, by one vendor's measurement (Speakeasy, March 2026).<sup class="cite"><a href="#r4">4</a></sup> That is over a quarter of a 200K window spent on a menu. Drag the slider above to see how fast a few servers add up.</p>
+      <p>The current fix is to stop loading the menu. With deferred loading, the harness sends only tool names (or a search tool) up front and pulls a full definition in when the model asks for it. Claude Code does this by default on current models: only tool names and server instructions load at session start, and <code>ENABLE_TOOL_SEARCH</code> sets the behavior (<code>false</code> loads everything up front; <code>auto</code> defers only once definitions pass 10% of the window).<sup class="cite"><a href="#r5">5</a></sup> The Claude API exposes the same mechanism as a tool search tool: mark tools <code>defer_loading: true</code> and the model searches the catalog and loads typically 3 to 5 tools per request. Anthropic's docs say this usually cuts a ~55k-token multi-server setup by over 85%, that selection accuracy degrades past 30 to 50 loaded tools, and that because deferred tools stay out of the prompt prefix, caching survives.<sup class="cite"><a href="#r14">14</a></sup> In your own loop the generic form is retrieval over the tool catalog, the RAG-MCP result above, with the shortlist appended after the cached prefix rather than spliced into it. The cliff does not vanish; descriptions still have to be good enough to be found.</p>
+      <p>Then there is the attack surface. The spec says it plainly: “Tools represent arbitrary code execution and must be treated with appropriate caution,” and descriptions from untrusted servers are untrusted input.<sup class="cite"><a href="#r13">13</a></sup> Invariant Labs showed why. Hidden instructions in a tool description got Cursor to read <code>~/.cursor/mcp.json</code> and <code>~/.ssh/id_rsa</code> and leak them. A server can change its descriptions after you approve it, and a malicious tool can shadow the behavior of a trusted one on the same client.<sup class="cite"><a href="#r15">15</a></sup></p>
+      <p>Two teams converged on the same answer. Anthropic proposed presenting MCP servers to the agent as a filesystem of code modules: the agent reads only the files it needs and writes code that calls them, so intermediate results stay in the execution environment and sensitive fields can be tokenized before the model sees them. One workflow dropped from 150,000 tokens to 2,000.<sup class="cite"><a href="#r6">6</a></sup> Cloudflare turned MCP schemas into a TypeScript API and ran the generated code in V8 isolates that start in milliseconds, use a few megabytes, and can reach nothing but the bound servers.<sup class="cite"><a href="#r16">16</a></sup></p>
 
       <blockquote class="pull">“LLMs are better at writing code to call MCP, than at calling MCP directly.”<cite>— Kenton Varda &amp; Sunil Pai, Cloudflare (2025)</cite></blockquote>
 
@@ -203,53 +216,78 @@ get_stock_price  "Returns the most recent trade price, in USD,
         <table class="tbl">
           <thead><tr><th>Primitive</th><th>Wall</th><th>Trade-off</th></tr></thead>
           <tbody>
-            <tr><td>Container</td><td>Namespaces on a shared host kernel</td><td>Cheapest; weakest boundary of the set<sup class="cite"><a href="#r14">14</a></sup></td></tr>
-            <tr><td>gVisor</td><td>Userspace kernel (Sentry) intercepts syscalls; Gofer mediates files</td><td>Lower app compatibility, higher per-syscall overhead<sup class="cite"><a href="#r14">14</a></sup></td></tr>
-            <tr><td>Firecracker microVM</td><td>KVM, minimal device model, Jailer drops privileges</td><td>Runs Lambda and Fargate at trillions of requests a month<sup class="cite"><a href="#r15">15</a></sup></td></tr>
-            <tr><td>Hosted microVM</td><td>E2B: Firecracker VM per session</td><td>1h or 24h max runtime; 20 or 100 concurrent, by plan<sup class="cite"><a href="#r16">16</a></sup></td></tr>
-            <tr><td>Hosted sandbox</td><td>Daytona: dedicated kernel, filesystem, network</td><td>Claims under 90 ms to execution<sup class="cite"><a href="#r17">17</a></sup></td></tr>
-            <tr><td>V8 isolate</td><td>No general internet, only bindings</td><td>Milliseconds to start; JS/TS only<sup class="cite"><a href="#r13">13</a></sup></td></tr>
+            <tr><td>Container</td><td>Namespaces on a shared host kernel</td><td>Cheapest; weakest boundary of the set<sup class="cite"><a href="#r17">17</a></sup></td></tr>
+            <tr><td>gVisor</td><td>Userspace kernel (Sentry) intercepts syscalls; Gofer mediates files</td><td>Lower app compatibility, higher per-syscall overhead<sup class="cite"><a href="#r17">17</a></sup></td></tr>
+            <tr><td>Firecracker microVM</td><td>KVM, minimal device model, Jailer drops privileges</td><td>Runs Lambda and Fargate at trillions of requests a month<sup class="cite"><a href="#r18">18</a></sup></td></tr>
+            <tr><td>Hosted microVM</td><td>E2B: Firecracker VM per session</td><td>1h or 24h max runtime; 20 or 100 concurrent, by plan<sup class="cite"><a href="#r19">19</a></sup></td></tr>
+            <tr><td>Hosted sandbox</td><td>Daytona: dedicated kernel, filesystem, network</td><td>Claims under 90 ms to execution<sup class="cite"><a href="#r20">20</a></sup></td></tr>
+            <tr><td>V8 isolate</td><td>No general internet, only bindings</td><td>Milliseconds to start; JS/TS only<sup class="cite"><a href="#r16">16</a></sup></td></tr>
           </tbody>
         </table>
       </div>
-      <p>The sandbox also changes what you can permit. Claude Code pairs permission allowlists with OS-level filesystem and network restrictions so the agent can work with fewer interruptions inside a known boundary.<sup class="cite"><a href="#r18">18</a></sup> The wall is what makes autonomy affordable.</p>
+      <p>None of these columns is the wall that matters most. That one is the network: default-deny egress, with secrets injected by the dispatcher and never mounted in the VM. Code that cannot reach an attacker and never holds a key cannot leak one. Cloudflare's isolates show the shape: <code>fetch()</code> and <code>connect()</code> throw, and the bindings hold the credentials, so “the AI cannot possibly write code that leaks any keys.”<sup class="cite"><a href="#r16">16</a></sup> Chapter 4 builds on this.</p>
+      <p>The sandbox also changes what you can permit. Claude Code pairs permission allowlists with OS-level filesystem and network restrictions so the agent can work with fewer interruptions inside a known boundary.<sup class="cite"><a href="#r21">21</a></sup> In your own loop the equivalent is a dispatcher that runs every tool inside the sandbox and widens permissions only for what the sandbox already contains. The wall is what makes autonomy affordable.</p>
 
       <h2 id="s-6">Once there's a disk, use it</h2>
-      <p>A sandbox comes with a filesystem, and a filesystem is memory the context window cannot match. Anthropic recommends holding lightweight identifiers such as paths, stored queries and links, then loading the content just in time, because recall degrades as the window fills.<sup class="cite"><a href="#r6">6</a></sup> Manus treats the file system as unlimited, persistent, structured memory and compresses only restorably: drop the page but keep the URL, drop the document but keep the path. The economics push hard in that direction. Their input-to-output ratio runs about 100:1, and cached input costs $0.30 per million tokens against $3 uncached.<sup class="cite"><a href="#r10">10</a></sup></p>
-      <p>Skills apply the same idea to instructions. A skill is a folder with a <code>SKILL.md</code>: a YAML name and description, a body, and optional files. Only the name and description sit in the system prompt at startup; the body loads when the task matches; linked files load only when needed. Anthropic compares writing one to assembling an onboarding guide for a new hire.<sup class="cite"><a href="#r19">19</a></sup> The always-loaded file, <code>CLAUDE.md</code>, should hold only what applies to every session. The docs are blunt about the alternative: “Bloated CLAUDE.md files cause Claude to ignore your actual instructions!”<sup class="cite"><a href="#r18">18</a></sup></p>
+      <p>A sandbox comes with a filesystem, and a filesystem is memory the context window cannot match. Anthropic recommends holding lightweight identifiers such as paths, stored queries and links, then loading the content just in time, because recall degrades as the window fills.<sup class="cite"><a href="#r7">7</a></sup> Manus treats the file system as unlimited, persistent, structured memory and compresses only restorably: drop the page but keep the URL, drop the document but keep the path. The economics push hard in that direction. Their input-to-output ratio runs about 100:1, and cached input costs $0.30 per million tokens against $3 uncached.<sup class="cite"><a href="#r11">11</a></sup></p>
+      <p>Skills apply the same idea to instructions. A skill is a folder with a <code>SKILL.md</code>: a YAML name and description, a body, and optional files. Only the name and description sit in the system prompt at startup; the body loads when the task matches; linked files load only when needed. Anthropic compares writing one to assembling an onboarding guide for a new hire.<sup class="cite"><a href="#r22">22</a></sup> The always-loaded file, <code>CLAUDE.md</code>, should hold only what applies to every session. The docs are blunt about the alternative: “Bloated CLAUDE.md files cause Claude to ignore your actual instructions!”<sup class="cite"><a href="#r21">21</a></sup></p>
 
       <h2 id="s-7">Deterministic edges, universal tool</h2>
-      <p>Everything so far shapes what the model is likely to do. Hooks decide what must happen. In Claude Code they are shell commands, HTTP endpoints, MCP tools, prompts or subagents that fire on lifecycle events such as <code>PreToolUse</code>, <code>PostToolUse</code> and <code>Stop</code>. Exit 0 proceeds. Exit 2 blocks: a <code>PreToolUse</code> hook stops the call, a <code>Stop</code> hook keeps the agent working, and a <code>PostToolUse</code> hook can only report, because the tool already ran. JSON output can allow, deny or ask, inject context, or rewrite a tool's result.<sup class="cite"><a href="#r20">20</a></sup> The docs draw the line cleanly: instructions in <code>CLAUDE.md</code> are advisory, while hooks “are deterministic and guarantee the action happens.”<sup class="cite"><a href="#r18">18</a></sup></p>
+      <p>Everything so far shapes what the model is likely to do. Hooks decide what must happen. In Claude Code they are shell commands, HTTP endpoints, MCP tools, prompts or subagents that fire on lifecycle events such as <code>PreToolUse</code>, <code>PostToolUse</code> and <code>Stop</code>. Exit 0 proceeds. Exit 2 blocks: a <code>PreToolUse</code> hook stops the call, a <code>Stop</code> hook keeps the agent working, and a <code>PostToolUse</code> hook can only report, because the tool already ran. JSON output can allow, deny or ask, inject context, or rewrite a tool's input before it runs or its result after.<sup class="cite"><a href="#r23">23</a></sup> In your own loop the generic form is a pre-dispatch interceptor: plain code that sees every tool call before it runs and can refuse it. The docs draw the line cleanly: instructions in <code>CLAUDE.md</code> are advisory, while hooks “are deterministic and guarantee the action happens.”<sup class="cite"><a href="#r21">21</a></sup></p>
 
       <div class="note"><b>Field note</b>If a rule must hold every time with zero exceptions (formatting, blocking writes to secrets, running the tests before stopping), it belongs in a hook, not a prompt. Use a <code>Stop</code> hook that exits 2 on a failing check as your quality gate.</div>
 
-      <p>The most general tool remains the shell. Claude Code's docs call CLI tools the most context-efficient way to reach external services and suggest teaching an unfamiliar one with <code>--help</code>. The harness composes the same way: <code>cat error.log | claude -p "explain this error"</code> makes the agent one more filter in a pipeline.<sup class="cite"><a href="#r18">18</a></sup> A CLI call is also reproducible by a human, who can paste the exact command and get the same result.<sup class="cite"><a href="#r4">4</a></sup></p>
-      <p>When no CLI or API exists, computer use is the fallback. Claude 3.5 Sonnet scored 14.9% on OSWorld from screenshots alone and 22.0% with more steps, against 7.8% for the next-best system, and Anthropic called the ability imperfect.<sup class="cite"><a href="#r21">21</a></sup> Screenshots earn their keep as a checker even when text tools do the work: compare the rendered result against the target.<sup class="cite"><a href="#r18">18</a></sup></p>
+      <p><b>Copy this:</b> a minimal <code>PreToolUse</code> hook that refuses edits to <code>.env</code> files and anything under <code>secrets/</code>, checked against the current hooks reference.<sup class="cite"><a href="#r23">23</a></sup></p>
+<pre><code>// .claude/settings.json
+{ "hooks": { "PreToolUse": [ { "matcher": "Edit|Write",
+  "hooks": [ { "type": "command",
+    "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/no-secrets.sh" } ] } ] } }
+
+#!/bin/bash
+# .claude/hooks/no-secrets.sh  (chmod +x; needs jq)
+f=$(jq -r '.tool_input.file_path // empty')
+case "$f" in
+  *.env|*.env.*|*/secrets/*|secrets/*)
+    jq -n --arg f "$f" '{hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: ("Protected path: " + $f + ". Ask the user.")}}' ;;
+  *) exit 0 ;;  # no decision: normal permission flow
+esac</code></pre>
+      <p>Silent exit 0 defers to the normal permission flow; exit 2 would also block, with stderr as the reason. In another harness or your own loop, the same ten lines are a check in the tool dispatcher that runs before the write and returns the refusal to the model as the tool result.</p>
+
+      <div class="note case"><b>From my harness · ClaudeGotchi</b>I built a small wellness plugin, ClaudeGotchi, to test how far this goes. All of its logic runs in bash hooks with near-zero token cost, and its state lives in SQLite behind a status-line creature. The model hears about it only when I need to stop. That is the useful pattern: anything deterministic belongs in a hook, outside the token budget, and should reach the model only when the model has to act on it.</div>
+
+      <p>The most general tool remains the shell. Claude Code's docs call CLI tools the most context-efficient way to reach external services and suggest teaching an unfamiliar one with <code>--help</code>. The harness composes the same way: <code>cat error.log | claude -p "explain this error"</code> makes the agent one more filter in a pipeline.<sup class="cite"><a href="#r21">21</a></sup> A CLI call is also reproducible by a human, who can paste the exact command and get the same result.<sup class="cite"><a href="#r4">4</a></sup></p>
+      <p>When no CLI or API exists, computer use is the fallback. At launch in October 2024, a historical baseline, Claude 3.5 Sonnet scored 14.9% on OSWorld from screenshots alone and 22.0% with more steps, against 7.8% for the next-best system, and Anthropic called the ability imperfect.<sup class="cite"><a href="#r24">24</a></sup> Screenshots earn their keep as a checker even when text tools do the work: compare the rendered result against the target.<sup class="cite"><a href="#r21">21</a></sup></p>
       <p>Sandboxes, permission lists and hooks are where trust stops being a hope and becomes a mechanism. Chapter 4 takes that seriously: what to block, what to ask about, and how to let an agent act without letting it act on everything.</p>
 
-      <details class="refbox" id="s-refs"><summary>References (21)</summary>
+      <details class="refbox" id="s-refs"><summary>References</summary>
       <ol class="refs">
         <li id="r1">Yang, Jimenez, Wettig, Lieret, Yao, Narasimhan, Press (Princeton), “SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering,” arXiv 2405.15793, May 2024. <a href="https://arxiv.org/abs/2405.15793">arxiv.org/abs/2405.15793</a></li>
         <li id="r2">Ken Aizawa, “Writing effective tools for agents — with agents,” Anthropic Engineering, September 2025. <a href="https://www.anthropic.com/engineering/writing-tools-for-agents">anthropic.com/engineering/writing-tools-for-agents</a></li>
         <li id="r3">Anthropic, “Define tools,” Claude Platform Docs. <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools">platform.claude.com/…/define-tools</a></li>
-        <li id="r4">Speakeasy, “MCP vs CLI: a framework for choosing the right tool interface,” Speakeasy, March 2026. <a href="https://www.speakeasy.com/blog/mcp-vs-cli">speakeasy.com/blog/mcp-vs-cli</a></li>
-        <li id="r5">Anthropic, “Code execution with MCP: building more efficient agents,” Anthropic Engineering, November 2025. <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">anthropic.com/engineering/code-execution-with-mcp</a></li>
-        <li id="r6">Anthropic, “Effective context engineering for AI agents,” Anthropic Engineering, September 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
-        <li id="r7">Tiantian Gan, Qiyao Sun, “RAG-MCP: Mitigating Prompt Bloat in LLM Tool Selection via RAG,” arXiv 2505.03275, May 2025. <a href="https://arxiv.org/abs/2505.03275">arxiv.org/abs/2505.03275</a></li>
-        <li id="r8">Kellen Gillespie, Robyn Perry, “Scaling Enterprise Agent Routing: Degradation, Diagnosis, and Recovery,” arXiv 2606.17519, June 2026. <a href="https://arxiv.org/abs/2606.17519">arxiv.org/abs/2606.17519</a></li>
-        <li id="r9">Paramanayakam, Karatzas, Anagnostopoulos, Stamoulis, “Less is More: Optimizing Function Calling for LLM Execution on Edge Devices,” arXiv 2411.15399, November 2024. <a href="https://arxiv.org/abs/2411.15399">arxiv.org/abs/2411.15399</a></li>
-        <li id="r10">Yichao “Peak” Ji, “Context Engineering for AI Agents: Lessons from Building Manus,” Manus, July 2025. <a href="https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus">manus.im/blog/Context-Engineering-…-Manus</a></li>
-        <li id="r11">Model Context Protocol, “Specification (2025-06-18),” modelcontextprotocol.io, June 2025. <a href="https://modelcontextprotocol.io/specification/2025-06-18">modelcontextprotocol.io/specification/2025-06-18</a></li>
-        <li id="r12">Invariant Labs, “MCP Security Notification: Tool Poisoning Attacks,” Invariant Labs, April 2025. <a href="https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks">invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks</a></li>
-        <li id="r13">Kenton Varda, Sunil Pai, “Code Mode: the better way to use MCP,” Cloudflare Blog, September 2025. <a href="https://blog.cloudflare.com/code-mode/">blog.cloudflare.com/code-mode</a></li>
-        <li id="r14">Google, “gVisor documentation,” gvisor.dev. <a href="https://gvisor.dev/docs/">gvisor.dev/docs</a></li>
-        <li id="r15">AWS, “Firecracker,” GitHub; Agache, Brooker, et al., NSDI ’20. <a href="https://github.com/firecracker-microvm/firecracker">github.com/firecracker-microvm/firecracker</a> · <a href="https://www.usenix.org/conference/nsdi20/presentation/agache">usenix.org/…/agache</a></li>
-        <li id="r16">E2B, “E2B documentation,” e2b.dev. <a href="https://e2b.dev/">e2b.dev</a> · <a href="https://docs.e2b.dev/">docs.e2b.dev</a></li>
-        <li id="r17">Daytona, “Daytona documentation,” daytona.io. <a href="https://www.daytona.io/docs/">daytona.io/docs</a></li>
-        <li id="r18">Anthropic, “Claude Code: Best practices,” Claude Code Docs. <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
-        <li id="r19">Anthropic, “Equipping agents for the real world with Agent Skills,” Anthropic Engineering, October 2025. <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">anthropic.com/engineering/equipping-agents-…-agent-skills</a></li>
-        <li id="r20">Anthropic, “Claude Code: Hooks reference,” Claude Code Docs. <a href="https://code.claude.com/docs/en/hooks">code.claude.com/docs/en/hooks</a></li>
-        <li id="r21">Anthropic, “Introducing computer use, a new Claude 3.5 Sonnet,” Anthropic, October 2024. <a href="https://www.anthropic.com/news/3-5-models-and-computer-use">anthropic.com/news/3-5-models-and-computer-use</a></li>
+        <li id="r4">Speakeasy, “MCP vs CLI: a framework for choosing the right tool interface,” Speakeasy blog (vendor measurement, secondary), March 2026. <a href="https://www.speakeasy.com/blog/mcp-vs-cli">speakeasy.com/blog/mcp-vs-cli</a></li>
+        <li id="r5">Anthropic, “Connect Claude Code to tools via MCP: Scale with MCP tool search,” Claude Code Docs, accessed October 2026. <a href="https://code.claude.com/docs/en/mcp">code.claude.com/docs/en/mcp</a></li>
+        <li id="r6">Anthropic, “Code execution with MCP: building more efficient agents,” Anthropic Engineering, November 2025. <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">anthropic.com/engineering/code-execution-with-mcp</a></li>
+        <li id="r7">Anthropic, “Effective context engineering for AI agents,” Anthropic Engineering, September 2025. <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a></li>
+        <li id="r8">Tiantian Gan, Qiyao Sun, “RAG-MCP: Mitigating Prompt Bloat in LLM Tool Selection via RAG,” arXiv 2505.03275, May 2025. <a href="https://arxiv.org/abs/2505.03275">arxiv.org/abs/2505.03275</a></li>
+        <li id="r9">Kellen Gillespie, Robyn Perry, “Scaling Enterprise Agent Routing: Degradation, Diagnosis, and Recovery,” arXiv 2606.17519, June 2026. <a href="https://arxiv.org/abs/2606.17519">arxiv.org/abs/2606.17519</a></li>
+        <li id="r10">Paramanayakam, Karatzas, Anagnostopoulos, Stamoulis, “Less is More: Optimizing Function Calling for LLM Execution on Edge Devices,” arXiv 2411.15399, November 2024. <a href="https://arxiv.org/abs/2411.15399">arxiv.org/abs/2411.15399</a></li>
+        <li id="r11">Yichao “Peak” Ji, “Context Engineering for AI Agents: Lessons from Building Manus,” Manus, July 2025. <a href="https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus">manus.im/blog/Context-Engineering-…-Manus</a></li>
+        <li id="r12">Anthropic, “Implement tool use: forcing tool use (tool_choice),” Claude Platform Docs, accessed October 2026. <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/implement-tool-use">platform.claude.com/…/implement-tool-use</a></li>
+        <li id="r13">Model Context Protocol, “Specification,” revision 2026-07-28 (schema 2026-07-28), modelcontextprotocol.io; earlier revision 2025-06-18 for the historical design. <a href="https://modelcontextprotocol.io/specification/2026-07-28">modelcontextprotocol.io/specification/2026-07-28</a> · <a href="https://modelcontextprotocol.io/specification/2025-06-18">…/2025-06-18</a></li>
+        <li id="r14">Anthropic, “Tool search tool,” Claude Platform Docs, accessed October 2026. <a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool">platform.claude.com/…/tool-search-tool</a></li>
+        <li id="r15">Invariant Labs, “MCP Security Notification: Tool Poisoning Attacks,” Invariant Labs, April 2025. <a href="https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks">invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks</a></li>
+        <li id="r16">Kenton Varda, Sunil Pai, “Code Mode: the better way to use MCP,” Cloudflare Blog, September 2025. <a href="https://blog.cloudflare.com/code-mode/">blog.cloudflare.com/code-mode</a></li>
+        <li id="r17">Google, “gVisor documentation,” gvisor.dev. <a href="https://gvisor.dev/docs/">gvisor.dev/docs</a></li>
+        <li id="r18">AWS, “Firecracker,” GitHub; Agache, Brooker, et al., NSDI ’20. <a href="https://github.com/firecracker-microvm/firecracker">github.com/firecracker-microvm/firecracker</a> · <a href="https://www.usenix.org/conference/nsdi20/presentation/agache">usenix.org/…/agache</a></li>
+        <li id="r19">E2B, “E2B documentation,” e2b.dev. <a href="https://e2b.dev/">e2b.dev</a> · <a href="https://docs.e2b.dev/">docs.e2b.dev</a></li>
+        <li id="r20">Daytona, “Daytona documentation,” daytona.io. <a href="https://www.daytona.io/docs/">daytona.io/docs</a></li>
+        <li id="r21">Anthropic, “Claude Code: Best practices,” Claude Code Docs. <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
+        <li id="r22">Anthropic, “Equipping agents for the real world with Agent Skills,” Anthropic Engineering, October 2025. <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">anthropic.com/engineering/equipping-agents-…-agent-skills</a></li>
+        <li id="r23">Anthropic, “Claude Code: Hooks reference,” Claude Code Docs. <a href="https://code.claude.com/docs/en/hooks">code.claude.com/docs/en/hooks</a></li>
+        <li id="r24">Anthropic, “Introducing computer use, a new Claude 3.5 Sonnet,” Anthropic, October 2024. <a href="https://www.anthropic.com/news/3-5-models-and-computer-use">anthropic.com/news/3-5-models-and-computer-use</a></li>
       </ol>
       </details>
 
@@ -276,7 +314,7 @@ get_stock_price  "Returns the most recent trade price, in USD,
 
 <footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
 
-<script src="../assets/site.js?v=8"></script>
+<script src="../assets/site.js?v=10"></script>
 <script>
 (() => {
   const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -339,7 +377,7 @@ get_stock_price  "Returns the most recent trade price, in USD,
   let touched = RM, seqI = 0, timer = 0;
   function attract() {
     if (touched) return;
-    if (onScreen) { Object.assign(state, base, { shell: false }, SEQ[seqI++ % SEQ.length]); render(); }
+    if (onScreen && !document.hidden) { Object.assign(state, base, { shell: false }, SEQ[seqI++ % SEQ.length]); render(); }
     timer = setTimeout(attract, 1700);
   }
   function touch() {
@@ -351,6 +389,14 @@ get_stock_price  "Returns the most recent trade price, in USD,
   }
   ['pointerdown', 'keydown', 'focusin'].forEach(ev => inst.addEventListener(ev, touch, true));
   if (RM) H.$('#aci-auto').remove();
+  // hint: payoff once the reader has seen the 30-line viewer and then flipped to shell only
+  const hint = H.$('#aci-hint');
+  let saw30 = false;
+  function hintStep() {
+    if (!touched || hint.classList.contains('done')) return;
+    if (state.viewer === '30' && !state.shell) saw30 = true;
+    if (saw30 && state.shell) { hint.classList.add('done'); hint.textContent = 'Same model, same tasks: 18.0 → 14.3 → 11.0. The interface alone moved 7 points.'; }
+  }
 
   // build the segmented switches
   const knobsEl = H.$('#aci-knobs');
@@ -383,9 +429,9 @@ get_stock_price  "Returns the most recent trade price, in USD,
     grid.appendChild(mk('text', { x: X(t), y: 130, 'text-anchor': t === 20 ? 'end' : t === 0 ? 'start' : 'middle' }, t + '%'));
   });
   grid.appendChild(mk('line', { x1: X(SHELL), x2: X(SHELL), y1: 14, y2: 118, stroke: 'var(--violet)', 'stroke-dasharray': '3 3', opacity: .8 }));
-  grid.appendChild(mk('text', { x: X(SHELL), y: 10, fill: 'var(--violet)', 'text-anchor': 'middle' }, 'shell only 11.0'));
+  grid.appendChild(mk('text', { x: X(SHELL) - 3, y: 10, fill: 'var(--violet)', 'text-anchor': 'end' }, 'shell 11.0'));
   grid.appendChild(mk('line', { x1: X(FULL), x2: X(FULL), y1: 14, y2: 118, stroke: 'var(--green)', 'stroke-dasharray': '3 3', opacity: .8 }));
-  grid.appendChild(mk('text', { x: X(FULL), y: 10, fill: 'var(--green)', 'text-anchor': 'middle' }, 'full ACI 18.0'));
+  grid.appendChild(mk('text', { x: X(FULL) - 3, y: 10, fill: 'var(--green)', 'text-anchor': 'end' }, 'ACI 18.0'));
   const colorOf = v => v >= FULL ? 'var(--green)' : v > SHELL ? 'var(--cyan)' : 'var(--red)';
   KNOBS.forEach(([k, label, opts], i) => {
     rows.appendChild(mk('text', { x: 0, y: RY(i) + 3.5, class: 'aci-row-l' }, label.toUpperCase()));
@@ -451,6 +497,7 @@ get_stock_price  "Returns the most recent trade price, in USD,
     else if (c.measured) status.innerHTML = '<b>measured</b> · ' + (c.diff.length ? 'single-knob ablation' : 'full SWE-agent config') + ' · ' + pp;
     else status.innerHTML = '<b class="aci-warn">' + c.diff.length + ' knobs changed</b> · additive estimate · model, not a paper result · ' + pp;
     term(state);
+    hintStep();
     tween('aci', shown, c.v, 500, v => {
       shown = v;
       readV.textContent = prefix + H.pct(v);
@@ -462,11 +509,18 @@ get_stock_price  "Returns the most recent trade price, in USD,
 
   // Tool bill: tokens per definition derived from GitHub MCP, 55,000 tokens / 93 tools [4]
   const TOK = 55000 / 93, WIN = 200000;
+  // deferred / tool search [14]: names only up front, then typically 3–5 full definitions per request (modelled as 4).
+  // NAME_TOK is an illustrative assumption (no source gives a per-name cost).
+  const NAME_TOK = 20, LOADED = 4;
+  const deferred = k => Math.round(k * NAME_TOK + Math.min(k, LOADED) * TOK);
   H.check(Math.round(93 * TOK) === 55000, 'bill anchor: 93 tools = 55,000 tokens');
   H.check(Math.round(TOK) === 591, 'tokens per tool ~591');
   H.check(r1((150000 - 2000) / 150000 * 100) === 98.7, 'code-execution saving 98.7%');
   H.check(r1(55000 / WIN * 100) === 27.5, 'GitHub MCP = 27.5% of 200K');
-  const n = H.$('#bill-n'), bwin = H.$('#bill-win'), blocks = H.$('#bill-blocks');
+  H.check(deferred(93) <= 0.15 * 55000, 'deferred GitHub MCP saves >85% [14]');
+  H.check(deferred(2) === Math.round(2 * NAME_TOK + 2 * TOK), 'deferred never loads more definitions than exist');
+  H.check(deferred(0) === 0 && deferred(100) === Math.round(100 * NAME_TOK + LOADED * TOK), 'deferred bounds');
+  const n = H.$('#bill-n'), bwin = H.$('#bill-win'), blocks = H.$('#bill-blocks'), names = H.$('#bill-names');
   const mkLine = H.$('#bill-mk'), mkText = H.$('#bill-mkt');
   mkLine.setAttribute('x1', 55000 / WIN * 400); mkLine.setAttribute('x2', 55000 / WIN * 400);
   mkText.setAttribute('x', 55000 / WIN * 400 + 4);
@@ -474,8 +528,15 @@ get_stock_price  "Returns the most recent trade price, in USD,
   const BW = 400 * TOK / WIN, CW = 2 * BW;
   H.check(Math.abs(100 * BW - 400 * 100 * TOK / WIN) < 1e-9, '100 blocks cover the 100-tool share');
   const rects = Array.from({ length: 100 }, (_, i) => blocks.appendChild(mk('rect', { x: Math.floor(i / 2) * CW + .3, y: 5 + (i % 2) * 18.5, width: CW - .6, height: 17.5, rx: .8, class: 'bill-blk' })));
+  const eagerBtn = H.$('#bill-eager'), deferBtn = H.$('#bill-defer');
+  let defer = false;
   function bill() {
-    const k = +n.value, tok = Math.round(k * TOK), share = tok / WIN;
+    const k = +n.value, tok = defer ? deferred(k) : Math.round(k * TOK), share = tok / WIN;
+    const shownBlocks = defer ? Math.min(k, LOADED) : k, namesW = defer ? 400 * k * NAME_TOK / WIN : 0;
+    eagerBtn.setAttribute('aria-pressed', !defer); deferBtn.setAttribute('aria-pressed', defer);
+    H.$('#bill-hd').textContent = defer
+      ? 'Tool bill · names up front, ' + LOADED + ' definitions loaded per request (docs: 3–5)'
+      : 'Tool bill · definitions loaded eagerly, before the first user message';
     H.$('#bill-nv').textContent = k;
     const big = H.$('#bill-tok');
     big.textContent = tok.toLocaleString('en-US');
@@ -483,10 +544,15 @@ get_stock_price  "Returns the most recent trade price, in USD,
     bwin.classList.toggle('bill-hot', share >= 0.25);
     H.$('#bill-share').textContent = H.pct(share * 100) + ' of a 200K window';
     H.$('#bill-left').textContent = '· ' + (WIN - tok).toLocaleString('en-US') + ' left for the task';
-    rects.forEach((r, i) => r.style.display = i < k ? '' : 'none');
-    n.setAttribute('aria-valuetext', k + ' tools, about ' + tok + ' tokens');
+    names.setAttribute('width', Math.max(0, namesW - .6));
+    blocks.setAttribute('transform', 'translate(' + namesW + ',0)');
+    rects.forEach((r, i) => r.style.display = i < shownBlocks ? '' : 'none');
+    mkText.textContent = defer && k === 93 ? 'eager 55k → deferred ' + tok.toLocaleString('en-US') : 'GitHub MCP, eager: 93 ≈ 55k';
+    n.setAttribute('aria-valuetext', k + ' tools, about ' + tok + ' tokens' + (defer ? ' with deferred loading' : ''));
   }
   n.addEventListener('input', bill);
+  eagerBtn.addEventListener('click', () => { defer = false; bill(); });
+  deferBtn.addEventListener('click', () => { defer = true; bill(); });
   bill();
   // drag directly on the window bar
   const dragTo = e => {

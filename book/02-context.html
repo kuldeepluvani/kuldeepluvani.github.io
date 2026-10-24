@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-747pfNHVEcFnpHvc2aWmqHZt6zLyPx+qeRgr+rb+bus='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-OC2SlcZz1S0jGl084VWUZuuTSjE5C1kHT541EpyrNVQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Context Engineering for AI Agents: Context Rot, Compaction, Memory · The Harness</title>
@@ -11,19 +11,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/site.css?v=8">
+<link rel="stylesheet" href="../assets/site.css?v=10">
 <style>
   /* chapter-specific instrument styles only — prefix: crg (Context Rot Gauge) */
   .crg-panel-title { font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); margin: 0 0 12px; }
   .crg-lbl { display: block; font: 11px/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 4px; }
-  .crg-hint { font: 12px/1.4 var(--mono); color: var(--amber); opacity: .85; }
-  .crg-hint::before { content: "▸ "; }
   .crg-hero { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: flex-end; margin: 0 0 18px; }
   .crg-hero .readout { font-size: clamp(44px, 8vw, 68px); transition: color .3s; }
   .crg-hero p { margin: 0; flex: 1 1 220px; min-width: 0; font: 13px/1.5 var(--mono); color: var(--text-dim); }
   .crg-chips .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; font-size: 12px; }
   .crg-sw { width: 10px; height: 3px; border-radius: 2px; background: var(--c); display: inline-block; }
-  .crg-chips .chip[aria-pressed="false"] { opacity: .5; }
+  .crg-chips .chip[aria-pressed="false"] { color: var(--text-faint); border-style: dashed; }
   .crg-chips .chip[aria-pressed="false"] .crg-sw { background: var(--text-faint); }
   .crg-strip, .crg-stream { display: block; width: 100%; height: auto; overflow: visible; }
   .crg-strip text, .crg-stream text { font: 10px var(--mono); fill: var(--text-faint); letter-spacing: .08em; }
@@ -54,7 +52,7 @@
   .crg-read { text-align: left; font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--rule); border-left: 3px solid var(--c); border-radius: 6px; padding: 10px 12px; cursor: pointer; transition: border-color .15s, background .15s, opacity .3s; }
   .crg-read:hover { border-color: var(--rule-hi); border-left-color: var(--c); }
   .crg-read[aria-pressed="true"] { background: rgba(62,230,255,.06); border-color: var(--c); }
-  .crg-read.off { opacity: .35; }
+  .crg-read.off { opacity: .55; }
   .crg-read small { display: block; font: 11px/1.3 var(--mono); color: var(--text-dim); letter-spacing: .04em; }
   .crg-read b { display: block; font: 600 24px/1.15 var(--sans); font-variant-numeric: tabular-nums; margin-top: 4px; }
   .crg-read i { font: normal 11px var(--mono); color: var(--text-faint); }
@@ -68,12 +66,20 @@
   .crg-miss { fill: rgba(255,179,71,.3); stroke: var(--amber); stroke-width: .75; }
   .crg-pay { fill: var(--amber); transition: height .4s cubic-bezier(.2,.8,.2,1), y .4s cubic-bezier(.2,.8,.2,1); }
   .crg-pay.hit { fill: var(--cyan); }
+  .crg-edit, .crg-pay.edit { fill: rgba(255,93,108,.45); stroke: var(--red); stroke-width: .75; }
+  .crg-cost span.v.fail, .crg-lbl .fail { color: var(--red); }
   .crg-costs { display: grid; gap: 10px; }
   .crg-cost { display: grid; grid-template-columns: 9.5em 1fr 5.5em; gap: 10px; align-items: center; font: 12px var(--mono); color: var(--text-dim); }
   .crg-cost span.v { color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
   .crg-sum { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-end; margin-top: 18px; }
   .crg-sum p { margin: 0; flex: 1 1 200px; min-width: 0; font: 12px/1.5 var(--mono); color: var(--text-faint); }
   .crg-sum .readout.mid { font-size: clamp(22px, 3vw, 30px); }
+  /* phones: SVG text must stay ≥ 11px once the 480-unit viewBox scales to ~320px; header tag gets its own line */
+  @media (max-width: 640px) {
+    .crg-svg text, .crg-strip text, .crg-stream text { font-size: 17px; }
+    #crg > header, #crg-cache > header { flex-wrap: wrap; }
+    #crg > header .tag, #crg-cache > header .tag { flex-basis: 100%; margin-left: 0; }
+  }
   @media (max-width: 480px) { .crg-cost { grid-template-columns: 7em 1fr 4.8em; } .crg-slider { grid-template-columns: 1fr auto; } .crg-slider label { grid-column: 1 / -1; } }
 </style>
 </head>
@@ -93,12 +99,12 @@
     <p class="eyebrow">The Harness · Chapter 2</p>
     <h1>Context</h1>
     <p class="dek">The window on the spec sheet is not the window the model can use. The harness decides, every turn, which tokens earn a place in it.</p>
-    <div class="ch-meta"><span>~9 MIN READ</span><span>1 LIVE INSTRUMENT</span></div>
+    <div class="ch-meta"><span>~9 MIN READ</span><span>2 LIVE INSTRUMENTS</span></div>
   </section>
 
   <div class="ch-body">
     <article class="prose">
-      <p class="lede">Give Claude 3.5 Sonnet a short passage and a question whose answer shares no keywords with it, and it finds the answer 87.5% of the time. Pad the passage out to 32K tokens, a quarter of the 128K the model was built to accept, and the score falls to 29.8%.<sup class="cite"><a href="#r1">1</a></sup> The task did not change. Only the amount of text around it did. The gap between what a window can hold and what a model can actually use is the subject of this chapter, and managing that gap is most of what a harness does.</p>
+      <p class="lede">Give Claude 3.5 Sonnet a short passage and a question whose answer shares no keywords with it, and it finds the answer 87.5% of the time. Pad the passage out to 32K tokens, a sixth of the 200K the model advertises, and the score falls to 29.8%.<sup class="cite"><a href="#r1">1</a></sup> The task did not change. Only the amount of text around it did. The gap between what a window can hold and what a model can actually use is the subject of this chapter, and managing that gap is most of what a harness does.</p>
 
       <h2 id="s-1">The job is context, not prompts</h2>
       <p>In mid-2025 several groups settled on the same name for this work within weeks of each other. Karpathy called it the art and science of filling the window with just the right information for the next step, and warned that too much, or the wrong kind, raises cost and lowers quality.<sup class="cite"><a href="#r2">2</a>,<a href="#r3">3</a></sup> Cognition put context engineering at the core of agent reliability.<sup class="cite"><a href="#r4">4</a></sup> Manus published the lessons of building its agent around it.<sup class="cite"><a href="#r5">5</a></sup> Anthropic defined it as curating and maintaining the best set of tokens during inference, with prompt writing as one subset of the job.<sup class="cite"><a href="#r6">6</a></sup></p>
@@ -111,7 +117,7 @@
       <p>Anthropic frames the cause as an attention budget. Every token attends to every other, so relationships grow with the square of length, and training data skews toward short sequences.<sup class="cite"><a href="#r6">6</a></sup> Chroma named the symptom: context rot.<sup class="cite"><a href="#r10">10</a></sup> The gauge below plots NoLiMa's numbers. Drag the scanline and watch where each model leaves its own 85% line.</p>
 
       <section class="instrument" id="crg" aria-label="Context Rot Gauge: effective length">
-        <header>Context Rot Gauge · 01 effective length<span class="tag">data: <a href="#r1">[1]</a> NoLiMa</span></header>
+        <header>Context Rot Gauge · 01 effective length<span class="tag">data · <a href="#r1">[1]</a> · illustrative</span></header>
         <div class="body">
           <div class="crg-hero">
             <div><small class="crg-lbl" id="crg-big-lbl">Claude 3.5 Sonnet · 8K tokens</small><div class="readout" id="crg-big">—</div></div>
@@ -126,7 +132,7 @@
             <input type="range" id="crg-len" min="0" max="5" step="0.05" value="3" aria-describedby="crg-len-out">
             <output id="crg-len-out" for="crg-len">8K</output>
           </div>
-          <div class="row" style="margin:-6px 0 16px"><button class="btn" id="crg-sweep" type="button">Sweep 1K → 32K</button><span class="crg-hint">Try: drag the chart to 8K. Claude 3.5 Sonnet already keeps only 71% of its score.</span></div>
+          <div class="row" style="margin:-6px 0 16px"><button class="btn" id="crg-sweep" type="button">Sweep 1K → 32K</button><p class="hint" id="crg-hint" style="margin:0">drag the chart to 8K. Claude 3.5 Sonnet already keeps only 71% of its score.</p></div>
           <p class="crg-panel-title">Models (toggle lines)</p>
           <div class="row crg-chips" id="crg-chips"></div>
           <p class="crg-panel-title" style="margin-top:14px">Accuracy at this length (select one to focus)</p>
@@ -148,35 +154,64 @@
         </table>
       </div>
 
-      <div class="note"><b>Field note</b>Measure your own effective length. Seed a fact your task depends on into transcripts of 4K, 16K and 64K tokens and check whether the agent still uses it. Set your compaction trigger below the length where that check starts failing, not at the length where the API starts returning errors.</div>
+      <p>These models are a generation or more old; NoLiMa is the cleanest controlled measurement, not the newest. Chroma's 2025 run on newer models, Claude 4 and Gemini 2.5 among them, found the same decline with length.<sup class="cite"><a href="#r10">10</a></sup> Windows have grown since: as of October 2026, Claude Code's current models offer 1M tokens.<sup class="cite"><a href="#r12">12</a></sup> A larger window raises the point where the API refuses input. None of these studies shows it moving the point where accuracy starts to fall, which is why you measure that yourself.</p>
+      <div class="note"><b>Field note</b>Measure your own effective length. Seed a fact your task depends on into transcripts of 4K, 16K and 64K tokens and check whether the agent still uses it. Set your compaction trigger below the length where that check starts failing, not at the length where the API starts returning errors. In Claude Code that is <code>/autocompact 200k</code> (any value from 100K to 1M).<sup class="cite"><a href="#r13">13</a></sup></div>
 
       <h2 id="s-3">Four ways context fails</h2>
-      <p>Drew Breunig sorted long-context failures into four kinds.<sup class="cite"><a href="#r12">12</a></sup> The taxonomy is useful because each one has a different fix, and applying the wrong one wastes a week.</p>
+      <p>Drew Breunig sorted long-context failures into four kinds.<sup class="cite"><a href="#r14">14</a></sup> The taxonomy is useful because each one has a different fix, and applying the wrong one wastes a week.</p>
       <div class="tbl-scroll">
         <table class="tbl">
           <thead><tr><th>Mode</th><th>What happens</th><th>Evidence</th><th>Fix</th></tr></thead>
           <tbody>
-            <tr><td>Poisoning</td><td>A hallucination or bad result enters context and is re-read as fact on every later turn</td><td>Breunig's definition; no single benchmark</td><td>Prune it or restart</td></tr>
-            <tr><td>Distraction</td><td>History grows until the model copies past actions instead of planning</td><td>Gemini 2.5 agent past ~100K tokens</td><td>Compact</td></tr>
-            <tr><td>Confusion</td><td>Irrelevant material, often tools, pulls the model off task</td><td>Llama 3.1 8B: fails with 46 tools, passes with 19</td><td>Fewer tools, loaded on demand</td></tr>
-            <tr><td>Clash</td><td>Parts of the context disagree with each other</td><td>Sharded prompts: average −39%; o3 98.1 → 64.1</td><td>Quarantine exploration</td></tr>
+            <tr><td>Poisoning</td><td>A hallucination or bad result enters context and is re-read as fact on every later turn</td><td>Breunig's definition; no single benchmark</td><td>Verify tool results before writing them to notes or memory; on a detected bad fact, restart from the last checkpoint file, not the transcript</td></tr>
+            <tr><td>Distraction</td><td>History grows until the model copies past actions instead of planning</td><td>Gemini 2.5 agent past ~100K tokens</td><td>Clear stale tool results, then compact, before your measured effective length; on long tasks, restart from a handoff file</td></tr>
+            <tr><td>Confusion</td><td>Irrelevant material, often tools, pulls the model off task</td><td>Llama 3.1 8B: fails with 46 tools, passes with 19</td><td>Expose only the tools this step needs; defer the rest behind a tool search, or route each task type to its own toolset</td></tr>
+            <tr><td>Clash</td><td>Parts of the context disagree with each other</td><td>Sharded prompts: average −39%; o3 98.1 → 64.1</td><td>Run exploration in a subagent and return only its conclusion; keep one thread that makes decisions</td></tr>
           </tbody>
         </table>
       </div>
-      <p>Clash deserves attention because it is the one harnesses cause. In the sharded-prompt study Breunig cites, splitting the same task's information across several turns cost 39% on average.<sup class="cite"><a href="#r12">12</a></sup> An agent that writes exploratory drafts into its main thread is manufacturing clash.</p>
+      <p>Clash deserves attention because it is the one harnesses cause. In the sharded-prompt study Breunig cites, splitting the same task's information across several turns cost 39% on average.<sup class="cite"><a href="#r14">14</a></sup> An agent that writes exploratory drafts into its main thread is manufacturing clash.</p>
 
       <h2 id="s-4">Budget it like RAM</h2>
-      <p>Karpathy's framing holds up: the model is the CPU and the context window is RAM.<sup class="cite"><a href="#r3">3</a></sup> MemGPT made the analogy literal, with a main context the model reads directly and an external store it pages data in from.<sup class="cite"><a href="#r13">13</a></sup> The practical consequence is to split cost into two lines: fixed overhead and per-step spend.</p>
-      <p>Fixed overhead is everything loaded before the user types. In Claude Code that means the system prompt, CLAUDE.md, the first 200 lines or 25KB of auto memory, MCP tool names and skill descriptions, with full MCP tool definitions deferred until used.<sup class="cite"><a href="#r14">14</a>,<a href="#r7">7</a></sup> Each of those tokens is paid on every turn of every session. Per-step spend is file reads, tool output and the model's own reasoning.</p>
-      <p>Progressive disclosure keeps overhead small. Agent Skills load in three levels: name and description up front, the body only when relevant, bundled files only when read.<sup class="cite"><a href="#r15">15</a></sup> The same discipline applies to instruction files. Anthropic's test for each line of CLAUDE.md is whether deleting it would cause mistakes; bloated files make the model ignore the instructions that matter.<sup class="cite"><a href="#r16">16</a></sup></p>
-      <p>When spend does pile up, cut in order of cost. Claude Code clears older tool outputs first and summarizes only if that is not enough.<sup class="cite"><a href="#r7">7</a></sup> At the API level, tool-result clearing triggers at 100,000 input tokens by default and keeps the last three tool uses.<sup class="cite"><a href="#r17">17</a></sup> Anthropic measured context editing alone at +29% on an agentic search eval, +39% with a memory tool added, and 84% fewer tokens over a 100-turn web search run.<sup class="cite"><a href="#r18">18</a></sup> As of June 2025 Claude Code auto-compacted at 95% of the window.<sup class="cite"><a href="#r3">3</a></sup></p>
-      <p>Compaction is lossy, so decide what survives it. After compacting, Claude Code re-reads up to five recently modified files (larger ones come back as paths), re-injects skill bodies capped at 5,000 tokens each and 25,000 in total, and reloads CLAUDE.md and memory from disk. Nested instruction files and path-scoped rules are summarized away.<sup class="cite"><a href="#r14">14</a></sup> Anthropic's advice for writing a summarizer is to tune for recall first, then precision, keeping decisions, open bugs and implementation details.<sup class="cite"><a href="#r6">6</a></sup></p>
+      <p>Karpathy's framing holds up: the model is the CPU and the context window is RAM.<sup class="cite"><a href="#r3">3</a></sup> MemGPT made the analogy literal, with a main context the model reads directly and an external store it pages data in from.<sup class="cite"><a href="#r15">15</a></sup> The practical consequence is to split cost into two lines: fixed overhead and per-step spend.</p>
+      <p>Fixed overhead is everything loaded before the user types. In Claude Code that means the system prompt, CLAUDE.md, the first 200 lines or 25KB of auto memory, skill descriptions and MCP tool names.<sup class="cite"><a href="#r12">12</a>,<a href="#r7">7</a></sup> MCP stays that small because tool search is on by default: only tool names and server instructions load at startup, and a full definition is fetched when a task needs that tool. On models older than the Claude 4 family, and on deployments that reject tool search, every definition loads upfront.<sup class="cite"><a href="#r16">16</a></sup> Chapter 3 shows what eager loading costs. In your own loop the same pattern is a catalog of names plus a search tool that returns full schemas on demand. Each of those tokens is paid on every turn of every session. Per-step spend is file reads, tool output and the model's own reasoning.</p>
+      <p>Progressive disclosure keeps overhead small. Agent Skills load in three levels: name and description up front, the body only when relevant, bundled files only when read.<sup class="cite"><a href="#r17">17</a></sup> The same discipline applies to instruction files. Anthropic's test for each line of CLAUDE.md is whether deleting it would cause mistakes; bloated files make the model ignore the instructions that matter.<sup class="cite"><a href="#r18">18</a></sup></p>
+      <p>When spend does pile up, cut in order of cost. Claude Code clears older tool outputs first and summarizes only if that is not enough.<sup class="cite"><a href="#r7">7</a></sup> At the API level, tool-result clearing triggers at 100,000 input tokens by default and keeps the last three tool uses.<sup class="cite"><a href="#r19">19</a></sup> Anthropic measured context editing alone at +29% on an agentic search eval, +39% with a memory tool added, and 84% fewer tokens over a 100-turn web search run.<sup class="cite"><a href="#r20">20</a></sup> As of October 2026, Claude Code compacts by default when the conversation reaches the model's limit, or at about 967K tokens on models with a native 1M window, and <code>/autocompact</code> sets an earlier trigger.<sup class="cite"><a href="#r13">13</a></sup></p>
+      <p>Compaction is lossy, so decide what survives it. After compacting, Claude Code re-reads up to five recently modified files (larger ones come back as paths), re-injects skill bodies capped at 5,000 tokens each and 25,000 in total, and reloads CLAUDE.md and memory from disk. Nested instruction files and path-scoped rules are summarized away until Claude next reads a file that triggers them, and SessionStart hooks matching the <code>compact</code> source run again and add their output.<sup class="cite"><a href="#r12">12</a></sup> Anthropic's advice for writing a summarizer is to tune for recall first, then precision, keeping decisions, open bugs and implementation details.<sup class="cite"><a href="#r6">6</a></sup></p>
 
       <div class="note"><b>Field note</b>Write down your compaction contract: the five things that must survive a summary (goal, decisions, open bugs, files touched, next step). Then force a compaction halfway through a real task and check the agent can name all five. If it cannot, the contract lives in a file, not in the transcript.</div>
+      <p class="dim" style="font-size:13px;margin-bottom:6px"><b>Copy this</b> · a minimal compaction contract: a handoff file the agent rewrites at each milestone, and a Claude Code hook that re-injects it after every compaction.<sup class="cite"><a href="#r21">21</a></sup></p>
+<pre>── .agent/handoff.md ── (agent rewrites at each milestone; keep under ~40 lines)
+## Goal
+One sentence on what "done" means and the check that proves it
+(e.g. `npm test` green and the repro in issue #123 passes).
+
+## Decisions (do not relitigate)
+- Chose X over Y because Z.
+
+## Open bugs and unknowns
+- [ ] auth/session.test.ts fails about 1 run in 5; cause unknown.
+
+## Files touched
+- src/auth/session.ts: refresh logic rewritten
+
+## Next step
+Exactly one action the next context takes first.
+
+── .claude/settings.json ── (re-inject the contract after compaction)
+{
+  "hooks": {
+    "SessionStart": [
+      { "matcher": "compact",
+        "hooks": [{ "type": "command", "command": "cat .agent/handoff.md" }] }
+    ]
+  }
+}</pre>
+      <p>In another harness or your own loop, prepend the file to the first message after any summarization step. The contract only works if the loop, not the model, decides that it is re-read.</p>
 
       <h2 id="s-5">Move it out, pull it in</h2>
       <p>The filesystem is the cheapest memory tier because it is restorable. The lightest version is a notes file the agent writes and rereads.<sup class="cite"><a href="#r6">6</a></sup> Manus has its agent rewrite a todo list every step, which pushes the goals to the recent end of context across tasks that average about 50 tool calls. It treats files as unlimited, persistent and directly operable, and compresses only in ways it can undo: keep the URL, drop the page.<sup class="cite"><a href="#r5">5</a></sup></p>
-      <p>Heavier systems formalize the tiers. Letta splits memory into core blocks the agent edits in context, searchable recall history, and an archival store, and on overflow evicts about 70% of messages behind a recursive summary.<sup class="cite"><a href="#r19">19</a></sup> Mem0 extracts and consolidates facts; on the LOCOMO benchmark it reported a 26% judge-score gain over OpenAI's memory, 91% lower p95 latency and over 90% fewer tokens than replaying full history.<sup class="cite"><a href="#r20">20</a></sup></p>
+      <p>Heavier systems formalize the tiers. Letta splits memory into core blocks the agent edits in context, searchable recall history, and an archival store, and on overflow evicts about 70% of messages behind a recursive summary.<sup class="cite"><a href="#r22">22</a></sup> Mem0 extracts and consolidates facts; on the LOCOMO benchmark it reported a 26% judge-score gain over OpenAI's memory, 91% lower p95 latency and over 90% fewer tokens than replaying full history.<sup class="cite"><a href="#r23">23</a></sup></p>
 
       <div class="note case"><b>Case study · a memory that argues with itself</b>
         <p>Every memory tier above shares a weakness: whatever gets written is believed. A wrong fact stored once is retrieved forever, which is context poisoning made permanent. <a href="../index.html#built">Mycelium</a>, one of my own projects, explores the opposite design: memory that has to earn its way in.</p>
@@ -190,29 +225,29 @@
         <p>The design bet is that memory quality is a verification problem, not a storage problem. That is the same lesson Chapter 5 draws for evals.</p>
       </div>
       <p>Retrieval has the same push-or-pull choice.</p>
-      <blockquote class="pull">“Claude Code doesn't use RAG currently. In our testing we found that agentic search out-performed RAG for the kinds of things people use Code for.”<cite>— Boris Cherny, Hacker News (2025)</cite></blockquote>
+      <blockquote class="pull">“Claude Code doesn't use RAG currently. In our testing we found that agentic search out-performed RAG for the kinds of things people use Code for.”<cite>— Boris Cherny, Hacker News (2025)<sup class="cite"><a href="#r24">24</a></sup></cite></blockquote>
       <p>Anthropic calls the pattern just-in-time context: hold lightweight identifiers such as paths, URLs and queries, and load the content only when a step needs it, with upfront retrieval kept for cases where speed matters.<sup class="cite"><a href="#r6">6</a></sup></p>
-      <p>Subagents push the same idea further by spending tokens in a separate window. Anthropic's research system uses about 15 times the tokens of a chat, and token usage alone explained 80% of the variance in its BrowseComp results.<sup class="cite"><a href="#r21">21</a></sup> Each subagent hands back a condensed summary of 1,000 to 2,000 tokens.<sup class="cite"><a href="#r6">6</a></sup> The limit is decisions.</p>
-      <blockquote class="pull">“Actions carry implicit decisions, and conflicting decisions carry bad results.”<cite>— Walden Yan, Cognition (2025)</cite></blockquote>
-      <p>Parallel workers that never see each other's traces make incompatible choices. Cognition's Flappy Bird example shows subagents building parts that rest on conflicting assumptions. Read-only investigators that report back to one decision-making thread are the safe form.<sup class="cite"><a href="#r4">4</a></sup></p>
+      <p>Subagents push the same idea further by spending tokens in a separate window. Anthropic's research system uses about 15 times the tokens of a chat, and token usage alone explained 80% of the variance in its BrowseComp results.<sup class="cite"><a href="#r25">25</a></sup> Each subagent hands back a condensed summary of 1,000 to 2,000 tokens.<sup class="cite"><a href="#r6">6</a></sup> The limit is decisions. Cognition's Walden Yan argues that every action an agent takes embeds a decision, so parallel workers that never see each other's traces make incompatible choices. Cognition's Flappy Bird example shows subagents building parts that rest on conflicting assumptions. Read-only investigators that report back to one decision-making thread are the safe form.<sup class="cite"><a href="#r4">4</a></sup></p>
 
       <h2 id="s-6">Pay attention to the cache</h2>
       <p>The cheapest token is one already sitting in the KV cache.</p>
       <blockquote class="pull">“the single most important metric for a production-stage AI agent”<cite>— Yichao “Peak” Ji, Manus, on KV-cache hit rate (2025)</cite></blockquote>
-      <p>Agent loops read far more than they write. Manus reports input-to-output ratios around 100:1, so the input price dominates the bill.<sup class="cite"><a href="#r5">5</a></sup> For Sonnet 4.5 input costs $3 per million tokens, a cache read $0.30, a five-minute cache write $3.75, and output $15.<sup class="cite"><a href="#r22">22</a></sup> The cache matches on prefix in the order tools, then system, then messages, and any change invalidates everything after it. Sonnet 4.5 needs at least 1,024 tokens to cache at all.<sup class="cite"><a href="#r22">22</a></sup></p>
-      <p>That makes cache discipline an architecture rule, not a style preference. Keep timestamps out of the system prompt, append instead of editing history, serialize deterministically, and mask tools rather than removing their definitions mid-session.<sup class="cite"><a href="#r5">5</a></sup> It also explains a tension from Section 4: clearing old tool results breaks the cached prefix, which is why the API lets you require a minimum amount cleared per edit so the rewrite pays for itself.<sup class="cite"><a href="#r17">17</a></sup></p>
+      <p>Agent loops read far more than they write. Manus reports input-to-output ratios around 100:1, so the input price dominates the bill.<sup class="cite"><a href="#r5">5</a></sup> At list prices as of October 2026, Sonnet 4.5 input costs $3 per million tokens, a cache read $0.30, a five-minute cache write $3.75, a one-hour write $6, and output $15.<sup class="cite"><a href="#r26">26</a></sup> The instrument below uses Sonnet 4.5 because its multipliers, 1.25× base for a write and 0.1× for a read, are the ones most models carry. Newer models discount reads further: Sonnet 5.5 lists input at $2 and bills reads at 5% of it.<sup class="cite"><a href="#r26">26</a></sup> The cache matches on prefix in the order tools, then system, then messages, and any change invalidates everything after it. Sonnet 4.5, now deprecated, needs at least 1,024 tokens to cache at all.<sup class="cite"><a href="#r26">26</a></sup></p>
+      <p>That makes cache discipline an architecture rule, not a style preference. Keep timestamps out of the system prompt, append instead of editing history, serialize deterministically, and mask tools rather than removing their definitions mid-session.<sup class="cite"><a href="#r5">5</a></sup> It also explains a tension from Section 4: clearing old tool results breaks the cached prefix, which is why the API lets you require a minimum amount cleared per edit so the rewrite pays for itself.<sup class="cite"><a href="#r19">19</a></sup></p>
 
       <section class="instrument" id="crg-cache" aria-label="Context Rot Gauge: cache economics">
-        <header>Context Rot Gauge · 02 cache economics<span class="tag">data: <a href="#r22">[22]</a> prices · <a href="#r5">[5]</a> ratio</span></header>
+        <header>Context Rot Gauge · 02 cache economics<span class="tag">data · <a href="#r26">[26]</a> <a href="#r5">[5]</a> · modelled</span></header>
         <div class="body">
           <div class="crg-calc">
             <label for="crg-p">Prefix resent per turn <output id="crg-p-out" for="crg-p"></output><input type="range" id="crg-p" min="2000" max="150000" step="1000" value="20000"></label>
             <label for="crg-t">Turns per session <output id="crg-t-out" for="crg-t"></output><input type="range" id="crg-t" min="1" max="200" step="1" value="50"></label>
             <label for="crg-h">Cache hit rate <output id="crg-h-out" for="crg-h"></output><input type="range" id="crg-h" min="0" max="100" step="1" value="90"></label>
             <label for="crg-r">Input : output ratio <output id="crg-r-out" for="crg-r"></output><input type="range" id="crg-r" min="10" max="300" step="5" value="100"></label>
+            <label for="crg-g">Idle gap between turns (5-min cache) <output id="crg-g-out" for="crg-g"></output><input type="range" id="crg-g" min="0" max="15" step="0.5" value="1"></label>
+            <label for="crg-n">Edit the system prompt at turn (0 = never) <output id="crg-n-out" for="crg-n"></output><input type="range" id="crg-n" min="0" max="200" step="1" value="0"></label>
           </div>
-          <p class="crg-panel-title">Turn stream · prefix per turn (cyan = cache read, amber = cache write) over what that turn bills for input</p>
-          <svg class="crg-stream" id="crg-stream" viewBox="0 0 480 72" aria-hidden="true"></svg>
+          <p class="crg-panel-title">Turn stream · prefix per turn (cyan = cache read, amber = cache write, red = prompt edit) over what that turn bills for input</p>
+          <svg class="crg-stream" id="crg-stream" viewBox="0 0 480 84" aria-hidden="true"></svg>
           <div class="crg-costs">
             <div class="crg-cost"><span>No cache (0%)</span><div class="bar amber"><span id="crg-bar0"></span></div><span class="v" id="crg-c0"></span></div>
             <div class="crg-cost"><span id="crg-lab-h">At 90% hits</span><div class="bar"><span id="crg-barh"></span></div><span class="v" id="crg-ch"></span></div>
@@ -222,18 +257,20 @@
             <div><small class="crg-lbl">vs no cache</small><div class="readout mid" id="crg-mult">4.0×</div></div>
             <p id="crg-detail" aria-live="polite"></p>
           </div>
-          <p class="crg-hint" style="margin:12px 0 0">Try: drag hit rate below 22%. Misses bill as cache writes at 1.25× input, and the cache starts losing money.</p>
+          <p class="hint" id="crg-hint2" style="margin:12px 0 0">drag the idle gap past 5 minutes, then drag hit rate below 22%. Either way every turn rewrites the whole prefix at 1.25× input and the cache loses money.</p>
         </div>
-        <div class="caption">Sonnet 4.5 list prices per million tokens <a href="#r22">[22]</a>: input $3, cache write (5-minute) $3.75, cache read $0.30, output $15. Default ratio 100:1 from Manus <a href="#r5">[5]</a>. Simplified model: every turn resends the same prefix, hits bill as reads, misses bill as cache writes, output is prefix ÷ ratio. Context growth and TTL expiry are ignored. The turn stream shows at most 60 turns and spreads hits deterministically at the chosen rate; it is an illustration of the same arithmetic, not a trace.</div>
+        <div class="caption">Sonnet 4.5 list prices per million tokens, as of October 2026 <a href="#r26">[26]</a>: input $3, cache write (5-minute) $3.75, cache read $0.30, output $15. Default ratio 100:1 from Manus <a href="#r5">[5]</a>. Simplified model: every turn resends the same prefix, hits bill as reads, misses bill as cache writes, output is prefix ÷ ratio. Context growth is ignored, so the break-even is a worst-case bound: a real loop reads the cached prefix and writes only each turn's new suffix. Expiry is modelled as a cliff: an idle gap longer than the 5-minute TTL <a href="#r26">[26]</a> forces every turn to a miss, billed as a cache write at $3.75, whatever the hit-rate slider says. A system-prompt edit at turn N is modelled as that one turn rewriting the whole prefix at $3.75; the turns after it read the new prefix at the chosen hit rate. Both use the same Sonnet 4.5 list prices, no others. The costs that matter in practice are covered below. The turn stream shows at most 60 turns and spreads hits deterministically at the chosen rate; it is an illustration of the same arithmetic, not a trace.</div>
       </section>
 
-      <p>Run the numbers and the shape is clear. A cache miss is billed as a write at 1.25× the base input price,<sup class="cite"><a href="#r22">22</a></sup> so hit rates below about 22% lose money. Past that point the 10× read discount dominates, and with output a hundredth of input, the session cost follows the hit rate almost exactly.</p>
+      <p>Run the numbers and the shape is clear. A cache miss is billed as a write at 1.25× the base input price,<sup class="cite"><a href="#r26">26</a></sup> so if every miss rewrote the whole prefix, hit rates below about 22% would lose money. Past that point the 10× read discount dominates, and with output a hundredth of input, the session cost follows the hit rate almost exactly. Treat the 22% as a worst-case bound. In a healthy loop each turn reads the cached prefix and writes only the new suffix, so the hit rate is high by construction.</p>
+      <p>Two things break that in practice. The first is expiry. The default cache lives five minutes, measured from the start of the request, and each hit refreshes it for free. A test suite, a build or a human approval that runs past the window means the next turn rewrites the whole prefix at 1.25×. A one-hour cache costs 2× base to write and pays off after two reads; Anthropic suggests it for side agents that run longer than five minutes.<sup class="cite"><a href="#r26">26</a></sup> The second is invalidation. Changing a tool definition invalidates the whole cache; changing the system prompt, or switches such as web search, invalidates the system and message layers.<sup class="cite"><a href="#r26">26</a></sup> A mid-session edit to either is a full rewrite. On the newest models you can append a system-role message instead of editing the top-level system field, and the cached prefix stays intact.<sup class="cite"><a href="#r26">26</a></sup> In your own loop, log cache-read and cache-write tokens per turn: a turn whose write is close to the whole prefix is the alarm.</p>
+      <p><a href="06-operating.html">Part 06</a> covers cost per task and model routing across a whole program.</p>
 
       <h2 id="s-7">What fills the window next</h2>
       <p>The pattern across this chapter is that a long context is a liability you manage, not a resource you fill. Keep fixed overhead small, cut stale results before summarizing, put durable state in files, pull content in on demand, and protect the cached prefix.</p>
       <p>Most of the per-step spend, though, is tool output: file reads, search hits, command logs. How much of it lands in the window depends on what tools the agent has, how they are described and what they return. That is Chapter 3.</p>
 
-      <details class="refbox" id="s-refs"><summary>References (22)</summary>
+      <details class="refbox" id="s-refs"><summary>References</summary>
       <ol class="refs">
         <li id="r1">Modarressi et al. (Adobe Research, LMU Munich), “NoLiMa: Long-Context Evaluation Beyond Literal Matching,” ICML 2025 / arXiv, February 2025. <a href="https://arxiv.org/abs/2502.05167">arxiv.org/abs/2502.05167</a></li>
         <li id="r2">Pure AI, “Karpathy Puts Context at the Core of AI Coding (secondary report of Karpathy’s June 2025 post),” Pure AI, September 2025. <a href="https://pureai.com/articles/2025/09/23/karpathy-puts-context-at-the-core-of-ai-coding.aspx">pureai.com/articles/2025/09/23/karpathy-puts-c…</a></li>
@@ -246,17 +283,21 @@
         <li id="r9">Leng, Portes, Havens, Zaharia, Carbin (Databricks), “Long Context RAG Performance of Large Language Models,” Databricks / arXiv, November 2024. <a href="https://arxiv.org/abs/2411.03538">arxiv.org/abs/2411.03538</a></li>
         <li id="r10">Hong, Troynikov, Huber (Chroma), “Context Rot: How Increasing Input Tokens Impacts LLM Performance,” Chroma, July 2025. <a href="https://www.trychroma.com/research/context-rot">trychroma.com/research/context-rot</a></li>
         <li id="r11">Liu, Lin, Hewitt, Paranjape, Bevilacqua, Petroni, Liang, “Lost in the Middle: How Language Models Use Long Contexts,” TACL / arXiv, July 2023. <a href="https://arxiv.org/abs/2307.03172">arxiv.org/abs/2307.03172</a></li>
-        <li id="r12">Drew Breunig, “How Long Contexts Fail,” dbreunig.com, June 2025. <a href="https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html">dbreunig.com/2025/06/22/how-contexts-fail-and-…</a></li>
-        <li id="r13">Packer et al. (UC Berkeley), “MemGPT: Towards LLMs as Operating Systems,” arXiv, October 2023. <a href="https://arxiv.org/abs/2310.08560">arxiv.org/abs/2310.08560</a></li>
-        <li id="r14">Anthropic, “Explore the context window,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/context-window">code.claude.com/docs/en/context-window</a></li>
-        <li id="r15">Anthropic, “Equipping agents for the real world with Agent Skills,” Anthropic Engineering, October 2025. <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">anthropic.com/engineering/equipping-agents-for…</a></li>
-        <li id="r16">Anthropic, “Claude Code best practices,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
-        <li id="r17">Anthropic, “Context editing,” Claude Developer Platform docs, accessed October 2026. <a href="https://platform.claude.com/docs/en/build-with-claude/context-editing">platform.claude.com/docs/en/build-with-claude/…</a></li>
-        <li id="r18">Anthropic, “Managing context on the Claude Developer Platform,” Claude blog, September 2025. <a href="https://claude.com/blog/context-management">claude.com/blog/context-management</a></li>
-        <li id="r19">Letta, “Agent Memory: How to Build Agents that Learn and Remember,” Letta blog, July 2025. <a href="https://www.letta.com/blog/agent-memory">letta.com/blog/agent-memory</a></li>
-        <li id="r20">Chhikara et al., “Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory,” arXiv, April 2025. <a href="https://arxiv.org/abs/2504.19413">arxiv.org/abs/2504.19413</a></li>
-        <li id="r21">Anthropic, “How we built our multi-agent research system,” Anthropic Engineering, June 2025. <a href="https://www.anthropic.com/engineering/multi-agent-research-system">anthropic.com/engineering/multi-agent-research…</a></li>
-        <li id="r22">Anthropic, “Prompt caching,” Claude Developer Platform docs, accessed October 2026. <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">platform.claude.com/docs/en/build-with-claude/…</a></li>
+        <li id="r12">Anthropic, “Explore the context window,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/context-window">code.claude.com/docs/en/context-window</a></li>
+        <li id="r13">Anthropic, “Model configuration” (Default auto-compact thresholds), Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/model-config">code.claude.com/docs/en/model-config</a></li>
+        <li id="r14">Drew Breunig, “How Long Contexts Fail,” dbreunig.com, June 2025. <a href="https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html">dbreunig.com/2025/06/22/how-contexts-fail-and-…</a></li>
+        <li id="r15">Packer et al. (UC Berkeley), “MemGPT: Towards LLMs as Operating Systems,” arXiv, October 2023. <a href="https://arxiv.org/abs/2310.08560">arxiv.org/abs/2310.08560</a></li>
+        <li id="r16">Anthropic, “Connect Claude Code to tools via MCP” (Scale with MCP tool search), Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/mcp">code.claude.com/docs/en/mcp</a></li>
+        <li id="r17">Anthropic, “Equipping agents for the real world with Agent Skills,” Anthropic Engineering, October 2025. <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">anthropic.com/engineering/equipping-agents-for…</a></li>
+        <li id="r18">Anthropic, “Claude Code best practices,” Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/best-practices">code.claude.com/docs/en/best-practices</a></li>
+        <li id="r19">Anthropic, “Context editing,” Claude Developer Platform docs, accessed October 2026. <a href="https://platform.claude.com/docs/en/build-with-claude/context-editing">platform.claude.com/docs/en/build-with-claude/…</a></li>
+        <li id="r20">Anthropic, “Managing context on the Claude Developer Platform,” Claude blog, September 2025. <a href="https://claude.com/blog/context-management">claude.com/blog/context-management</a></li>
+        <li id="r21">Anthropic, “Get started with Claude Code hooks” (Re-inject context after compaction), Claude Code docs, accessed October 2026. <a href="https://code.claude.com/docs/en/hooks-guide">code.claude.com/docs/en/hooks-guide</a></li>
+        <li id="r22">Letta, “Agent Memory: How to Build Agents that Learn and Remember,” Letta blog, July 2025. <a href="https://www.letta.com/blog/agent-memory">letta.com/blog/agent-memory</a></li>
+        <li id="r23">Chhikara et al., “Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory,” arXiv, April 2025. <a href="https://arxiv.org/abs/2504.19413">arxiv.org/abs/2504.19413</a></li>
+        <li id="r24">Boris Cherny, comment on Hacker News, February 2025. <a href="https://news.ycombinator.com/item?id=43164253">news.ycombinator.com/item?id=43164253</a></li>
+        <li id="r25">Anthropic, “How we built our multi-agent research system,” Anthropic Engineering, June 2025. <a href="https://www.anthropic.com/engineering/multi-agent-research-system">anthropic.com/engineering/multi-agent-research…</a></li>
+        <li id="r26">Anthropic, “Prompt caching,” Claude Developer Platform docs, accessed October 2026. <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">platform.claude.com/docs/en/build-with-claude/…</a></li>
       </ol>
       </details>
 
@@ -283,11 +324,13 @@
 
 <footer class="foot"><div class="wrap"><span>The Harness · a field manual by Kuldeep Luvani</span><span><a href="../index.html">Home</a> · <a href="sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani">GitHub</a></span></div></footer>
 
-<script src="../assets/site.js?v=8"></script>
+<script src="../assets/site.js?v=10"></script>
 <script>
 (() => {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const NS = 'http://www.w3.org/2000/svg';
+  // shared hint: ▸ Try line until the suggested state is reached, then the payoff line
+  const hint = (h, done, payoff) => { h.dataset.try ??= h.textContent; h.classList.toggle('done', done); h.textContent = done ? payoff : h.dataset.try; };
   const el = (tag, attrs = {}, parent) => {
     const n = document.createElementNS(NS, tag);
     for (const k in attrs) n.setAttribute(k, attrs[k]);
@@ -297,8 +340,9 @@
   // rAF loop for one instrument: runs `step` while it returns true and the instrument is on screen
   const loop = (root, step) => {
     let raf = 0, seen = false;
-    const tick = now => { raf = 0; if (seen && step(now)) raf = requestAnimationFrame(tick); };
-    const kick = () => { if (!raf && seen) raf = requestAnimationFrame(tick); };
+    const tick = now => { raf = 0; if (seen && !document.hidden && step(now)) raf = requestAnimationFrame(tick); };
+    const kick = () => { if (!raf && seen && !document.hidden) raf = requestAnimationFrame(tick); };
+    document.addEventListener('visibilitychange', kick);
     new IntersectionObserver(es => {
       seen = es[0].isIntersecting;
       if (seen) kick(); else { cancelAnimationFrame(raf); raf = 0; }
@@ -438,6 +482,7 @@
     big.textContent = H.pct(af);
     big.className = 'readout ' + cls(r);
     bigLbl.textContent = `${f.n} · ${fmtK(lx)} tokens · ${Math.round(r * 100)}% of base`;
+    hint(H.$('#crg-hint'), !attract && focus === 3 && Math.abs(lx - 3) < 0.12, 'at 8K Claude 3.5 Sonnet keeps 71% of its score, already past its 4K effective length.');
     if (announce) live.textContent =
       `${f.n}: effective length ${f.eff}K per the paper; interpolated crossing of its ${H.pct(0.85 * f.b)} line ≈ ${fmtK(cx)}. ` +
       `At ${fmtK(lx)} it keeps ${Math.round(r * 100)}% of its short-context score (${H.pct(f.b)}).`;
@@ -490,9 +535,13 @@
   const PRICE = { in: 3, write: 3.75, read: 0.30, out: 15 };
   // per-input-token price at hit rate h: hits are cache reads, misses are 5-minute cache writes
   const inPrice = h => h * PRICE.read + (1 - h) * PRICE.write;
-  const session = (P, T, h, R, cached) => {
-    const inTok = P * T, outTok = inTok / R;
-    return (inTok * (cached ? inPrice(h) : PRICE.in) + outTok * PRICE.out) / 1e6;
+  const TTL = 5;  // minutes; the default cache lifetime
+  // gap: idle minutes between turns — past the TTL every turn misses. N: turn whose system-prompt edit rewrites the whole prefix (0 = never)
+  const session = (P, T, h, R, cached, gap = 0, N = 0) => {
+    if (gap > TTL) h = 0;
+    const edit = cached && N >= 1 && N <= T;
+    const inCost = cached ? P * ((T - (edit ? 1 : 0)) * inPrice(h) + (edit ? PRICE.write : 0)) : P * T * PRICE.in;
+    return (inCost + (P * T / R) * PRICE.out) / 1e6;
   };
   const breakEven = (PRICE.write - PRICE.in) / (PRICE.write - PRICE.read);
   // which turns of the stream are drawn as hits: golden-ratio spread, so the count tracks the rate without flicker
@@ -503,14 +552,18 @@
   H.check(Math.abs(session(20000, 50, 0, 100, false) - 3.15) < 1e-9, '20K x 50 turns uncached = $3.15');
   H.check(Math.abs(session(20000, 50, 0.9, 100, true) - 0.795) < 1e-9, '20K x 50 turns at 90% hits = $0.795');
   H.check(Math.abs(Array.from({ length: 60 }, (_, i) => isHit(i, 0.9)).filter(Boolean).length / 60 - 0.9) < 0.05, 'stream hit pattern tracks hit rate');
+  H.check(Math.abs(session(20000, 50, 0.9, 100, true, 6) - session(20000, 50, 0, 100, true)) < 1e-12, 'idle gap past the TTL bills every turn as a write (0% hits)');
+  H.check(Math.abs(session(20000, 50, 0.9, 100, true, 5) - session(20000, 50, 0.9, 100, true)) < 1e-12, 'a gap of exactly 5 min still hits');
+  H.check(Math.abs(session(20000, 50, 0.9, 100, true, 0, 10) - session(20000, 50, 0.9, 100, true) - 0.0621) < 1e-9, 'one prompt edit = one 20K prefix rewrite = +$0.0621');
+  H.check(session(20000, 50, 0.9, 100, true, 0, 60) === session(20000, 50, 0.9, 100, true), 'an edit after the last turn costs nothing');
 
-  const ids = ['p', 't', 'h', 'r'].map(k => H.$('#crg-' + k));
+  const ids = ['p', 't', 'h', 'r', 'g', 'n'].map(k => H.$('#crg-' + k));
   const money = v => v < 10 ? '$' + v.toFixed(2) : '$' + v.toFixed(1);
 
   // turn stream geometry: columns rebuilt only when the turn count changes
   const stream = H.$('#crg-stream'), SW = 480, BASE = 38;
   const hitsG = el('g', { class: 'crg-hits' }, stream), missG = el('g', {}, stream), payG = el('g', {}, stream);
-  const lab0 = el('text', { x: 0, y: 71 }, stream), labN = el('text', { x: SW, y: 71, 'text-anchor': 'end' }, stream);
+  const lab0 = el('text', { x: 0, y: 82 }, stream), labN = el('text', { x: SW, y: 82, 'text-anchor': 'end' }, stream);
   lab0.textContent = 'TURN 1';
   let cols = [];
   const buildStream = n => {
@@ -526,31 +579,40 @@
   const tgt = { c0: 0, ch: 0 }, shown = { c0: 0, ch: 0 };
   let hcur = +ids[2].value, htarget = hcur, attract2 = !reduce;
   function compute(announce) {
-    const [P, T, hp, R] = ids.map(i => +i.value), h = hp / 100;
+    const [P, T, hp, R, G, N] = ids.map(i => +i.value), expired = G > TTL, h = expired ? 0 : hp / 100, edit = N >= 1 && N <= T;
     H.$('#crg-p-out').textContent = (P / 1000) + 'K tok';
     H.$('#crg-t-out').textContent = T;
     H.$('#crg-h-out').textContent = hp + '%';
     H.$('#crg-r-out').textContent = R + ':1';
-    tgt.c0 = session(P, T, h, R, false); tgt.ch = session(P, T, h, R, true);
+    H.$('#crg-g-out').textContent = G.toFixed(1) + ' min' + (expired ? ' · expired' : '');
+    H.$('#crg-n-out').textContent = N ? 'turn ' + N + (edit ? '' : ' (after last turn)') : 'never';
+    tgt.c0 = session(P, T, h, R, false); tgt.ch = session(P, T, h, R, true, G, N);
     const max = Math.max(tgt.c0, tgt.ch);
     H.$('#crg-bar0').style.width = (tgt.c0 / max * 100) + '%';
     H.$('#crg-barh').style.width = (tgt.ch / max * 100) + '%';
-    H.$('#crg-lab-h').textContent = `At ${hp}% hits`;
-    H.$('#crg-odo-lbl').textContent = `Session at ${hp}% hits`;
+    const hitsLbl = expired ? `At ${hp}% hits · <span class="fail">expired → 0%</span>` : `At ${hp}% hits`;
+    H.$('#crg-lab-h').innerHTML = hitsLbl;
+    H.$('#crg-odo-lbl').innerHTML = 'Session ' + hitsLbl.replace('At', 'at');
+    const editCost = edit ? session(P, T, h, R, true, G, N) - session(P, T, h, R, true, G) : 0;
     const n = Math.min(T, 60);
     if (cols.length !== n) buildStream(n);
     const ph = 6 + 30 * P / 150000;
     cols.forEach((c, i) => {
-      const hit = isHit(i, h), price = hit ? PRICE.read : PRICE.write;
-      c.pre.setAttribute('class', hit ? 'crg-hit' : 'crg-miss');
+      const isEdit = edit && i === N - 1, hit = !isEdit && isHit(i, h), price = hit ? PRICE.read : PRICE.write;
+      c.pre.setAttribute('class', isEdit ? 'crg-edit' : hit ? 'crg-hit' : 'crg-miss');
       c.pre.setAttribute('y', BASE - ph); c.pre.setAttribute('height', ph);
       (hit ? hitsG : missG).appendChild(c.pre);
-      c.pay.setAttribute('class', 'crg-pay' + (hit ? ' hit' : ''));
+      c.pay.setAttribute('class', 'crg-pay' + (hit ? ' hit' : isEdit ? ' edit' : ''));
       c.pay.setAttribute('height', price / PRICE.write * 20);
     });
     if (announce) H.$('#crg-detail').textContent =
       `${((P * T) / 1e6).toFixed(2)}M input, ${((P * T / R) / 1e3).toFixed(1)}K output tokens. ` +
-      `Input alone: ${(PRICE.in / inPrice(h)).toFixed(1)}× cheaper (10× at 100%). Break-even hit rate ${H.pct(breakEven * 100)}.`;
+      `Input alone: ${(PRICE.in / inPrice(h)).toFixed(1)}× cheaper (10× at 100%). Break-even hit rate ${H.pct(breakEven * 100)}, a worst-case bound. ` +
+      (expired ? `Idle gap ${G.toFixed(1)} min exceeds the ${TTL}-minute TTL: every turn re-bills the prefix as a cache write at $${PRICE.write.toFixed(2)}. ` : '') +
+      (edit ? `System-prompt edit at turn ${N}: one full prefix rewrite, +${money(editCost)}${expired ? ' (every turn is already a write)' : ''}. ` : '');
+    hint(H.$('#crg-hint2'), !attract2 && (expired || hp < breakEven * 100), expired
+      ? `the cliff: past ${TTL} minutes idle the whole prefix is re-billed as a write every turn, and the cache costs more than none.`
+      : `below ${H.pct(breakEven * 100)} every miss rewrites the whole prefix at 1.25× input, and the cache costs more than none (worst-case bound).`);
   }
   // odometer: tweened dollars and multiple
   function paint() {
@@ -579,7 +641,7 @@
   });
   ids.forEach(i => i.addEventListener('input', () => {
     attract2 = false; compute(true);
-    if (reduce) Object.assign(shown, tgt);
+    Object.assign(shown, tgt);  // readout is exact on every user action; only the attract loop tweens
     paint(); kick2();
   }));
   compute(true);

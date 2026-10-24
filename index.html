@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-T90tr/ERrkLQpTJRgO88JYh/rJEZrbWfvr+sNczeOi8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ag4Z2DrBpK0O+HkRZQI+nzAyhVwYqX2C+cfxh741ofs='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Harness — Harness Engineering for AI Agents · Kuldeep Luvani</title>
@@ -21,17 +21,18 @@
 {"@type":"Chapter","position":5,"name":"Evals & Evolution","url":"https://kuldeepluvani.github.io/book/05-evals.html"}]}
 </script>
 <meta property="og:title" content="The Harness — a field manual for AI harness engineering">
-<meta property="og:description" content="Agent = Model + Harness. Six parts, six live instruments. By Kuldeep Luvani.">
+<meta property="og:description" content="Agent = Model + Harness. Seven parts with live instruments. By Kuldeep Luvani.">
 <meta name="theme-color" content="#05070a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/site.css?v=8">
+<link rel="stylesheet" href="assets/site.css?v=10">
 <style>
   /* ---- hero ---- */
   .hero { min-height: calc(100svh - 50px); display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; gap: 40px; padding-top: 40px; padding-bottom: 64px; }
-  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 32px; } .orrery { order: -1; max-width: 340px; margin: 0 auto; } }
-  .boot { font: 13px/1.75 var(--mono); color: var(--text-faint); min-height: 9.5em; margin-bottom: 18px; }
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 32px; } .orrery { max-width: 320px; margin: 8px auto 0; } }
+  @media (max-width: 600px) { .boot { display: none; } }
+  .boot { font: 13px/1.75 var(--mono); color: var(--text-faint); min-height: 14.3em; margin-bottom: 18px; }
   .boot .ok { color: var(--green); }
   .boot .k { color: var(--cyan); }
   .boot .caret { display: inline-block; width: .6em; height: 1.05em; vertical-align: -2px; background: var(--cyan); animation: blink 1s steps(1) infinite; }
@@ -66,7 +67,9 @@
   .orrery .node { cursor: pointer; }
   .orrery .node circle { fill: var(--panel); stroke: var(--cyan-dim); stroke-width: 1.2; transition: stroke .2s, fill .2s; }
   .orrery .node:hover circle, .orrery .node:focus circle { stroke: var(--cyan); fill: #0e2530; }
-  .orrery .node text { fill: var(--text); font: 500 13px var(--mono); letter-spacing: .06em; pointer-events: none; }
+  .orrery .core-link circle { fill: #071a20; stroke: #3ee6ff; }
+  .orrery.idle .spin, .orrery.idle .spin g, .orrery.idle .pulse { animation-play-state: paused; }
+  .orrery .node text { fill: var(--text); font: 500 12px var(--mono); letter-spacing: .06em; pointer-events: none; }
   .orrery .node .n { fill: var(--cyan); font-size: 11px; }
   .orrery .core { fill: url(#coreGrad); }
   .orrery .core-label { fill: #fff; font: 600 20px var(--sans); letter-spacing: .14em; }
@@ -88,6 +91,8 @@
   .toc a { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 28px 26px 26px; background: var(--void); text-decoration: none; color: var(--text); min-height: 260px; transition: background .25s; overflow: hidden; }
   .toc a::after { content: ""; position: absolute; inset: auto -40% -60% auto; width: 80%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(62,230,255,.14), transparent 70%); opacity: 0; transition: opacity .3s; }
   .toc a:hover { background: var(--panel); }
+  .toc a:last-child:nth-child(3n+1) { grid-column: 1 / -1; min-height: 0; }
+  @media (max-width: 960px) { .toc a:last-child:nth-child(3n+1) { grid-column: auto; } .toc a:last-child:nth-child(odd) { grid-column: 1 / -1; } }
   .toc a:hover::after { opacity: 1; }
   .toc .no { font: 600 13px/1 var(--mono); color: var(--cyan); letter-spacing: .14em; }
   .toc h3 { margin: 0; font-size: 25px; }
@@ -117,7 +122,7 @@
   .myc ol { margin: 6px 0 0; padding-left: 1.2em; color: var(--text-dim); font-size: 15.5px; line-height: 1.55; }
   .myc ol li { margin-bottom: 8px; }
   .myc ol b { color: var(--text); font-weight: 600; }
-  .myc-fig { border: 1px solid var(--rule); border-radius: 10px; background: var(--void); padding: 10px; }
+  .myc-fig { align-self: start; border: 1px solid var(--rule); border-radius: 10px; background: var(--void); padding: 10px; }
   .myc-fig svg { width: 100%; height: auto; display: block; }
   .myc-fig text { font: 500 11px var(--mono); fill: var(--text-dim); letter-spacing: .04em; }
   .myc-fig .stage rect { fill: var(--panel-2); stroke: var(--rule-hi); }
@@ -146,6 +151,7 @@
   .contact { display: grid; gap: 10px; }
   .contact a { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; border: 1px solid var(--rule); border-radius: 10px; text-decoration: none; color: var(--text); font: 500 14px/1 var(--mono); background: var(--panel); transition: border-color .2s; }
   .contact a span { color: var(--text-faint); font-size: 12px; }
+  .cta-line { margin: 0 0 6px; color: var(--text); font-size: 17px; }
   .contact a:hover { border-color: var(--cyan-dim); color: var(--cyan); }
 </style>
 </head>
@@ -166,22 +172,22 @@
       <div class="boot" id="boot" aria-hidden="true"></div>
       <h1>The <em>Harness</em></h1>
       <p class="equation"><b>AGENT</b> = <b>MODEL</b> + <span class="h">HARNESS</span></p>
-      <p class="byline">A field manual by <a href="#about">Kuldeep Luvani</a> · Software Engineer · <a href="#built">see my portfolio ↓</a></p>
+      <p class="byline">A field manual by <a href="#about">Kuldeep Luvani</a> · Software Engineer</p>
       <p class="dek">A free field manual for the engineering around the model: the loop, the context, the tools, the guardrails and the evals that decide whether an agent ships. Every chapter has a live instrument you can operate.</p>
       <div class="cta">
         <a class="go" href="book/00-prologue.html">Begin reading →</a>
         <a class="alt" href="#built">What I've built</a>
       </div>
       <div class="stats">
-        <div><b>6</b>parts</div>
+        <div><b>7</b>parts</div>
 
-        <div><b>6</b>live instruments</div>
-        <div><b>0</b>paywalls</div>
+        <div><b>11</b>live instruments</div>
+        <div><b>Oct 2026</b>last updated</div>
       </div>
     </div>
 
-    <div class="orrery" aria-label="The model at the centre, with the five harness subsystems in orbit. Each subsystem links to its chapter.">
-      <svg viewBox="0 0 600 600" role="img">
+    <div class="orrery" role="group" aria-label="The model at the centre, with the harness subsystems in orbit. The core opens the prologue; each subsystem opens its chapter.">
+      <svg viewBox="0 0 600 600">
         <defs>
           <radialGradient id="coreGrad">
             <stop offset="0%" stop-color="#3ee6ff" stop-opacity=".55"/>
@@ -195,9 +201,12 @@
         <circle class="pulse" cx="300" cy="300" r="200"/>
         <circle class="pulse" cx="300" cy="300" r="200" style="animation-delay:2s"/>
         <circle class="core" cx="300" cy="300" r="96"/>
-        <circle cx="300" cy="300" r="44" fill="#071a20" stroke="#3ee6ff" stroke-width="1.2"/>
-        <text class="core-label" x="300" y="306" text-anchor="middle">MODEL</text>
-        <text class="core-sub" x="300" y="372" text-anchor="middle">EVERYTHING ELSE IS HARNESS</text>
+        <a href="book/00-prologue.html" class="node core-link" aria-label="Prologue: Agent = Model + Harness">
+          <circle cx="300" cy="300" r="44" fill="#071a20" stroke="#3ee6ff" stroke-width="1.2"/>
+          <text class="core-label" x="300" y="306" text-anchor="middle">MODEL</text>
+        </a>
+        <text class="core-sub" x="300" y="364" text-anchor="middle">EVERYTHING ELSE</text>
+        <text class="core-sub" x="300" y="378" text-anchor="middle">IS HARNESS</text>
         <g id="orbits"></g>
       </svg>
     </div>
@@ -207,9 +216,9 @@
     <div class="sec-head rise">
       <div>
         <p class="eyebrow">Contents · Harness engineering</p>
-        <h2>Six parts. One system.</h2>
+        <h2>Seven parts. One system.</h2>
       </div>
-      <p>The same model can score 30 points apart depending on what wraps it. The harness is that wrapping, and this book takes it apart one subsystem at a time.</p>
+      <p>Hold the model fixed, change what wraps it, and scores move by 3 to 30 points. In controlled studies the harness moves the number more than the model does. The harness is that wrapping, and this book takes it apart one subsystem at a time.</p>
     </div>
     <div class="toc rise" id="toc"></div>
   </section>
@@ -260,25 +269,18 @@
         <div class="tags"><span class="ch">Ch 3 · Deterministic hooks</span><a href="https://github.com/kuldeepluvani/ClaudeGotchi" target="_blank" rel="noopener">GitHub ↗</a></div>
       </article>
 
-      <article class="card rise">
-        <p class="sub">BRAINCORE</p>
-        <h3>Your digital brain, in sync</h3>
-        <p>A personal knowledge base on vector search: ingest documents, search them semantically, and get contextual answers from your own data.</p>
-        <div class="tags"><span class="ch">Ch 2 · Retrieval</span><span>private repo</span></div>
-      </article>
-
-      <article class="card rise">
+      <article class="card wide rise">
         <p class="sub">BRAINCAST</p>
         <h3>Podcast intelligence</h3>
         <p>Transcript analysis and AI-assisted content predictions across podcast catalogues, with a full web stack behind it.</p>
         <div class="tags"><span class="ch">Ch 1 · Pipelines</span><a href="https://github.com/aircuboid/BrainCast" target="_blank" rel="noopener">GitHub ↗</a></div>
       </article>
 
-      <article class="card rise">
+      <article class="card wide rise">
         <p class="sub">COCOSTORY</p>
         <h3>Stories for small humans</h3>
         <p>An interactive children's story generator that creates personalized, illustrated stories with AI-generated narratives.</p>
-        <div class="tags"><span class="ch">Ch 4 · Safe outputs</span><a href="https://github.com/aircuboid/cocostory" target="_blank" rel="noopener">GitHub ↗</a></div>
+        <div class="tags"><a href="https://github.com/aircuboid/cocostory" target="_blank" rel="noopener">GitHub ↗</a></div>
       </article>
     </div>
 
@@ -300,11 +302,12 @@
       <div class="rise">
         <p class="eyebrow">Operator</p>
         <h2 style="margin-top:10px">Kuldeep Luvani</h2>
-        <p class="dim" style="font-family:var(--mono);font-size:14px;letter-spacing:.06em">SOFTWARE ENGINEER</p>
+        <p class="dim" style="font-family:var(--mono);font-size:14px;letter-spacing:.06em">SOFTWARE ENGINEER · AGENT HARNESSES &amp; AI PLATFORM TOOLING</p>
         <p>I started in machine learning, with computer vision, NLP and recommender systems, back when the model was the whole product. Now I build the scaffolding around models: memory, hooks, knowledge graphs, and the verification loops that make an agent trustworthy.</p>
         <p>I wrote <em>The Harness</em> because the most useful knowledge in this field is scattered across papers, engineering posts and incident write-ups. This is my attempt to put it in one place, in order, with the receipts.</p>
       </div>
       <div class="contact rise">
+        <p class="cta-line">Taking an agent to production? I like comparing notes on harness design, evals and guardrails. The fastest way to reach me is email.</p>
         <a href="https://github.com/kuldeepluvani" target="_blank" rel="noopener">GitHub <span>@kuldeepluvani ↗</span></a>
         <a href="https://www.linkedin.com/in/kuldeep-luvani-28a93336/" target="_blank" rel="noopener">LinkedIn <span>connect ↗</span></a>
         <a href="mailto:kuldeepluvani@gmail.com">Email <span>kuldeepluvani@gmail.com</span></a>
@@ -316,7 +319,7 @@
 
 <footer class="foot"><div class="wrap"><span>© 2026 Kuldeep Luvani · The Harness is free to read and share with attribution.</span><span><a href="#book">Contents</a> · <a href="book/sources.html">Sources</a> · <a href="https://github.com/kuldeepluvani/kuldeepluvani.github.io">Source code</a></span></div></footer>
 
-<script src="assets/site.js?v=8"></script>
+<script src="assets/site.js?v=10"></script>
 <script>
 (() => {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -327,12 +330,13 @@
     { f: '03-tools', n: '03', t: 'Tools & Environment', short: 'TOOLS', d: 'The agent-computer interface as a design surface: fewer, sharper tools, MCP and its bill, sandboxes, skills and hooks.', i: 'ACI ablation board' },
     { f: '04-guardrails', n: '04', t: 'Guardrails & Trust', short: 'GUARDRAILS', d: 'The lethal trifecta, real incidents, permission tiers, and why deterministic enforcement beats a sentence in a prompt.', i: 'Trifecta checker' },
     { f: '05-evals', n: '05', t: 'Evals & Evolution', short: 'EVALS', d: 'pass@k versus pass^k, contamination, graders that lie, and harnesses that improve themselves without regressing.', i: 'Reliability dial' },
+    { f: '06-operating', n: '06', t: 'Operating the Harness', short: 'OPERATE', d: 'For the people who staff, fund and govern agent programs: build vs buy, team topology, the maturity ladder, the risk review and the exec dashboard.', i: 'Readiness checklist' },
   ];
 
   // contents grid
   H.$('#toc').innerHTML = CH.map(c => `
     <a href="book/${c.f}.html">
-      <span class="no">${c.n === '00' ? 'PROLOGUE' : 'CHAPTER ' + c.n}</span>
+      <span class="no">${c.n === '00' ? 'PROLOGUE' : c.n === '06' ? 'PART 06 · FOR PROGRAM OWNERS' : 'CHAPTER ' + c.n}</span>
       <h3>${c.t}</h3>
       <p>${c.d}</p>
       <span class="inst">Live · ${c.i}</span>
@@ -341,7 +345,7 @@
   // orrery: five subsystems on two orbits, each a link to its chapter
   const NS = 'http://www.w3.org/2000/svg';
   const orbits = H.$('#orbits');
-  const rings = [{ r: 158, t: '80s', rev: false, items: [1, 2, 3] }, { r: 262, t: '120s', rev: true, items: [4, 5] }];
+  const rings = [{ r: 158, t: '80s', rev: false, items: [1, 2, 3] }, { r: 262, t: '120s', rev: true, items: [4, 5, 6] }];
   rings.forEach(ring => {
     const g = document.createElementNS(NS, 'g');
     g.setAttribute('class', 'spin' + (ring.rev ? ' rev' : ''));
@@ -356,7 +360,7 @@
       link.setAttribute('aria-label', `Chapter ${idx}: ${c.t}`);
       // counter-rotate the label so text stays upright while the orbit turns
       link.innerHTML = `<g style="transform-origin:${x}px ${y}px;animation:spin ${ring.t} linear infinite ${ring.rev ? '' : 'reverse'}">
-        <circle cx="${x}" cy="${y}" r="46"/>
+        <circle cx="${x}" cy="${y}" r="52"/>
         <text class="n" x="${x}" y="${y - 6}" text-anchor="middle">${c.n}</text>
         <text x="${x}" y="${y + 12}" text-anchor="middle">${c.short}</text></g>`;
       g.appendChild(link);
@@ -372,25 +376,25 @@
     ['  loading tools ......... ', 'ok', 'ok'],
     ['  loading guardrails .... ', 'ok', 'ok'],
     ['  loading evals ......... ', 'ok', 'ok'],
+    ['  loading operations .... ', 'ok', 'ok'],
     ['> agent ready. model attached.', 'k'],
   ];
   const boot = H.$('#boot');
   const render = n => boot.innerHTML = lines.slice(0, n).map(([t, cls, tail]) =>
     tail ? `${t}<span class="${cls}">[${tail}]</span>` : `<span class="${cls}">${t}</span>`).join('<br>') + ' <span class="caret"></span>';
   if (reduce) render(lines.length);
-  else { let i = 0; render(0); const iv = setInterval(() => { render(++i); if (i >= lines.length) clearInterval(iv); }, 260); }
+  else { let i = 0; render(0); const iv = setInterval(() => { render(++i); if (i >= lines.length) { clearInterval(iv); setTimeout(() => boot.querySelector('.caret')?.remove(), 2400); } }, 260); }
 
   // mycelium concept diagram: 5 perception stages → graph → clusters → specialists → meta-agents
   const fig = H.$('#mycFig');
   const stages = ['STRUCTURE', 'EXTRACT', 'CHALLENGE', 'CONSISTENCY', 'RECONCILE'];
   let svg = '';
-  svg += `<text x="12" y="22" fill="var(--text-faint)">NOTES + CODE</text>`;
-  svg += `<path class="flow" d="M70 18 H 92"/>`;
+  svg += `<text x="12" y="14" fill="var(--text-faint)">NOTES + CODE →</text>`;
   stages.forEach((s, i) => {
-    const x = 96 + i * 84;
-    svg += `<g class="stage" data-i="${i}"><rect x="${x}" y="6" width="78" height="26" rx="4"/><text x="${x + 39}" y="23" text-anchor="middle">${s}</text></g>`;
+    const x = 12 + i * 98;
+    svg += `<g class="stage" data-i="${i}"><rect x="${x}" y="22" width="90" height="26" rx="4"/><text x="${x + 45}" y="39" text-anchor="middle">${s}</text></g>`;
   });
-  svg += `<path class="flow" d="M490 32 V 60 H 260 V 80"/>`;
+  svg += `<path class="flow" d="M462 48 V 64 H 260 V 82"/>`;
   // graph: deterministic pseudo-random layout in three clusters
   const seed = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(7);
   const clusters = [{ cx: 120, cy: 190, c: 'var(--cyan)' }, { cx: 260, cy: 150, c: 'var(--violet)' }, { cx: 395, cy: 200, c: 'var(--green)' }];
@@ -399,7 +403,8 @@
   const edges = [];
   nodes.forEach((n, i) => nodes.forEach((m, j) => { if (j > i && Math.hypot(n.x - m.x, n.y - m.y) < (n.ci === m.ci ? 38 : 30)) edges.push([n, m]); }));
   svg += edges.map(([a, b]) => `<line class="edge" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`).join('');
-  svg += nodes.map((n, i) => `<circle class="gnode" data-ci="${n.ci}" cx="${n.x}" cy="${n.y}" r="3.2" fill="var(--text-faint)"/>`).join('');
+  const linked = new Set(edges.flat());
+  svg += nodes.filter(n => linked.has(n)).map((n, i) => `<circle class="gnode" data-ci="${n.ci}" cx="${n.x}" cy="${n.y}" r="3.2" fill="var(--text-faint)"/>`).join('');
   svg += `<text x="12" y="100" fill="var(--text-faint)">KNOWLEDGE GRAPH · confidence · decay · provenance</text>`;
   // specialists + meta
   clusters.forEach((cl, i) => {
@@ -420,7 +425,11 @@
     step++;
   };
   tick();
-  if (!reduce) setInterval(tick, 900);
+  const inView = el => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; };
+  if (!reduce) setInterval(() => { if (!document.hidden && inView(fig)) tick(); }, 900);
+  const orr = H.$('.orrery');
+  const idle = () => orr.classList.toggle('idle', !inView(orr));
+  addEventListener('scroll', idle, { passive: true }); idle();
 })();
 </script>
 </body>
